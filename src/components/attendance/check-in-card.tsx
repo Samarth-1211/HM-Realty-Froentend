@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Select } from '@/components/ui/select'
 import { Spinner } from '@/components/ui/spinner'
 import { Badge } from '@/components/ui/badge'
-import { useCheckIn, useTodayAttendance } from '@/hooks/queries/use-attendance'
+import { useCheckIn, useCheckOut, useTodayAttendance } from '@/hooks/queries/use-attendance'
 import { ATTENDANCE_STATUS_COLORS, ATTENDANCE_STATUS_LABELS } from '@/lib/constants'
 import { AttendanceStatus } from '@/types'
 
@@ -18,6 +18,7 @@ const DAY_TYPES: { value: string; label: string }[] = [
 export function CheckInCard() {
   const { data: today, isLoading } = useTodayAttendance()
   const checkIn = useCheckIn()
+  const checkOut = useCheckOut()
   const [dayType, setDayType] = useState<string>(AttendanceStatus.PRESENT)
 
   return (
@@ -46,6 +47,26 @@ export function CheckInCard() {
                     new Date(today.checkInAt),
                   )}
                 </p>
+              )}
+              {today.checkOutAt ? (
+                <p className="mt-1 flex items-center gap-1 text-xs text-slate-400">
+                  <Clock className="size-3" />
+                  Checked out at{' '}
+                  {new Intl.DateTimeFormat('en-IN', { hour: '2-digit', minute: '2-digit' }).format(
+                    new Date(today.checkOutAt),
+                  )}
+                </p>
+              ) : (
+                today.markedBy === 'EMPLOYEE' && (
+                  <Button
+                    variant="secondary"
+                    className="mt-2"
+                    loading={checkOut.isPending}
+                    onClick={() => checkOut.mutate()}
+                  >
+                    Check Out
+                  </Button>
+                )
               )}
             </div>
           </div>

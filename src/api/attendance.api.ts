@@ -15,6 +15,8 @@ export const attendanceApi = {
   checkIn: (payload: CheckInPayload) =>
     apiClient.post<Attendance>('/attendance/check-in', payload).then((r) => r.data),
 
+  checkOut: () => apiClient.post<Attendance>('/attendance/check-out').then((r) => r.data),
+
   today: () => apiClient.get<Attendance | null>('/attendance/today').then((r) => r.data),
 
   mine: (query: AttendanceRangeQuery = {}) =>
@@ -23,6 +25,11 @@ export const attendanceApi = {
   team: (date?: string) =>
     apiClient
       .get<TeamAttendanceItem[]>('/attendance/team', { params: date ? { date } : {} })
+      .then((r) => r.data),
+
+  org: (date?: string) =>
+    apiClient
+      .get<TeamAttendanceItem[]>('/attendance/org', { params: date ? { date } : {} })
       .then((r) => r.data),
 
   forEmployee: (employeeId: string, query: AttendanceRangeQuery = {}) =>

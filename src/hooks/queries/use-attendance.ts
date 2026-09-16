@@ -26,6 +26,14 @@ export function useTeamAttendance(date?: string, enabled = true) {
   })
 }
 
+export function useOrgAttendance(date?: string, enabled = true) {
+  return useQuery({
+    queryKey: queryKeys.attendance.org(date),
+    queryFn: () => attendanceApi.org(date),
+    enabled,
+  })
+}
+
 export function useEmployeeAttendance(employeeId: string | undefined, query: AttendanceRangeQuery = {}) {
   return useQuery({
     queryKey: queryKeys.attendance.forEmployee(employeeId ?? '', query),
@@ -44,5 +52,18 @@ export function useCheckIn() {
       qc.invalidateQueries({ queryKey: ['attendance'] })
     },
     onError: (error) => toast.error('Could not check in', { description: extractErrorMessage(error) }),
+  })
+}
+
+export function useCheckOut() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: () => attendanceApi.checkOut(),
+    onSuccess: () => {
+      toast.success('Checked out for today')
+      qc.invalidateQueries({ queryKey: queryKeys.attendance.today })
+      qc.invalidateQueries({ queryKey: ['attendance'] })
+    },
+    onError: (error) => toast.error('Could not check out', { description: extractErrorMessage(error) }),
   })
 }

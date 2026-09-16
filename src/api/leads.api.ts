@@ -29,4 +29,7 @@ export const leadsApi = {
 
   assign: (id: string, assignedToId: string) =>
     apiClient.patch<Lead>(`/leads/${id}/assign`, { assignedToId }).then((r) => r.data),
+
+  updateStatus: (id: string, status: LeadStatus) =>
+    apiClient.patch<Lead>(`/leads/${id}/status`, { status }).then((r) => r.data),
 }

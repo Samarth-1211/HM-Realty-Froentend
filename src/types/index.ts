@@ -283,6 +283,7 @@ export interface Lead {
     lastName: string
     email: string
     role: string
+    managerId: string | null
   } | null
   createdAt: string
   updatedAt: string
@@ -328,6 +329,7 @@ export interface Attendance {
   status: AttendanceStatus
   markedBy: 'EMPLOYEE' | 'SYSTEM' | 'MANAGER'
   checkInAt: string | null
+  checkOutAt: string | null
   leaveRequestId: string | null
   notes: string | null
   createdAt: string
@@ -338,8 +340,10 @@ export interface TeamAttendanceItem {
   userId: string
   fullName: string
   role: UserRole
+  managerId?: string | null
   status: AttendanceStatus | null
   checkInAt: string | null
+  checkOutAt: string | null
   notes: string | null
 }
 

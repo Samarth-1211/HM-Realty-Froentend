@@ -1,5 +1,5 @@
 import { apiClient } from '@/lib/api-client'
-import type { LeaveRequest } from '@/types'
+import type { LeaveRequest, LeaveStatus } from '@/types'
 
 export interface ApplyLeavePayload {
   startDate: string
@@ -18,6 +18,9 @@ export const leaveApi = {
   mine: () => apiClient.get<LeaveRequest[]>('/leave/me').then((r) => r.data),
 
   teamPending: () => apiClient.get<LeaveRequest[]>('/leave/team/pending').then((r) => r.data),
+
+  org: (status?: LeaveStatus) =>
+    apiClient.get<LeaveRequest[]>('/leave/org', { params: status ? { status } : {} }).then((r) => r.data),
 
   approve: (id: string, payload: ReviewLeavePayload = {}) =>
     apiClient.patch<LeaveRequest>(`/leave/${id}/approve`, payload).then((r) => r.data),

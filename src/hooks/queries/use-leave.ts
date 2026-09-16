@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { leaveApi, type ApplyLeavePayload, type ReviewLeavePayload } from '@/api/leave.api'
 import { extractErrorMessage } from '@/lib/api-client'
+import type { LeaveStatus } from '@/types'
 import { queryKeys } from './query-keys'
 
 export function useMyLeaveRequests() {
@@ -15,6 +16,14 @@ export function useTeamPendingLeave(enabled = true) {
   return useQuery({
     queryKey: queryKeys.leave.teamPending,
     queryFn: leaveApi.teamPending,
+    enabled,
+  })
+}
+
+export function useOrgLeaveRequests(status?: LeaveStatus, enabled = true) {
+  return useQuery({
+    queryKey: queryKeys.leave.org(status),
+    queryFn: () => leaveApi.org(status),
     enabled,
   })
 }
@@ -38,6 +47,7 @@ export function useApproveLeave() {
     onSuccess: () => {
       toast.success('Leave approved')
       qc.invalidateQueries({ queryKey: queryKeys.leave.teamPending })
+      qc.invalidateQueries({ queryKey: ['leave'] })
       qc.invalidateQueries({ queryKey: ['attendance'] })
     },
     onError: (error) => toast.error('Could not approve leave', { description: extractErrorMessage(error) }),
@@ -51,6 +61,7 @@ export function useRejectLeave() {
     onSuccess: () => {
       toast.success('Leave rejected')
       qc.invalidateQueries({ queryKey: queryKeys.leave.teamPending })
+      qc.invalidateQueries({ queryKey: ['leave'] })
     },
     onError: (error) => toast.error('Could not reject leave', { description: extractErrorMessage(error) }),
   })

@@ -34,11 +34,13 @@ export const queryKeys = {
     today: ['attendance', 'today'] as const,
     mine: (query?: unknown) => ['attendance', 'me', query] as const,
     team: (date?: string) => ['attendance', 'team', date] as const,
+    org: (date?: string) => ['attendance', 'org', date] as const,
     forEmployee: (id: string, query?: unknown) => ['attendance', id, query] as const,
   },
   leave: {
     mine: ['leave', 'me'] as const,
     teamPending: ['leave', 'team', 'pending'] as const,
+    org: (status?: string) => ['leave', 'org', status] as const,
   },
   targets: {
     mine: (query?: unknown) => ['targets', 'me', query] as const,

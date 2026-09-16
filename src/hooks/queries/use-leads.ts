@@ -3,6 +3,7 @@ import { toast } from 'sonner'
 import { leadsApi, type CreateLeadManualPayload, type LeadQuery } from '@/api/leads.api'
 import { extractErrorMessage } from '@/lib/api-client'
 import { REFRESH_INTERVAL_MS } from '@/lib/constants'
+import type { LeadStatus } from '@/types'
 import { queryKeys } from './query-keys'
 
 export function useLeads(query: LeadQuery = {}) {
@@ -45,5 +46,18 @@ export function useAssignLead() {
       qc.invalidateQueries({ queryKey: queryKeys.leads.detail(vars.id) })
     },
     onError: (error) => toast.error('Could not assign lead', { description: extractErrorMessage(error) }),
+  })
+}
+
+export function useUpdateLeadStatus() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, status }: { id: string; status: LeadStatus }) => leadsApi.updateStatus(id, status),
+    onSuccess: (_d, vars) => {
+      toast.success('Lead status updated')
+      qc.invalidateQueries({ queryKey: ['leads'] })
+      qc.invalidateQueries({ queryKey: queryKeys.leads.detail(vars.id) })
+    },
+    onError: (error) => toast.error('Could not update lead status', { description: extractErrorMessage(error) }),
   })
 }

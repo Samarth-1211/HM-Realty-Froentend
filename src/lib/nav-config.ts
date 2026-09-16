@@ -13,7 +13,7 @@ import {
   CircleUserRound,
 } from 'lucide-react'
 import { UserRole } from '@/types'
-import { EMPLOYEE_MODULE_ROLES } from '@/lib/constants'
+import { EMPLOYEE_MODULE_ROLES, ORG_OVERSIGHT_ROLES } from '@/lib/constants'
 
 export interface NavItem {
   to: string
@@ -72,6 +72,13 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'Attendance',
     icon: CalendarCheck,
     roles: EMPLOYEE_MODULE_ROLES,
+    mobilePrimary: true,
+  },
+  {
+    to: '/org-attendance',
+    label: 'Org Attendance',
+    icon: CalendarCheck,
+    roles: ORG_OVERSIGHT_ROLES,
     mobilePrimary: true,
   },
   {

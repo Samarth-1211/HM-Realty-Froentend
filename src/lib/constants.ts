@@ -28,6 +28,9 @@ export const STAFF_ROLES: UserRole[] = [UserRole.PRESALES, UserRole.POSTSALES, U
 
 export const ASSIGNER_ROLES: UserRole[] = [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER]
 
+/** Admin/Super Admin org-wide oversight (attendance + leave applications across the whole org). */
+export const ORG_OVERSIGHT_ROLES: UserRole[] = [UserRole.SUPER_ADMIN, UserRole.ADMIN]
+
 export const LEAD_STATUS_COLORS: Record<string, string> = {
   NEW: 'bg-sky-100 text-sky-700 ring-sky-600/20',
   ASSIGNED: 'bg-amber-100 text-amber-700 ring-amber-600/20',

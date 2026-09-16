@@ -15,11 +15,12 @@ import { LeadDetailPage } from '@/pages/lead-detail-page'
 import { ReportsPage } from '@/pages/reports-page'
 import { IntegrationsPage } from '@/pages/integrations-page'
 import { AttendancePage } from '@/pages/attendance-page'
+import { OrgAttendancePage } from '@/pages/org-attendance-page'
 import { TargetsPage } from '@/pages/targets-page'
 import { ProfilePage } from '@/pages/profile-page'
 import { UnauthorizedPage } from '@/pages/unauthorized-page'
 import { NotFoundPage } from '@/pages/not-found-page'
-import { EMPLOYEE_MODULE_ROLES } from '@/lib/constants'
+import { EMPLOYEE_MODULE_ROLES, ORG_OVERSIGHT_ROLES } from '@/lib/constants'
 
 function requireAuth() {
   if (!useAuthStore.getState().isAuthenticated()) {
@@ -145,6 +146,13 @@ const attendanceRoute = createRoute({
   beforeLoad: requireRole(EMPLOYEE_MODULE_ROLES),
 })
 
+const orgAttendanceRoute = createRoute({
+  getParentRoute: () => appLayoutRoute,
+  path: '/org-attendance',
+  component: OrgAttendancePage,
+  beforeLoad: requireRole(ORG_OVERSIGHT_ROLES),
+})
+
 const targetsRoute = createRoute({
   getParentRoute: () => appLayoutRoute,
   path: '/targets',
@@ -174,6 +182,7 @@ const routeTree = rootRoute.addChildren([
     reportsRoute,
     integrationsRoute,
     attendanceRoute,
+    orgAttendanceRoute,
     targetsRoute,
     profileRoute,
     unauthorizedRoute,

@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Avatar } from '@/components/ui/avatar'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Spinner } from '@/components/ui/spinner'
-import { useTeamAttendance } from '@/hooks/queries/use-attendance'
+import { useOrgAttendance, useTeamAttendance } from '@/hooks/queries/use-attendance'
 import { ATTENDANCE_STATUS_LABELS } from '@/lib/constants'
 import { formatRoleLabel } from '@/lib/utils'
 
@@ -22,16 +22,22 @@ const BADGE_VARIANT: Record<string, 'success' | 'warning' | 'brand' | 'danger' |
   ABSENT: 'danger',
 }
 
-export function TeamAttendanceTable() {
+export function TeamAttendanceTable({ scope = 'team' }: { scope?: 'team' | 'org' }) {
   const [date, setDate] = useState(todayIso())
-  const { data: rows, isLoading } = useTeamAttendance(date)
+  const teamQuery = useTeamAttendance(date, scope === 'team')
+  const orgQuery = useOrgAttendance(date, scope === 'org')
+  const { data: rows, isLoading } = scope === 'org' ? orgQuery : teamQuery
   const isToday = date === todayIso()
 
   return (
     <Card>
       <CardHeader
-        title="Team attendance"
-        subtitle="Your direct reports' attendance for the selected day"
+        title={scope === 'org' ? 'Organization attendance' : 'Team attendance'}
+        subtitle={
+          scope === 'org'
+            ? 'Everyone across the org for the selected day'
+            : "Your direct reports' attendance for the selected day"
+        }
         action={<Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="max-w-[160px]" />}
       />
       <CardBody>

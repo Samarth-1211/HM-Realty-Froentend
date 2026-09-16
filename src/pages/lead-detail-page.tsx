@@ -17,10 +17,12 @@ import { Card, CardBody, CardHeader } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { PageLoader } from '@/components/ui/spinner'
 import { LeadStatusBadge } from '@/components/leads/lead-status-badge'
+import { LeadStatusControl } from '@/components/leads/lead-status-control'
 import { AssignLeadModal } from '@/components/leads/assign-lead-modal'
 import { useLead } from '@/hooks/queries/use-leads'
 import { useAuthStore } from '@/store/auth-store'
 import { ASSIGNER_ROLES } from '@/lib/constants'
+import { UserRole } from '@/types'
 import { formatCurrency, formatDateTime, formatEnumLabel } from '@/lib/utils'
 
 const ACTIVITY_LABELS: Record<string, string> = {
@@ -41,6 +43,13 @@ export function LeadDetailPage() {
   const canAssign = currentUser && ASSIGNER_ROLES.includes(currentUser.role)
 
   if (isLoading || !lead) return <PageLoader label="Loading lead…" />
+
+  const canChangeStatus =
+    !!currentUser &&
+    (currentUser.id === lead.assignedToId ||
+      (currentUser.role === UserRole.MANAGER && lead.assignedTo?.managerId === currentUser.id) ||
+      currentUser.role === UserRole.ADMIN ||
+      currentUser.role === UserRole.SUPER_ADMIN)
 
   const infoRows = [
     {
@@ -68,7 +77,7 @@ export function LeadDetailPage() {
           <h2 className="truncate text-xl font-bold text-slate-900">{lead.fullName}</h2>
           <p className="text-sm text-slate-500">{formatEnumLabel(lead.source)} lead</p>
         </div>
-        <LeadStatusBadge status={lead.status} />
+        {canChangeStatus ? <LeadStatusControl lead={lead} /> : <LeadStatusBadge status={lead.status} />}
         {canAssign && (
           <Button size="sm" variant="secondary" onClick={() => setAssignOpen(true)}>
             <UserPlus className="size-4" />

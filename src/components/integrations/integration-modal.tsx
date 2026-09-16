@@ -1,0 +1,266 @@
+import { useEffect, useState } from 'react'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { useForm } from 'react-hook-form'
+import { z } from 'zod'
+import { CheckCircle2, Eye, PauseCircle, PlayCircle, Save } from 'lucide-react'
+import { Modal } from '@/components/ui/modal'
+import { Field, Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { PlatformIcon } from './platform-icon'
+import { WebhookSnippet } from './webhook-snippet'
+import { getPlatformMeta } from '@/lib/platform-catalog'
+import { formatDateTime } from '@/lib/utils'
+import {
+  useCreatePlatformIntegration,
+  useDeactivatePlatformIntegration,
+  useRevealWebhookSecret,
+  useUpdatePlatformIntegration,
+} from '@/hooks/queries/use-platform-integrations'
+import type { LeadSource, PlatformIntegration } from '@/types'
+
+const rmSchema = z.object({
+  rmName: z.string().optional(),
+  rmEmail: z.string().email('Enter a valid email').optional().or(z.literal('')),
+  rmPhone: z
+    .string()
+    .regex(/^\+?[0-9]{7,15}$/, 'Enter a valid phone number')
+    .optional()
+    .or(z.literal('')),
+})
+type RmFormValues = z.infer<typeof rmSchema>
+
+type Props =
+  | { open: boolean; onClose: () => void; mode: 'connect'; platform: LeadSource; canEdit: boolean }
+  | { open: boolean; onClose: () => void; mode: 'manage'; integration: PlatformIntegration; canEdit: boolean }
+
+export function IntegrationModal(props: Props) {
+  const { open, onClose, canEdit } = props
+  const meta = getPlatformMeta(props.mode === 'connect' ? props.platform : props.integration.platform)
+
+  const create = useCreatePlatformIntegration()
+  const update = useUpdatePlatformIntegration()
+  const deactivate = useDeactivatePlatformIntegration()
+  const reveal = useRevealWebhookSecret()
+
+  const [created, setCreated] = useState<PlatformIntegration | null>(null)
+  const [editing, setEditing] = useState(false)
+  const [revealedSecret, setRevealedSecret] = useState<string | undefined>()
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<RmFormValues>({ resolver: zodResolver(rmSchema) })
+
+  useEffect(() => {
+    if (!open) {
+      setCreated(null)
+      setEditing(false)
+      setRevealedSecret(undefined)
+      return
+    }
+    if (props.mode === 'manage') {
+      reset({
+        rmName: props.integration.rmName ?? '',
+        rmEmail: props.integration.rmEmail ?? '',
+        rmPhone: props.integration.rmPhone ?? '',
+      })
+    } else {
+      reset({ rmName: '', rmEmail: '', rmPhone: '' })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, props.mode])
+
+  const integration = props.mode === 'manage' ? props.integration : created
+
+  const onConnect = (values: RmFormValues) => {
+    if (props.mode !== 'connect') return
+    create.mutate(
+      {
+        platform: props.platform,
+        rmName: values.rmName || undefined,
+        rmEmail: values.rmEmail || undefined,
+        rmPhone: values.rmPhone || undefined,
+      },
+      { onSuccess: (data) => setCreated(data) },
+    )
+  }
+
+  const onSaveEdit = (values: RmFormValues) => {
+    if (props.mode !== 'manage') return
+    update.mutate(
+      {
+        id: props.integration.id,
+        payload: {
+          rmName: values.rmName || undefined,
+          rmEmail: values.rmEmail || undefined,
+          rmPhone: values.rmPhone || undefined,
+        },
+      },
+      { onSuccess: () => setEditing(false) },
+    )
+  }
+
+  const toggleActive = () => {
+    if (props.mode !== 'manage') return
+    if (props.integration.isActive) {
+      deactivate.mutate(props.integration.id)
+    } else {
+      update.mutate({ id: props.integration.id, payload: { isActive: true } })
+    }
+  }
+
+  const title = props.mode === 'connect' ? `Connect ${meta.label}` : meta.label
+  const subtitle =
+    props.mode === 'connect'
+      ? 'Add the relationship manager contact for this platform, then share the webhook URL with them.'
+      : undefined
+
+  return (
+    <Modal open={open} onClose={onClose} title={title} subtitle={subtitle} size="lg">
+      <div className="flex flex-col gap-5">
+        {props.mode === 'manage' && (
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <PlatformIcon platform={meta} />
+              <div>
+                <p className="font-semibold text-slate-800">{meta.label}</p>
+                <p className="text-xs text-slate-400">{meta.category}</p>
+              </div>
+            </div>
+            <div className="flex flex-col items-end gap-1.5">
+              <Badge variant={props.integration.isActive ? 'success' : 'neutral'}>
+                {props.integration.isActive ? 'Active' : 'Deactivated'}
+              </Badge>
+              {props.integration.lastReceivedAt && (
+                <p className="text-xs text-slate-400">
+                  Last lead {formatDateTime(props.integration.lastReceivedAt)}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* RM details */}
+        {(props.mode === 'connect' && !created) || editing ? (
+          <form
+            onSubmit={handleSubmit(props.mode === 'connect' ? onConnect : onSaveEdit)}
+            className="flex flex-col gap-3 rounded-xl border border-slate-100 bg-slate-50/60 p-4"
+          >
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+              Relationship manager (optional)
+            </p>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <Field label="RM name" error={errors.rmName?.message} className="sm:col-span-2">
+                <Input {...register('rmName')} placeholder="Rohit Verma" />
+              </Field>
+              <Field label="RM email" error={errors.rmEmail?.message}>
+                <Input {...register('rmEmail')} placeholder="rohit.verma@99acres.com" />
+              </Field>
+              <Field label="RM phone" error={errors.rmPhone?.message}>
+                <Input {...register('rmPhone')} placeholder="+919876543210" />
+              </Field>
+            </div>
+            <div className="flex justify-end gap-2">
+              {props.mode === 'manage' && (
+                <Button type="button" variant="ghost" size="sm" onClick={() => setEditing(false)}>
+                  Cancel
+                </Button>
+              )}
+              <Button type="submit" size="sm" loading={create.isPending || update.isPending}>
+                {props.mode === 'connect' ? (
+                  'Connect & generate webhook'
+                ) : (
+                  <>
+                    <Save className="size-3.5" />
+                    Save changes
+                  </>
+                )}
+              </Button>
+            </div>
+          </form>
+        ) : props.mode === 'manage' ? (
+          <div className="flex items-center justify-between rounded-xl border border-slate-100 p-4">
+            <div className="text-sm">
+              <p className="font-medium text-slate-700">{props.integration.rmName || 'No RM name on file'}</p>
+              <p className="text-slate-400">
+                {props.integration.rmEmail || '—'} {props.integration.rmPhone ? `· ${props.integration.rmPhone}` : ''}
+              </p>
+            </div>
+            {canEdit && (
+              <Button variant="secondary" size="sm" onClick={() => setEditing(true)}>
+                Edit
+              </Button>
+            )}
+          </div>
+        ) : created ? (
+          <div className="rounded-xl border border-slate-100 p-4 text-sm">
+            <p className="font-medium text-slate-700">{created.rmName || 'No RM name on file'}</p>
+            <p className="text-slate-400">
+              {created.rmEmail || '—'} {created.rmPhone ? `· ${created.rmPhone}` : ''}
+            </p>
+          </div>
+        ) : null}
+
+        {/* Webhook credentials */}
+        {integration && (
+          <div className="rounded-xl border border-slate-100 p-4">
+            {props.mode === 'manage' && canEdit && !revealedSecret && (
+              <Button
+                variant="secondary"
+                size="sm"
+                className="mb-4"
+                loading={reveal.isPending}
+                onClick={() =>
+                  reveal.mutate(props.integration.id, {
+                    onSuccess: (data) => setRevealedSecret(data.webhookSecret),
+                  })
+                }
+              >
+                <Eye className="size-3.5" />
+                Reveal webhook secret
+              </Button>
+            )}
+            {props.mode === 'connect' && (
+              <p className="mb-4 flex items-center gap-1.5 text-sm font-medium text-emerald-600">
+                <CheckCircle2 className="size-4" />
+                Connected — save this secret now, it won't be shown again on this screen.
+              </p>
+            )}
+            <WebhookSnippet webhookUrl={integration.webhookUrl} secret={integration.webhookSecret ?? revealedSecret} />
+          </div>
+        )}
+
+        <div className="flex items-center justify-between">
+          {props.mode === 'manage' && canEdit ? (
+            <Button
+              variant={props.integration.isActive ? 'outline' : 'secondary'}
+              size="sm"
+              loading={deactivate.isPending || update.isPending}
+              onClick={toggleActive}
+            >
+              {props.integration.isActive ? (
+                <>
+                  <PauseCircle className="size-3.5" />
+                  Deactivate
+                </>
+              ) : (
+                <>
+                  <PlayCircle className="size-3.5" />
+                  Reactivate
+                </>
+              )}
+            </Button>
+          ) : (
+            <span />
+          )}
+          <Button variant="ghost" size="sm" onClick={onClose}>
+            {props.mode === 'connect' && created ? 'Done' : 'Close'}
+          </Button>
+        </div>
+      </div>
+    </Modal>
+  )
+}

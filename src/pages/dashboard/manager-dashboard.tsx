@@ -4,6 +4,7 @@ import { useLeads } from '@/hooks/queries/use-leads'
 import { StatCard } from '@/components/dashboard/stat-card'
 import { WorkloadBar } from '@/components/dashboard/workload-bar'
 import { RecentLeadsTable } from '@/components/dashboard/recent-leads-table'
+import { CheckInCard } from '@/components/attendance/check-in-card'
 import { Card, CardBody, CardHeader } from '@/components/ui/card'
 import { ButtonLink } from '@/components/ui/button-link'
 import { PageLoader } from '@/components/ui/spinner'
@@ -26,6 +27,10 @@ export function ManagerDashboard() {
         <StatCard label="Team members" value={members.length} icon={UsersRound} tone="brand" delay={0} />
         <StatCard label="Active leads (team)" value={totalActiveLeads} icon={TrendingUp} tone="violet" delay={0.05} />
         <StatCard label="Calls logged (mock)" value={totalCalls} icon={PhoneCall} tone="sky" delay={0.1} />
+      </div>
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <CheckInCard />
       </div>
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-5">

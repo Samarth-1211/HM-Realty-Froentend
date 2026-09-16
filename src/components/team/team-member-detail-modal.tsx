@@ -2,14 +2,15 @@ import { useEffect, useState } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Controller, useForm } from 'react-hook-form'
 import { z } from 'zod'
-import { FolderKanban, MapPin } from 'lucide-react'
+import { FolderKanban, IdCard, MapPin, Phone } from 'lucide-react'
 import { Modal } from '@/components/ui/modal'
 import { Field, Input } from '@/components/ui/input'
 import { Toggle } from '@/components/ui/toggle'
 import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/spinner'
 import { useAssignTeamMemberProject, useTeamMember, useUpdateTeamMember } from '@/hooks/queries/use-team'
-import { formatCurrency } from '@/lib/utils'
+import { useSetEmployeeCode } from '@/hooks/queries/use-employees'
+import { formatCurrency, formatDate } from '@/lib/utils'
 
 const schema = z.object({
   firstName: z.string().min(1, 'Required'),
@@ -30,7 +31,9 @@ export function TeamMemberDetailModal({
   const { data: member, isLoading } = useTeamMember(open ? (memberId ?? undefined) : undefined)
   const update = useUpdateTeamMember()
   const assignProject = useAssignTeamMemberProject()
+  const setEmployeeCode = useSetEmployeeCode()
   const [projectId, setProjectId] = useState('')
+  const [employeeCode, setEmployeeCodeInput] = useState('')
 
   const {
     register,
@@ -42,6 +45,7 @@ export function TeamMemberDetailModal({
 
   useEffect(() => {
     if (member) reset({ firstName: member.firstName, lastName: member.lastName, isActive: member.isActive })
+    setEmployeeCodeInput(member?.employeeCode ?? '')
   }, [member, reset])
 
   const onSubmit = (values: FormValues) => {
@@ -79,6 +83,35 @@ export function TeamMemberDetailModal({
               </Button>
             </div>
           </form>
+
+          <div className="border-t border-slate-100 pt-4">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">Employee profile</p>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="flex items-center gap-2 text-sm text-slate-600">
+                <Phone className="size-4 shrink-0 text-slate-400" />
+                {member.phone ?? 'No phone on file'}
+              </div>
+              <div className="flex items-center gap-2 text-sm text-slate-600">
+                Joined {formatDate(member.createdAt)}
+              </div>
+            </div>
+            <div className="mt-3 flex gap-2">
+              <Input
+                placeholder="Employee code, e.g. EMP-0042"
+                value={employeeCode}
+                onChange={(e) => setEmployeeCodeInput(e.target.value)}
+                leftIcon={<IdCard className="size-4" />}
+              />
+              <Button
+                variant="secondary"
+                disabled={!employeeCode || employeeCode === member.employeeCode}
+                loading={setEmployeeCode.isPending}
+                onClick={() => setEmployeeCode.mutate({ userId: member.id, employeeCode })}
+              >
+                Save
+              </Button>
+            </div>
+          </div>
 
           <div className="border-t border-slate-100 pt-4">
             <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">

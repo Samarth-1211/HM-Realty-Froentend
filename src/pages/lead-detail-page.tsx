@@ -9,6 +9,7 @@ import {
   MapPin,
   Phone,
   Tag,
+  User,
   UserPlus,
   Wallet,
 } from 'lucide-react'
@@ -42,6 +43,11 @@ export function LeadDetailPage() {
   if (isLoading || !lead) return <PageLoader label="Loading lead…" />
 
   const infoRows = [
+    {
+      icon: User,
+      label: 'Assigned to',
+      value: lead.assignedTo ? `${lead.assignedTo.firstName} ${lead.assignedTo.lastName}` : 'Unassigned',
+    },
     { icon: Phone, label: 'Phone', value: lead.phone },
     { icon: Mail, label: 'Email', value: lead.email ?? '—' },
     { icon: Tag, label: 'Property interest', value: lead.propertyInterest ?? '—' },

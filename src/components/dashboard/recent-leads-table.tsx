@@ -23,6 +23,18 @@ export function RecentLeadsTable({ leads, isLoading }: { leads: Lead[]; isLoadin
     },
     { key: 'status', header: 'Status', render: (l) => <LeadStatusBadge status={l.status} /> },
     {
+      key: 'assignedTo',
+      header: 'Assigned To',
+      render: (l) =>
+        l.assignedTo ? (
+          <span className="text-slate-600">
+            {l.assignedTo.firstName} {l.assignedTo.lastName}
+          </span>
+        ) : (
+          <span className="text-slate-400">Unassigned</span>
+        ),
+    },
+    {
       key: 'created',
       header: 'Received',
       render: (l) => <span className="text-slate-400">{formatDateTime(l.createdAt)}</span>,

@@ -5,6 +5,7 @@ import { useLeads } from '@/hooks/queries/use-leads'
 import { StatCard } from '@/components/dashboard/stat-card'
 import { StatusDonut } from '@/components/dashboard/status-donut'
 import { RecentLeadsTable } from '@/components/dashboard/recent-leads-table'
+import { CheckInCard } from '@/components/attendance/check-in-card'
 import { Card, CardBody, CardHeader } from '@/components/ui/card'
 import { ButtonLink } from '@/components/ui/button-link'
 import { PageLoader } from '@/components/ui/spinner'
@@ -37,14 +38,18 @@ export function StaffDashboard() {
       </div>
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-5">
-        <Card className="xl:col-span-2">
+        <div className="xl:col-span-2">
+          <CheckInCard />
+        </div>
+
+        <Card className="xl:col-span-3">
           <CardHeader title="My pipeline" subtitle="Status breakdown of your leads" />
           <CardBody>
             <StatusDonut data={summary?.statusBreakdown ?? {}} />
           </CardBody>
         </Card>
 
-        <Card className="xl:col-span-3">
+        <Card className="xl:col-span-5">
           <CardHeader
             title="My recent leads"
             subtitle="Leads currently assigned to you"

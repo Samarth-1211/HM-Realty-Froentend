@@ -58,6 +58,18 @@ export function LeadsPage() {
     },
     { key: 'source', header: 'Source', render: (l) => <span className="text-slate-500">{formatEnumLabel(l.source)}</span> },
     { key: 'status', header: 'Status', render: (l) => <LeadStatusBadge status={l.status} /> },
+    {
+      key: 'assignedTo',
+      header: 'Assigned To',
+      render: (l) =>
+        l.assignedTo ? (
+          <span className="text-slate-600">
+            {l.assignedTo.firstName} {l.assignedTo.lastName}
+          </span>
+        ) : (
+          <span className="text-slate-400">Unassigned</span>
+        ),
+    },
     { key: 'received', header: 'Received', render: (l) => <span className="text-slate-400">{formatDateTime(l.createdAt)}</span> },
     ...(canAssign
       ? [

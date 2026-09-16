@@ -26,7 +26,23 @@ export const queryKeys = {
   },
   employees: {
     teamSummary: ['employees', 'team-summary'] as const,
+    teamRollup: ['employees', 'team-rollup'] as const,
     summary: (id: string) => ['employees', id, 'summary'] as const,
+    profile: (id: string) => ['employees', id, 'profile'] as const,
+  },
+  attendance: {
+    today: ['attendance', 'today'] as const,
+    mine: (query?: unknown) => ['attendance', 'me', query] as const,
+    team: (date?: string) => ['attendance', 'team', date] as const,
+    forEmployee: (id: string, query?: unknown) => ['attendance', id, query] as const,
+  },
+  leave: {
+    mine: ['leave', 'me'] as const,
+    teamPending: ['leave', 'team', 'pending'] as const,
+  },
+  targets: {
+    mine: (query?: unknown) => ['targets', 'me', query] as const,
+    team: (query?: unknown) => ['targets', 'team', query] as const,
   },
   integrations: {
     all: ['platform-integrations'] as const,

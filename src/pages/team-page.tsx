@@ -10,6 +10,7 @@ import { Avatar } from '@/components/ui/avatar'
 import { Pagination } from '@/components/ui/pagination'
 import { TeamMemberCreateModal } from '@/components/team/team-member-create-modal'
 import { TeamMemberDetailModal } from '@/components/team/team-member-detail-modal'
+import { TeamRollupPanel } from '@/components/team/team-rollup-panel'
 import { useTeamMembers } from '@/hooks/queries/use-team'
 import { STAFF_ROLES } from '@/lib/constants'
 import { formatRoleLabel } from '@/lib/utils'
@@ -66,6 +67,10 @@ export function TeamPage() {
           </Button>
         }
       />
+
+      <div className="mb-6">
+        <TeamRollupPanel />
+      </div>
 
       <Card>
         <div className="flex flex-col gap-3 border-b border-slate-100 p-4 sm:flex-row">

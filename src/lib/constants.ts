@@ -41,3 +41,36 @@ export const ORG_STATUS_COLORS: Record<string, string> = {
   SUSPENDED: 'bg-amber-100 text-amber-700 ring-amber-600/20',
   ARCHIVED: 'bg-slate-200 text-slate-600 ring-slate-500/20',
 }
+
+/** Roles this Employee Management module targets — matches the spec's
+ * "Presales/Postsales/Agent/Manager" list; Admins/Super Admins run the org
+ * rather than clock in themselves. */
+export const EMPLOYEE_MODULE_ROLES: UserRole[] = [
+  UserRole.MANAGER,
+  UserRole.PRESALES,
+  UserRole.POSTSALES,
+  UserRole.AGENT,
+]
+
+export const ATTENDANCE_STATUS_LABELS: Record<string, string> = {
+  PRESENT: 'Present',
+  HALF_DAY: 'Half-day',
+  ON_SITE_VISIT: 'On-site visit',
+  ON_LEAVE: 'On leave',
+  ABSENT: 'Absent',
+}
+
+export const ATTENDANCE_STATUS_COLORS: Record<string, string> = {
+  PRESENT: 'bg-emerald-100 text-emerald-700 ring-emerald-600/20',
+  HALF_DAY: 'bg-amber-100 text-amber-700 ring-amber-600/20',
+  ON_SITE_VISIT: 'bg-sky-100 text-sky-700 ring-sky-600/20',
+  ON_LEAVE: 'bg-violet-100 text-violet-700 ring-violet-600/20',
+  ABSENT: 'bg-rose-100 text-rose-700 ring-rose-600/20',
+}
+
+export const LEAVE_STATUS_COLORS: Record<string, string> = {
+  PENDING: 'bg-amber-100 text-amber-700 ring-amber-600/20',
+  APPROVED: 'bg-emerald-100 text-emerald-700 ring-emerald-600/20',
+  REJECTED: 'bg-rose-100 text-rose-700 ring-rose-600/20',
+  CANCELLED: 'bg-slate-200 text-slate-600 ring-slate-500/20',
+}

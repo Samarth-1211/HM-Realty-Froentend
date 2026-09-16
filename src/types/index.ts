@@ -105,6 +105,29 @@ export type LeadSource = (typeof LeadSource)[keyof typeof LeadSource]
 
 export const LEAD_SOURCE_OPTIONS = Object.values(LeadSource)
 
+export const AttendanceStatus = {
+  PRESENT: 'PRESENT',
+  HALF_DAY: 'HALF_DAY',
+  ON_SITE_VISIT: 'ON_SITE_VISIT',
+  ON_LEAVE: 'ON_LEAVE',
+  ABSENT: 'ABSENT',
+} as const
+export type AttendanceStatus = (typeof AttendanceStatus)[keyof typeof AttendanceStatus]
+
+export const LeaveStatus = {
+  PENDING: 'PENDING',
+  APPROVED: 'APPROVED',
+  REJECTED: 'REJECTED',
+  CANCELLED: 'CANCELLED',
+} as const
+export type LeaveStatus = (typeof LeaveStatus)[keyof typeof LeaveStatus]
+
+export const TargetMetric = {
+  CALLS: 'CALLS',
+  CONVERSIONS: 'CONVERSIONS',
+} as const
+export type TargetMetric = (typeof TargetMetric)[keyof typeof TargetMetric]
+
 // ---------------------------------------------------------------------------
 // Core entities
 // ---------------------------------------------------------------------------
@@ -143,6 +166,9 @@ export interface User {
   deletedAt: string | null
   createdById: string | null
   managerId: string | null
+  phone: string | null
+  employeeCode: string | null
+  photoUrl: string | null
   createdAt: string
   updatedAt: string
 }
@@ -224,6 +250,9 @@ export interface TeamMember {
   role: UserRole
   isActive: boolean
   managerId: string | null
+  phone: string | null
+  employeeCode: string | null
+  photoUrl: string | null
   projectAssignments: ProjectAssignment[]
   createdAt: string
   updatedAt: string
@@ -248,6 +277,13 @@ export interface Lead {
   rawPayload: unknown
   status: LeadStatus
   assignedToId: string | null
+  assignedTo: {
+    id: string
+    firstName: string
+    lastName: string
+    email: string
+    role: string
+  } | null
   createdAt: string
   updatedAt: string
 }
@@ -282,6 +318,97 @@ export interface EmployeeSummary {
   activeWorkload: number
   totalConversions: number
   statusBreakdown: Record<LeadStatus, number>
+}
+
+export interface Attendance {
+  id: string
+  organizationId: string
+  userId: string
+  date: string
+  status: AttendanceStatus
+  markedBy: 'EMPLOYEE' | 'SYSTEM' | 'MANAGER'
+  checkInAt: string | null
+  leaveRequestId: string | null
+  notes: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export interface TeamAttendanceItem {
+  userId: string
+  fullName: string
+  role: UserRole
+  status: AttendanceStatus | null
+  checkInAt: string | null
+  notes: string | null
+}
+
+export interface LeaveRequest {
+  id: string
+  organizationId: string
+  userId: string
+  startDate: string
+  endDate: string
+  reason: string
+  status: LeaveStatus
+  reviewedById: string | null
+  reviewedAt: string | null
+  reviewComment: string | null
+  createdAt: string
+  updatedAt: string
+  user?: { id: string; firstName: string; lastName: string; role: UserRole }
+}
+
+export interface Target {
+  id: string
+  organizationId: string
+  userId: string
+  periodYear: number
+  periodMonth: number
+  metric: TargetMetric
+  targetValue: number
+  setById: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface TargetProgress {
+  userId: string
+  fullName: string
+  periodYear: number
+  periodMonth: number
+  metric: TargetMetric | null
+  targetValue: number | null
+  actualValue: number | null
+  callTrackingComingSoon: boolean
+}
+
+export interface EmployeeProfile {
+  userId: string
+  fullName: string
+  email: string
+  role: UserRole
+  phone: string | null
+  employeeCode: string | null
+  photoUrl: string | null
+  joiningDate: string
+  isActive: boolean
+  managerId: string | null
+  managerName: string | null
+}
+
+export interface TeamRollupItem {
+  userId: string
+  fullName: string
+  role: UserRole
+  attendanceToday: AttendanceStatus | null
+  leadSnapshot: {
+    inProgress: number
+    converted: number
+    lost: number
+    statusBreakdown: Record<LeadStatus, number>
+  }
+  target: TargetProgress | null
 }
 
 export interface PlatformIntegration {

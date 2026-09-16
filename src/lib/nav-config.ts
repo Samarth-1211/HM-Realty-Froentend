@@ -8,8 +8,12 @@ import {
   BarChart3,
   UsersRound,
   Webhook,
+  CalendarCheck,
+  Target,
+  CircleUserRound,
 } from 'lucide-react'
 import { UserRole } from '@/types'
+import { EMPLOYEE_MODULE_ROLES } from '@/lib/constants'
 
 export interface NavItem {
   to: string
@@ -62,6 +66,25 @@ export const NAV_ITEMS: NavItem[] = [
     icon: Contact,
     roles: Object.values(UserRole),
     mobilePrimary: true,
+  },
+  {
+    to: '/attendance',
+    label: 'Attendance',
+    icon: CalendarCheck,
+    roles: EMPLOYEE_MODULE_ROLES,
+    mobilePrimary: true,
+  },
+  {
+    to: '/targets',
+    label: 'Targets',
+    icon: Target,
+    roles: EMPLOYEE_MODULE_ROLES,
+  },
+  {
+    to: '/profile',
+    label: 'My Profile',
+    icon: CircleUserRound,
+    roles: EMPLOYEE_MODULE_ROLES,
   },
   {
     to: '/users',

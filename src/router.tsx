@@ -14,8 +14,12 @@ import { LeadsPage } from '@/pages/leads-page'
 import { LeadDetailPage } from '@/pages/lead-detail-page'
 import { ReportsPage } from '@/pages/reports-page'
 import { IntegrationsPage } from '@/pages/integrations-page'
+import { AttendancePage } from '@/pages/attendance-page'
+import { TargetsPage } from '@/pages/targets-page'
+import { ProfilePage } from '@/pages/profile-page'
 import { UnauthorizedPage } from '@/pages/unauthorized-page'
 import { NotFoundPage } from '@/pages/not-found-page'
+import { EMPLOYEE_MODULE_ROLES } from '@/lib/constants'
 
 function requireAuth() {
   if (!useAuthStore.getState().isAuthenticated()) {
@@ -134,6 +138,27 @@ const integrationsRoute = createRoute({
   beforeLoad: requireRole([UserRole.ADMIN, UserRole.MANAGER]),
 })
 
+const attendanceRoute = createRoute({
+  getParentRoute: () => appLayoutRoute,
+  path: '/attendance',
+  component: AttendancePage,
+  beforeLoad: requireRole(EMPLOYEE_MODULE_ROLES),
+})
+
+const targetsRoute = createRoute({
+  getParentRoute: () => appLayoutRoute,
+  path: '/targets',
+  component: TargetsPage,
+  beforeLoad: requireRole(EMPLOYEE_MODULE_ROLES),
+})
+
+const profileRoute = createRoute({
+  getParentRoute: () => appLayoutRoute,
+  path: '/profile',
+  component: ProfilePage,
+  beforeLoad: requireRole(EMPLOYEE_MODULE_ROLES),
+})
+
 const routeTree = rootRoute.addChildren([
   indexRoute,
   loginRoute,
@@ -148,6 +173,9 @@ const routeTree = rootRoute.addChildren([
     leadDetailRoute,
     reportsRoute,
     integrationsRoute,
+    attendanceRoute,
+    targetsRoute,
+    profileRoute,
     unauthorizedRoute,
   ]),
 ])

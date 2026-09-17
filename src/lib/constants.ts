@@ -77,3 +77,53 @@ export const LEAVE_STATUS_COLORS: Record<string, string> = {
   REJECTED: 'bg-rose-100 text-rose-700 ring-rose-600/20',
   CANCELLED: 'bg-slate-200 text-slate-600 ring-slate-500/20',
 }
+
+export const LEAD_PROGRESS_STAGE_LABELS: Record<string, string> = {
+  CONTACTED: 'Contacted',
+  FOLLOW_UP_SENT: 'Follow-up sent',
+  NEGOTIATION: 'Negotiation',
+  SITE_VISIT_SCHEDULED: 'Site visit scheduled',
+  DOCUMENTATION_PENDING: 'Documentation pending',
+  AWAITING_DECISION: 'Awaiting decision',
+  OTHER: 'Other',
+}
+
+export const EMPLOYEE_ACTIVITY_OPTIONS: { value: string; label: string; emoji: string }[] = [
+  { value: 'CALL', label: 'Called lead', emoji: '📞' },
+  { value: 'WHATSAPP', label: 'Replied on WhatsApp', emoji: '💬' },
+  { value: 'MEETING', label: 'Met client', emoji: '👥' },
+  { value: 'SITE_VISIT', label: 'Client site visit', emoji: '🏠' },
+  { value: 'TRAVEL', label: 'Travelled to site', emoji: '🚗' },
+  { value: 'FOLLOW_UP', label: 'Follow-up', emoji: '📋' },
+  { value: 'NOTE', label: 'Added client notes', emoji: '📝' },
+  { value: 'DOCUMENTATION', label: 'Uploaded documentation', emoji: '📄' },
+  { value: 'PAYMENT', label: 'Collected payment', emoji: '💰' },
+  { value: 'PROPERTY_VISIT', label: 'Inspected property', emoji: '🏢' },
+  { value: 'MARKETING', label: 'Posted property/marketing', emoji: '📣' },
+  { value: 'REPORTING', label: 'Updated pipeline/report', emoji: '📊' },
+  { value: 'INTERNAL_MEETING', label: 'Internal/sales team meeting', emoji: '🤝' },
+  { value: 'TRAINING', label: 'Training', emoji: '📚' },
+  { value: 'OTHER', label: 'Other', emoji: '✏️' },
+]
+
+export const TASK_TYPE_LABELS: Record<string, string> = {
+  FOLLOW_UP: 'Follow-up',
+  SITE_VISIT: 'Site visit',
+  CALL: 'Call',
+  MEETING: 'Meeting',
+  OTHER: 'Other',
+}
+
+export const TASK_STATUS_COLORS: Record<string, string> = {
+  PENDING: 'bg-amber-100 text-amber-700 ring-amber-600/20',
+  COMPLETED: 'bg-emerald-100 text-emerald-700 ring-emerald-600/20',
+  CANCELLED: 'bg-slate-200 text-slate-600 ring-slate-500/20',
+}
+
+/** Preset reminder offsets (minutes before due) shown as quick-toggle chips. */
+export const REMINDER_PRESETS: { label: string; minutes: number }[] = [
+  { label: '1 day before', minutes: 1440 },
+  { label: '6 hours before', minutes: 360 },
+  { label: '1 hour before', minutes: 60 },
+  { label: '30 minutes before', minutes: 30 },
+]

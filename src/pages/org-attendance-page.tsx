@@ -3,6 +3,7 @@ import { PageHeader } from '@/components/ui/page-header'
 import { Tabs } from '@/components/ui/tabs'
 import { TeamAttendanceTable } from '@/components/attendance/team-attendance-table'
 import { LeaveApprovalsList } from '@/components/attendance/leave-approvals-list'
+import { TeamActivityList } from '@/components/activities/team-activity-list'
 
 export function OrgAttendancePage() {
   const [tab, setTab] = useState('attendance')
@@ -18,6 +19,7 @@ export function OrgAttendancePage() {
         <Tabs
           tabs={[
             { value: 'attendance', label: 'Org Attendance' },
+            { value: 'activity', label: 'Org Activity' },
             { value: 'leave', label: 'All Leave Applications' },
           ]}
           active={tab}
@@ -26,6 +28,7 @@ export function OrgAttendancePage() {
       </div>
 
       {tab === 'attendance' && <TeamAttendanceTable scope="org" />}
+      {tab === 'activity' && <TeamActivityList scope="org" />}
       {tab === 'leave' && <LeaveApprovalsList scope="org" />}
     </div>
   )

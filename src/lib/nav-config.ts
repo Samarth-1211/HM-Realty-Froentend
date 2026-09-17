@@ -11,6 +11,8 @@ import {
   CalendarCheck,
   Target,
   CircleUserRound,
+  MessageCircle,
+  ListChecks,
 } from 'lucide-react'
 import { UserRole } from '@/types'
 import { EMPLOYEE_MODULE_ROLES, ORG_OVERSIGHT_ROLES } from '@/lib/constants'
@@ -66,6 +68,19 @@ export const NAV_ITEMS: NavItem[] = [
     icon: Contact,
     roles: Object.values(UserRole),
     mobilePrimary: true,
+  },
+  {
+    to: '/todo',
+    label: 'My To-Do',
+    icon: ListChecks,
+    roles: Object.values(UserRole),
+    mobilePrimary: true,
+  },
+  {
+    to: '/messaging',
+    label: 'WhatsApp Inbox',
+    icon: MessageCircle,
+    roles: Object.values(UserRole),
   },
   {
     to: '/attendance',

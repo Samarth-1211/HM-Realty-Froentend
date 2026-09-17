@@ -53,4 +53,24 @@ export const queryKeys = {
   leadAllocation: {
     settings: ['lead-allocation', 'settings'] as const,
   },
+  whatsappIntegration: {
+    detail: ['whatsapp-integration'] as const,
+  },
+  whatsappChat: {
+    inbox: ['whatsapp-chat', 'inbox'] as const,
+    thread: (leadId: string) => ['whatsapp-chat', leadId] as const,
+  },
+  activities: {
+    mine: (date?: string) => ['activities', 'me', date] as const,
+    team: (date?: string) => ['activities', 'team', date] as const,
+    org: (date?: string) => ['activities', 'org', date] as const,
+  },
+  tasks: {
+    mine: (query?: unknown) => ['tasks', 'me', query] as const,
+    detail: (id: string) => ['tasks', id] as const,
+  },
+  notifications: {
+    list: (unreadOnly?: boolean) => ['notifications', unreadOnly] as const,
+    unreadCount: ['notifications', 'unread-count'] as const,
+  },
 }

@@ -4,6 +4,7 @@ import { useRouterState } from '@tanstack/react-router'
 import { Building2, Menu, RefreshCw } from 'lucide-react'
 import { NAV_ITEMS } from '@/lib/nav-config'
 import { cn } from '@/lib/utils'
+import { NotificationBell } from '@/components/notifications/notification-bell'
 import { MobileDrawer } from './mobile-drawer'
 
 export function Topbar() {
@@ -53,6 +54,7 @@ export function Topbar() {
           >
             <RefreshCw className={cn('size-4', spinning && 'animate-spin')} />
           </button>
+          <NotificationBell />
         </div>
       </header>
       <MobileDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />

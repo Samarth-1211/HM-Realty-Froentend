@@ -30,6 +30,58 @@ export const LeadActivityType = {
 } as const
 export type LeadActivityType = (typeof LeadActivityType)[keyof typeof LeadActivityType]
 
+export const LeadProgressStage = {
+  CONTACTED: 'CONTACTED',
+  FOLLOW_UP_SENT: 'FOLLOW_UP_SENT',
+  NEGOTIATION: 'NEGOTIATION',
+  SITE_VISIT_SCHEDULED: 'SITE_VISIT_SCHEDULED',
+  DOCUMENTATION_PENDING: 'DOCUMENTATION_PENDING',
+  AWAITING_DECISION: 'AWAITING_DECISION',
+  OTHER: 'OTHER',
+} as const
+export type LeadProgressStage = (typeof LeadProgressStage)[keyof typeof LeadProgressStage]
+
+export const EmployeeActivityType = {
+  CALL: 'CALL',
+  WHATSAPP: 'WHATSAPP',
+  MEETING: 'MEETING',
+  SITE_VISIT: 'SITE_VISIT',
+  TRAVEL: 'TRAVEL',
+  FOLLOW_UP: 'FOLLOW_UP',
+  NOTE: 'NOTE',
+  DOCUMENTATION: 'DOCUMENTATION',
+  PAYMENT: 'PAYMENT',
+  PROPERTY_VISIT: 'PROPERTY_VISIT',
+  MARKETING: 'MARKETING',
+  REPORTING: 'REPORTING',
+  INTERNAL_MEETING: 'INTERNAL_MEETING',
+  TRAINING: 'TRAINING',
+  OTHER: 'OTHER',
+} as const
+export type EmployeeActivityType = (typeof EmployeeActivityType)[keyof typeof EmployeeActivityType]
+
+export const TaskType = {
+  FOLLOW_UP: 'FOLLOW_UP',
+  SITE_VISIT: 'SITE_VISIT',
+  CALL: 'CALL',
+  MEETING: 'MEETING',
+  OTHER: 'OTHER',
+} as const
+export type TaskType = (typeof TaskType)[keyof typeof TaskType]
+
+export const TaskStatus = {
+  PENDING: 'PENDING',
+  COMPLETED: 'COMPLETED',
+  CANCELLED: 'CANCELLED',
+} as const
+export type TaskStatus = (typeof TaskStatus)[keyof typeof TaskStatus]
+
+export const NotificationType = {
+  TASK_REMINDER: 'TASK_REMINDER',
+  GENERIC: 'GENERIC',
+} as const
+export type NotificationType = (typeof NotificationType)[keyof typeof NotificationType]
+
 export const OrganizationStatus = {
   ACTIVE: 'ACTIVE',
   SUSPENDED: 'SUSPENDED',
@@ -285,6 +337,11 @@ export interface Lead {
     role: string
     managerId: string | null
   } | null
+  referredByName: string | null
+  referredByEmail: string | null
+  referredByPhone: string | null
+  progressStage: LeadProgressStage | null
+  progressStageNote: string | null
   createdAt: string
   updatedAt: string
 }
@@ -413,6 +470,127 @@ export interface TeamRollupItem {
     statusBreakdown: Record<LeadStatus, number>
   }
   target: TargetProgress | null
+}
+
+export interface EmployeeActivity {
+  id: string
+  organizationId: string
+  userId: string
+  type: EmployeeActivityType
+  description: string | null
+  leadId: string | null
+  lead: { id: string; fullName: string } | null
+  occurredAt: string
+  createdAt: string
+}
+
+export interface TeamActivityItem {
+  userId: string
+  fullName: string
+  role: UserRole
+  managerId: string | null
+  activities: EmployeeActivity[]
+}
+
+export interface Task {
+  id: string
+  organizationId: string
+  userId: string
+  title: string
+  description: string | null
+  taskType: TaskType | null
+  dueAt: string | null
+  leadId: string | null
+  lead: { id: string; fullName: string; phone: string } | null
+  status: TaskStatus
+  completedAt: string | null
+  createdById: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface Notification {
+  id: string
+  organizationId: string
+  userId: string
+  type: NotificationType
+  title: string
+  message: string
+  taskId: string | null
+  task: { id: string; title: string; leadId: string | null; status: TaskStatus } | null
+  isRead: boolean
+  createdAt: string
+}
+
+export const WhatsAppIntegrationStatus = {
+  PENDING: 'PENDING',
+  CONNECTED: 'CONNECTED',
+  FAILED: 'FAILED',
+  DISABLED: 'DISABLED',
+} as const
+export type WhatsAppIntegrationStatus = (typeof WhatsAppIntegrationStatus)[keyof typeof WhatsAppIntegrationStatus]
+
+export const WhatsAppMessageDirection = {
+  INBOUND: 'INBOUND',
+  OUTBOUND: 'OUTBOUND',
+} as const
+export type WhatsAppMessageDirection = (typeof WhatsAppMessageDirection)[keyof typeof WhatsAppMessageDirection]
+
+export const WhatsAppMessageStatus = {
+  QUEUED: 'QUEUED',
+  SENT: 'SENT',
+  DELIVERED: 'DELIVERED',
+  READ: 'READ',
+  FAILED: 'FAILED',
+} as const
+export type WhatsAppMessageStatus = (typeof WhatsAppMessageStatus)[keyof typeof WhatsAppMessageStatus]
+
+export interface WhatsAppIntegration {
+  id: string
+  organizationId: string
+  wabaId: string
+  phoneNumberId: string
+  displayPhoneNumber: string | null
+  businessName: string | null
+  businessManagerId: string | null
+  webhookUrl: string
+  verifyToken?: string
+  status: WhatsAppIntegrationStatus
+  verifiedAt: string | null
+  lastError: string | null
+  lastInboundAt: string | null
+  lastOutboundAt: string | null
+  isActive: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export interface WhatsAppMessage {
+  id: string
+  organizationId: string
+  integrationId: string
+  leadId: string
+  waMessageId: string | null
+  direction: WhatsAppMessageDirection
+  fromPhone: string
+  toPhone: string
+  messageType: string
+  textBody: string | null
+  mediaId: string | null
+  mediaMimeType: string | null
+  status: WhatsAppMessageStatus
+  errorCode: string | null
+  errorMessage: string | null
+  sentByUserId: string | null
+  waTimestamp: string | null
+  createdAt: string
+}
+
+export interface WhatsAppThread {
+  lead: { id: string; fullName: string; phone: string; source: LeadSource }
+  messages: WhatsAppMessage[]
+  windowOpenUntil: string | null
+  withinServiceWindow: boolean
 }
 
 export interface PlatformIntegration {

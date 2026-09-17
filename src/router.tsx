@@ -14,10 +14,12 @@ import { LeadsPage } from '@/pages/leads-page'
 import { LeadDetailPage } from '@/pages/lead-detail-page'
 import { ReportsPage } from '@/pages/reports-page'
 import { IntegrationsPage } from '@/pages/integrations-page'
+import { WhatsAppInboxPage } from '@/pages/whatsapp-inbox-page'
 import { AttendancePage } from '@/pages/attendance-page'
 import { OrgAttendancePage } from '@/pages/org-attendance-page'
 import { TargetsPage } from '@/pages/targets-page'
 import { ProfilePage } from '@/pages/profile-page'
+import { TodoPage } from '@/pages/todo-page'
 import { UnauthorizedPage } from '@/pages/unauthorized-page'
 import { NotFoundPage } from '@/pages/not-found-page'
 import { EMPLOYEE_MODULE_ROLES, ORG_OVERSIGHT_ROLES } from '@/lib/constants'
@@ -126,6 +128,12 @@ const leadDetailRoute = createRoute({
   component: LeadDetailPage,
 })
 
+const whatsappInboxRoute = createRoute({
+  getParentRoute: () => appLayoutRoute,
+  path: '/messaging',
+  component: WhatsAppInboxPage,
+})
+
 const reportsRoute = createRoute({
   getParentRoute: () => appLayoutRoute,
   path: '/reports',
@@ -167,6 +175,12 @@ const profileRoute = createRoute({
   beforeLoad: requireRole(EMPLOYEE_MODULE_ROLES),
 })
 
+const todoRoute = createRoute({
+  getParentRoute: () => appLayoutRoute,
+  path: '/todo',
+  component: TodoPage,
+})
+
 const routeTree = rootRoute.addChildren([
   indexRoute,
   loginRoute,
@@ -179,12 +193,14 @@ const routeTree = rootRoute.addChildren([
     usersRoute,
     leadsRoute,
     leadDetailRoute,
+    whatsappInboxRoute,
     reportsRoute,
     integrationsRoute,
     attendanceRoute,
     orgAttendanceRoute,
     targetsRoute,
     profileRoute,
+    todoRoute,
     unauthorizedRoute,
   ]),
 ])

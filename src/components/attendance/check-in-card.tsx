@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Select } from '@/components/ui/select'
 import { Spinner } from '@/components/ui/spinner'
 import { Badge } from '@/components/ui/badge'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useCheckIn, useCheckOut, useTodayAttendance } from '@/hooks/queries/use-attendance'
 import { ATTENDANCE_STATUS_COLORS, ATTENDANCE_STATUS_LABELS } from '@/lib/constants'
 import { AttendanceStatus } from '@/types'
@@ -20,6 +21,7 @@ export function CheckInCard() {
   const checkIn = useCheckIn()
   const checkOut = useCheckOut()
   const [dayType, setDayType] = useState<string>(AttendanceStatus.PRESENT)
+  const [confirmCheckOut, setConfirmCheckOut] = useState(false)
 
   return (
     <Card>
@@ -59,10 +61,10 @@ export function CheckInCard() {
               ) : (
                 today.markedBy === 'EMPLOYEE' && (
                   <Button
-                    variant="secondary"
+                    variant="danger"
                     className="mt-2"
                     loading={checkOut.isPending}
-                    onClick={() => checkOut.mutate()}
+                    onClick={() => setConfirmCheckOut(true)}
                   >
                     Check Out
                   </Button>
@@ -96,6 +98,19 @@ export function CheckInCard() {
           </div>
         )}
       </CardBody>
+      <ConfirmDialog
+        open={confirmCheckOut}
+        onClose={() => setConfirmCheckOut(false)}
+        onConfirm={() => {
+          checkOut.mutate()
+          setConfirmCheckOut(false)
+        }}
+        loading={checkOut.isPending}
+        title="Check out for today?"
+        description="You won't be able to log any more activity against today's attendance after this."
+        confirmLabel="Check Out"
+        variant="danger"
+      />
     </Card>
   )
 }

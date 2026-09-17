@@ -6,6 +6,8 @@ import { AttendanceHistoryList } from '@/components/attendance/attendance-histor
 import { MyLeaveList } from '@/components/attendance/my-leave-list'
 import { TeamAttendanceTable } from '@/components/attendance/team-attendance-table'
 import { LeaveApprovalsList } from '@/components/attendance/leave-approvals-list'
+import { TodayActivityCard } from '@/components/activities/today-activity-card'
+import { TeamActivityList } from '@/components/activities/team-activity-list'
 import { useAuthStore } from '@/store/auth-store'
 import { UserRole } from '@/types'
 
@@ -24,6 +26,7 @@ export function AttendancePage() {
             tabs={[
               { value: 'mine', label: 'My Attendance' },
               { value: 'team', label: 'Team Attendance' },
+              { value: 'activity', label: 'Team Activity' },
               { value: 'approvals', label: 'Leave Approvals' },
             ]}
             active={tab}
@@ -38,11 +41,13 @@ export function AttendancePage() {
             <CheckInCard />
             <MyLeaveList />
           </div>
+          <TodayActivityCard />
           <AttendanceHistoryList />
         </div>
       )}
 
       {isManager && tab === 'team' && <TeamAttendanceTable />}
+      {isManager && tab === 'activity' && <TeamActivityList />}
       {isManager && tab === 'approvals' && <LeaveApprovalsList />}
     </div>
   )

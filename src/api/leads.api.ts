@@ -1,5 +1,5 @@
 import { apiClient } from '@/lib/api-client'
-import type { Lead, LeadStatus, LeadWithActivity } from '@/types'
+import type { Lead, LeadProgressStage, LeadStatus, LeadWithActivity } from '@/types'
 
 export interface CreateLeadManualPayload {
   fullName: string
@@ -7,6 +7,16 @@ export interface CreateLeadManualPayload {
   email?: string
   propertyInterest?: string
   assignedToId?: string
+  referredByName?: string
+  referredByEmail?: string
+  referredByPhone?: string
+}
+
+export interface UpdateLeadStatusPayload {
+  id: string
+  status: LeadStatus
+  progressStage?: LeadProgressStage
+  progressStageNote?: string
 }
 
 export interface LeadQuery {
@@ -30,6 +40,6 @@ export const leadsApi = {
   assign: (id: string, assignedToId: string) =>
     apiClient.patch<Lead>(`/leads/${id}/assign`, { assignedToId }).then((r) => r.data),
 
-  updateStatus: (id: string, status: LeadStatus) =>
-    apiClient.patch<Lead>(`/leads/${id}/status`, { status }).then((r) => r.data),
+  updateStatus: ({ id, status, progressStage, progressStageNote }: UpdateLeadStatusPayload) =>
+    apiClient.patch<Lead>(`/leads/${id}/status`, { status, progressStage, progressStageNote }).then((r) => r.data),
 }

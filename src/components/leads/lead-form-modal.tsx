@@ -1,6 +1,7 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
+import { ChevronDown, ChevronRight } from 'lucide-react'
 import { z } from 'zod'
 import { Modal } from '@/components/ui/modal'
 import { Field, Input } from '@/components/ui/input'
@@ -20,6 +21,13 @@ const schema = z.object({
   email: z.string().email('Enter a valid email').optional().or(z.literal('')),
   propertyInterest: z.string().optional(),
   assignedToId: z.string().optional(),
+  referredByName: z.string().optional(),
+  referredByEmail: z.string().email('Enter a valid email').optional().or(z.literal('')),
+  referredByPhone: z
+    .string()
+    .regex(/^\+?[0-9]{7,15}$/, 'Enter a valid phone number')
+    .optional()
+    .or(z.literal('')),
 })
 type FormValues = z.infer<typeof schema>
 
@@ -28,6 +36,7 @@ export function LeadFormModal({ open, onClose }: { open: boolean; onClose: () =>
   const canAssign = currentUser && ASSIGNER_ROLES.includes(currentUser.role)
   const { data: users } = useUsers(!!canAssign)
   const create = useCreateLead()
+  const [showReference, setShowReference] = useState(false)
 
   const {
     register,
@@ -37,7 +46,19 @@ export function LeadFormModal({ open, onClose }: { open: boolean; onClose: () =>
   } = useForm<FormValues>({ resolver: zodResolver(schema) })
 
   useEffect(() => {
-    if (open) reset({ fullName: '', phone: '', email: '', propertyInterest: '', assignedToId: '' })
+    if (open) {
+      reset({
+        fullName: '',
+        phone: '',
+        email: '',
+        propertyInterest: '',
+        assignedToId: '',
+        referredByName: '',
+        referredByEmail: '',
+        referredByPhone: '',
+      })
+      setShowReference(false)
+    }
   }, [open, reset])
 
   const onSubmit = (values: FormValues) => {
@@ -48,6 +69,9 @@ export function LeadFormModal({ open, onClose }: { open: boolean; onClose: () =>
         email: values.email || undefined,
         propertyInterest: values.propertyInterest || undefined,
         assignedToId: values.assignedToId || undefined,
+        referredByName: values.referredByName || undefined,
+        referredByEmail: values.referredByEmail || undefined,
+        referredByPhone: values.referredByPhone || undefined,
       },
       { onSuccess: onClose },
     )
@@ -82,6 +106,32 @@ export function LeadFormModal({ open, onClose }: { open: boolean; onClose: () =>
             </Select>
           </Field>
         )}
+
+        <div className="rounded-xl border border-slate-100">
+          <button
+            type="button"
+            onClick={() => setShowReference((v) => !v)}
+            className="flex w-full items-center gap-1.5 px-3.5 py-2.5 text-left text-sm font-medium text-slate-600"
+          >
+            {showReference ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
+            Reference (optional)
+          </button>
+          {showReference && (
+            <div className="flex flex-col gap-4 border-t border-slate-100 p-3.5">
+              <p className="text-xs text-slate-400">Who referred this lead in? Shown on the lead's detail page.</p>
+              <Field label="Referrer name" error={errors.referredByName?.message}>
+                <Input {...register('referredByName')} placeholder="Suresh Mehta" />
+              </Field>
+              <Field label="Referrer email" error={errors.referredByEmail?.message}>
+                <Input {...register('referredByEmail')} placeholder="suresh.mehta@example.com" />
+              </Field>
+              <Field label="Referrer phone" error={errors.referredByPhone?.message}>
+                <Input {...register('referredByPhone')} placeholder="+919876500000" />
+              </Field>
+            </div>
+          )}
+        </div>
+
         <div className="flex justify-end gap-2 pt-2">
           <Button type="button" variant="ghost" onClick={onClose}>
             Cancel

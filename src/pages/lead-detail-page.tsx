@@ -3,6 +3,7 @@ import { useParams, useNavigate } from '@tanstack/react-router'
 import {
   ArrowLeft,
   Calendar,
+  CheckSquare,
   Clock,
   Contact,
   Mail,
@@ -11,18 +12,22 @@ import {
   Tag,
   User,
   UserPlus,
+  UserRound,
   Wallet,
 } from 'lucide-react'
 import { Card, CardBody, CardHeader } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { PageLoader } from '@/components/ui/spinner'
 import { LeadStatusBadge } from '@/components/leads/lead-status-badge'
 import { LeadStatusControl } from '@/components/leads/lead-status-control'
 import { AssignLeadModal } from '@/components/leads/assign-lead-modal'
+import { WhatsAppChatPanel } from '@/components/leads/whatsapp-chat-panel'
+import { TaskFormModal } from '@/components/tasks/task-form-modal'
 import { useLead } from '@/hooks/queries/use-leads'
 import { useAuthStore } from '@/store/auth-store'
-import { ASSIGNER_ROLES } from '@/lib/constants'
-import { UserRole } from '@/types'
+import { ASSIGNER_ROLES, LEAD_PROGRESS_STAGE_LABELS } from '@/lib/constants'
+import { LeadStatus, UserRole } from '@/types'
 import { formatCurrency, formatDateTime, formatEnumLabel } from '@/lib/utils'
 
 const ACTIVITY_LABELS: Record<string, string> = {
@@ -39,6 +44,7 @@ export function LeadDetailPage() {
   const currentUser = useAuthStore((s) => s.user)
   const { data: lead, isLoading } = useLead(leadId)
   const [assignOpen, setAssignOpen] = useState(false)
+  const [taskOpen, setTaskOpen] = useState(false)
 
   const canAssign = currentUser && ASSIGNER_ROLES.includes(currentUser.role)
 
@@ -75,7 +81,14 @@ export function LeadDetailPage() {
         </Button>
         <div className="min-w-0 flex-1">
           <h2 className="truncate text-xl font-bold text-slate-900">{lead.fullName}</h2>
-          <p className="text-sm text-slate-500">{formatEnumLabel(lead.source)} lead</p>
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-sm text-slate-500">{formatEnumLabel(lead.source)} lead</p>
+            {lead.status === LeadStatus.IN_PROGRESS && lead.progressStage && (
+              <Badge variant="brand">
+                {lead.progressStage === 'OTHER' ? lead.progressStageNote : LEAD_PROGRESS_STAGE_LABELS[lead.progressStage]}
+              </Badge>
+            )}
+          </div>
         </div>
         {canChangeStatus ? <LeadStatusControl lead={lead} /> : <LeadStatusBadge status={lead.status} />}
         {canAssign && (
@@ -84,6 +97,10 @@ export function LeadDetailPage() {
             Assign
           </Button>
         )}
+        <Button size="sm" variant="outline" onClick={() => setTaskOpen(true)}>
+          <CheckSquare className="size-4" />
+          Add Task
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
@@ -103,6 +120,17 @@ export function LeadDetailPage() {
               <div className="mt-2 rounded-xl bg-slate-50 p-3">
                 <p className="text-xs font-medium text-slate-400">Message</p>
                 <p className="mt-1 text-sm text-slate-600">{lead.message}</p>
+              </div>
+            )}
+            {lead.referredByName && (
+              <div className="mt-2 flex items-start gap-3 rounded-xl bg-brand-50 p-3">
+                <UserRound className="mt-0.5 size-4 shrink-0 text-brand-500" />
+                <div>
+                  <p className="text-xs font-medium text-brand-500">Referred by</p>
+                  <p className="mt-0.5 text-sm font-medium text-slate-700">{lead.referredByName}</p>
+                  {lead.referredByPhone && <p className="text-xs text-slate-500">{lead.referredByPhone}</p>}
+                  {lead.referredByEmail && <p className="text-xs text-slate-500">{lead.referredByEmail}</p>}
+                </div>
               </div>
             )}
           </CardBody>
@@ -137,7 +165,17 @@ export function LeadDetailPage() {
         </Card>
       </div>
 
+      {lead.source === 'WHATSAPP' && (
+        <Card>
+          <CardHeader title="WhatsApp conversation" subtitle="Full chat history with this lead — reply directly from here" />
+          <CardBody>
+            <WhatsAppChatPanel leadId={lead.id} />
+          </CardBody>
+        </Card>
+      )}
+
       <AssignLeadModal open={assignOpen} onClose={() => setAssignOpen(false)} lead={lead} />
+      <TaskFormModal open={taskOpen} onClose={() => setTaskOpen(false)} lead={{ id: lead.id, fullName: lead.fullName }} />
     </div>
   )
 }

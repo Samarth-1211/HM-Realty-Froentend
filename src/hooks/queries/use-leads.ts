@@ -1,9 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { leadsApi, type CreateLeadManualPayload, type LeadQuery } from '@/api/leads.api'
+import { leadsApi, type CreateLeadManualPayload, type LeadQuery, type UpdateLeadStatusPayload } from '@/api/leads.api'
 import { extractErrorMessage } from '@/lib/api-client'
 import { REFRESH_INTERVAL_MS } from '@/lib/constants'
-import type { LeadStatus } from '@/types'
 import { queryKeys } from './query-keys'
 
 export function useLeads(query: LeadQuery = {}) {
@@ -52,7 +51,7 @@ export function useAssignLead() {
 export function useUpdateLeadStatus() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({ id, status }: { id: string; status: LeadStatus }) => leadsApi.updateStatus(id, status),
+    mutationFn: (payload: UpdateLeadStatusPayload) => leadsApi.updateStatus(payload),
     onSuccess: (_d, vars) => {
       toast.success('Lead status updated')
       qc.invalidateQueries({ queryKey: ['leads'] })

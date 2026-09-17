@@ -25,6 +25,25 @@ export function useLogin() {
   })
 }
 
+export function useSuperAdminLogin() {
+  const setSession = useAuthStore((s) => s.setSession)
+  const navigate = useNavigate()
+
+  return useMutation({
+    mutationFn: (payload: LoginPayload) => authApi.superAdminLogin(payload),
+    onSuccess: (data) => {
+      setSession(data)
+      toast.success(`Welcome back, ${data.user.firstName}`, {
+        description: `Signed in as ${ROLE_LABELS[data.user.role]}`,
+      })
+      navigate({ to: '/dashboard' })
+    },
+    onError: (error) => {
+      toast.error('Sign in failed', { description: extractErrorMessage(error) })
+    },
+  })
+}
+
 export function useLogout() {
   const clearSession = useAuthStore((s) => s.clearSession)
   const navigate = useNavigate()

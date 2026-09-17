@@ -15,10 +15,7 @@ const schema = z.object({
 
 type FormValues = z.infer<typeof schema>
 
-const DEMO_ACCOUNTS = [
-  { label: 'Super Admin', email: 'superadmin@demorealty.com', password: 'SuperAdmin@123' },
-  { label: 'Admin', email: 'admin@demorealty.com', password: 'Admin@123' },
-]
+const DEMO_ACCOUNTS = [{ label: 'Admin', email: 'admin@demorealty.com', password: 'Admin@123' }]
 
 export function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)

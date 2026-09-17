@@ -4,6 +4,7 @@ import { AppShell } from '@/components/layout/app-shell'
 import { useAuthStore } from '@/store/auth-store'
 import { UserRole } from '@/types'
 import { LoginPage } from '@/pages/login-page'
+import { SuperAdminLoginPage } from '@/pages/super-admin-login-page'
 import { DashboardPage } from '@/pages/dashboard/dashboard-page'
 import { OrganizationsPage } from '@/pages/organizations-page'
 import { ManagersPage } from '@/pages/managers-page'
@@ -59,6 +60,18 @@ const loginRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/login',
   component: LoginPage,
+  beforeLoad: requireGuest,
+})
+
+// Undocumented, unlinked entry point for the super admin portal. The path segment
+// itself is the shared secret — it is never linked from the UI, so it only works
+// for whoever has this exact URL. Treat it as a credential: rotate it if it leaks.
+const SUPER_ADMIN_PORTAL_PATH = '/portal-1fae5f8a20f5c22909678acd19df95b947934abd'
+
+const superAdminLoginRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: SUPER_ADMIN_PORTAL_PATH,
+  component: SuperAdminLoginPage,
   beforeLoad: requireGuest,
 })
 
@@ -184,6 +197,7 @@ const todoRoute = createRoute({
 const routeTree = rootRoute.addChildren([
   indexRoute,
   loginRoute,
+  superAdminLoginRoute,
   appLayoutRoute.addChildren([
     dashboardRoute,
     organizationsRoute,

@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { activitiesApi, type LogActivityPayload } from '@/api/activities.api'
+import { activitiesApi, type ActivityReportQuery, type LogActivityPayload } from '@/api/activities.api'
 import { extractErrorMessage } from '@/lib/api-client'
 import { queryKeys } from './query-keys'
 
@@ -23,6 +23,14 @@ export function useOrgActivities(date?: string, enabled = true) {
   return useQuery({
     queryKey: queryKeys.activities.org(date),
     queryFn: () => activitiesApi.org(date),
+    enabled,
+  })
+}
+
+export function useActivityReport(query: ActivityReportQuery, enabled = true) {
+  return useQuery({
+    queryKey: queryKeys.activities.report(query),
+    queryFn: () => activitiesApi.report(query),
     enabled,
   })
 }

@@ -1,10 +1,16 @@
 import { apiClient } from '@/lib/api-client'
-import type { EmployeeActivity, EmployeeActivityType, TeamActivityItem } from '@/types'
+import type { ActivityReport, EmployeeActivity, EmployeeActivityType, TeamActivityItem } from '@/types'
 
 export interface LogActivityPayload {
   type: EmployeeActivityType
   description?: string
   leadId?: string
+}
+
+export interface ActivityReportQuery {
+  employeeId?: string
+  from: string
+  to: string
 }
 
 export const activitiesApi = {
@@ -19,4 +25,7 @@ export const activitiesApi = {
 
   org: (date?: string) =>
     apiClient.get<TeamActivityItem[]>('/activities/org', { params: { date } }).then((r) => r.data),
+
+  report: (query: ActivityReportQuery) =>
+    apiClient.get<ActivityReport>('/activities/report', { params: query }).then((r) => r.data),
 }

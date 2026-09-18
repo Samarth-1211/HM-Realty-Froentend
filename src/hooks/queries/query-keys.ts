@@ -64,6 +64,7 @@ export const queryKeys = {
     mine: (date?: string) => ['activities', 'me', date] as const,
     team: (date?: string) => ['activities', 'team', date] as const,
     org: (date?: string) => ['activities', 'org', date] as const,
+    report: (query?: unknown) => ['activities', 'report', query] as const,
   },
   tasks: {
     mine: (query?: unknown) => ['tasks', 'me', query] as const,

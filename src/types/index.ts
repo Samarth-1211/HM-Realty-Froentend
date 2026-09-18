@@ -547,6 +547,19 @@ export interface TeamActivityItem {
   activities: EmployeeActivity[]
 }
 
+export interface ActivityReportDay {
+  date: string
+  attendance: { status: AttendanceStatus; checkInAt: string | null; checkOutAt: string | null } | null
+  activities: EmployeeActivity[]
+}
+
+export interface ActivityReport {
+  employee: { id: string; fullName: string; role: UserRole }
+  from: string
+  to: string
+  days: ActivityReportDay[]
+}
+
 export interface Task {
   id: string
   organizationId: string

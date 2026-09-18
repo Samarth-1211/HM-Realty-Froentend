@@ -7,6 +7,7 @@ import type {
   LeadStatus,
   LeadTemperature,
   LeadWithActivity,
+  TeamPerformanceRow,
   VisitStatus,
 } from '@/types'
 
@@ -70,4 +71,7 @@ export const leadsApi = {
 
   updateFollowUp: (id: string, payload: UpdateLeadFollowUpPayload) =>
     apiClient.patch<Lead>(`/leads/${id}/follow-up`, payload).then((r) => r.data),
+
+  teamPerformance: () =>
+    apiClient.get<TeamPerformanceRow[]>('/leads/team-performance').then((r) => r.data),
 }

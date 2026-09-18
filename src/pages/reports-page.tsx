@@ -10,15 +10,18 @@ import { StatusDonut } from '@/components/dashboard/status-donut'
 import { PageLoader } from '@/components/ui/spinner'
 import { Avatar } from '@/components/ui/avatar'
 import { EmployeeActivityReport } from '@/components/reports/employee-activity-report'
+import { TeamPerformanceReport } from '@/components/reports/team-performance-report'
 import { useEmployeeSummary, useTeamSummary } from '@/hooks/queries/use-employees'
 import { useUsers } from '@/hooks/queries/use-users'
 import { useAuthStore } from '@/store/auth-store'
+import { ASSIGNER_ROLES } from '@/lib/constants'
 import { UserRole, type TeamSummaryItem } from '@/types'
 import { formatRoleLabel } from '@/lib/utils'
 
 const REPORT_TABS = [
   { value: 'PIPELINE', label: 'Pipeline' },
   { value: 'ACTIVITY', label: 'Daily / Weekly / Monthly Activity' },
+  { value: 'TEAM_PERFORMANCE', label: 'Team Performance' },
 ] as const
 
 export function ReportsPage() {
@@ -26,16 +29,21 @@ export function ReportsPage() {
   const [tab, setTab] = useState<(typeof REPORT_TABS)[number]['value']>('PIPELINE')
   if (!user) return null
 
+  const canSeeTeamPerformance = ASSIGNER_ROLES.includes(user.role)
+  const tabs = REPORT_TABS.filter((t) => t.value !== 'TEAM_PERFORMANCE' || canSeeTeamPerformance)
+
   return (
     <div>
       <PageHeader
         title="Reports"
         description="Pipeline performance and day-by-day activity, per employee."
-        actions={<Tabs tabs={[...REPORT_TABS]} active={tab} onChange={(v) => setTab(v as typeof tab)} />}
+        actions={<Tabs tabs={[...tabs]} active={tab} onChange={(v) => setTab(v as typeof tab)} />}
       />
 
       {tab === 'ACTIVITY' ? (
         <EmployeeActivityReport />
+      ) : tab === 'TEAM_PERFORMANCE' && canSeeTeamPerformance ? (
+        <TeamPerformanceReport />
       ) : user.role === UserRole.MANAGER ? (
         <ManagerReports />
       ) : user.role === UserRole.SUPER_ADMIN || user.role === UserRole.ADMIN ? (

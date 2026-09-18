@@ -424,6 +424,21 @@ export interface TeamSummaryItem {
   totalTalkTimeMinutesMock: number
 }
 
+export interface TeamPerformanceRow {
+  userId: string
+  fullName: string
+  role: UserRole
+  totalLeads: number
+  hotLeads: number
+  visitsPlanned: number
+  visitsDone: number
+  bookings: number
+  bookingValue: number
+  overdueFollowUps: number
+  visitConversionPct: number
+  leadToBookingPct: number
+}
+
 export interface EmployeeSummary {
   userId: string
   fullName: string

@@ -67,6 +67,15 @@ export function useUpdateLeadStatus() {
   })
 }
 
+export function useTeamPerformance(enabled = true) {
+  return useQuery({
+    queryKey: queryKeys.leads.teamPerformance,
+    queryFn: () => leadsApi.teamPerformance(),
+    refetchInterval: REFRESH_INTERVAL_MS,
+    enabled,
+  })
+}
+
 export function useUpdateLeadFollowUp() {
   const qc = useQueryClient()
   return useMutation({

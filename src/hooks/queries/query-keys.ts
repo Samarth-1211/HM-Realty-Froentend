@@ -23,6 +23,7 @@ export const queryKeys = {
   leads: {
     list: (query?: unknown) => ['leads', query] as const,
     detail: (id: string) => ['leads', id] as const,
+    teamPerformance: ['leads', 'team-performance'] as const,
   },
   employees: {
     teamSummary: ['employees', 'team-summary'] as const,

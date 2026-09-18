@@ -67,6 +67,7 @@ export const queryKeys = {
   },
   tasks: {
     mine: (query?: unknown) => ['tasks', 'me', query] as const,
+    assignedByMe: (query?: unknown) => ['tasks', 'assigned-by-me', query] as const,
     detail: (id: string) => ['tasks', id] as const,
   },
   notifications: {

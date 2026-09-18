@@ -120,6 +120,23 @@ export const TASK_STATUS_COLORS: Record<string, string> = {
   CANCELLED: 'bg-slate-200 text-slate-600 ring-slate-500/20',
 }
 
+export const TASK_PRIORITY_LABELS: Record<string, string> = {
+  NORMAL: 'Normal',
+  URGENT: 'Urgent',
+  VERY_URGENT: 'Very urgent',
+  TOP_PRIORITY: 'Top priority',
+}
+
+/** Ordered low -> high, for sort/rank use in the UI. */
+export const TASK_PRIORITY_ORDER: string[] = ['NORMAL', 'URGENT', 'VERY_URGENT', 'TOP_PRIORITY']
+
+export const TASK_PRIORITY_COLORS: Record<string, string> = {
+  NORMAL: 'bg-slate-100 text-slate-600 ring-slate-500/20',
+  URGENT: 'bg-amber-100 text-amber-700 ring-amber-600/20',
+  VERY_URGENT: 'bg-orange-100 text-orange-700 ring-orange-600/20',
+  TOP_PRIORITY: 'bg-rose-100 text-rose-700 ring-rose-600/20',
+}
+
 /** Preset reminder offsets (minutes before due) shown as quick-toggle chips. */
 export const REMINDER_PRESETS: { label: string; minutes: number }[] = [
   { label: '1 day before', minutes: 1440 },

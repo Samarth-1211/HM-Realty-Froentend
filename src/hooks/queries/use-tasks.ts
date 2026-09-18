@@ -13,6 +13,16 @@ export function useMyTasks(query: TaskQuery = {}) {
   })
 }
 
+/** Tasks the caller has delegated to others — Manager/Admin delegation view. */
+export function useTasksAssignedByMe(query: TaskQuery = {}, enabled = true) {
+  return useQuery({
+    queryKey: queryKeys.tasks.assignedByMe(query),
+    queryFn: () => tasksApi.listAssignedByMe(query),
+    refetchInterval: REFRESH_INTERVAL_MS,
+    enabled,
+  })
+}
+
 export function useCreateTask() {
   const qc = useQueryClient()
   return useMutation({

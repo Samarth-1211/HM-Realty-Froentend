@@ -1,18 +1,20 @@
 import { useState } from 'react'
 import { Link } from '@tanstack/react-router'
-import { Calendar, Check, Contact, Pencil, Trash2 } from 'lucide-react'
+import { Calendar, Check, Contact, Pencil, Trash2, UserRound } from 'lucide-react'
 import { Badge, StatusPill } from '@/components/ui/badge'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { EmptyState } from '@/components/ui/empty-state'
 import { TaskFormModal } from './task-form-modal'
 import { useCompleteTask, useDeleteTask } from '@/hooks/queries/use-tasks'
-import { TASK_STATUS_COLORS, TASK_TYPE_LABELS } from '@/lib/constants'
+import { useAuthStore } from '@/store/auth-store'
+import { ASSIGNER_ROLES, TASK_PRIORITY_COLORS, TASK_PRIORITY_LABELS, TASK_STATUS_COLORS, TASK_TYPE_LABELS } from '@/lib/constants'
 import { formatDateTime } from '@/lib/utils'
-import { TaskStatus, type Task } from '@/types'
+import { TaskPriority, TaskStatus, type Task } from '@/types'
 
 export function TaskList({ tasks }: { tasks: Task[] }) {
   const complete = useCompleteTask()
   const del = useDeleteTask()
+  const authUser = useAuthStore((s) => s.user)
   const [editing, setEditing] = useState<Task | null>(null)
   const [deleting, setDeleting] = useState<Task | null>(null)
 
@@ -44,7 +46,18 @@ export function TaskList({ tasks }: { tasks: Task[] }) {
             </p>
             {task.description && <p className="mt-0.5 text-xs text-slate-500">{task.description}</p>}
             <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+              {task.priority !== TaskPriority.NORMAL && (
+                <StatusPill label={TASK_PRIORITY_LABELS[task.priority]} className={TASK_PRIORITY_COLORS[task.priority]} />
+              )}
               {task.taskType && <Badge variant="neutral">{TASK_TYPE_LABELS[task.taskType]}</Badge>}
+              {task.createdById !== task.userId && (
+                <Badge variant="brand">
+                  <UserRound className="size-3" />
+                  {task.userId === authUser?.id
+                    ? `Assigned by ${task.createdBy ? `${task.createdBy.firstName} ${task.createdBy.lastName}` : 'someone else'}`
+                    : `Assigned to ${task.user ? `${task.user.firstName} ${task.user.lastName}` : 'someone'}`}
+                </Badge>
+              )}
               {task.dueAt && (
                 <Badge variant={isOverdue(task) ? 'danger' : 'neutral'}>
                   <Calendar className="size-3" />
@@ -63,7 +76,9 @@ export function TaskList({ tasks }: { tasks: Task[] }) {
             </div>
           </div>
 
-          {task.status === TaskStatus.PENDING && (
+          {task.status === TaskStatus.PENDING &&
+            !!authUser &&
+            (task.createdById === authUser.id || ASSIGNER_ROLES.includes(authUser.role)) && (
             <div className="flex shrink-0 items-center gap-1">
               <button
                 onClick={() => setEditing(task)}

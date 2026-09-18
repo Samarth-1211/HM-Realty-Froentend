@@ -76,8 +76,17 @@ export const TaskStatus = {
 } as const
 export type TaskStatus = (typeof TaskStatus)[keyof typeof TaskStatus]
 
+export const TaskPriority = {
+  NORMAL: 'NORMAL',
+  URGENT: 'URGENT',
+  VERY_URGENT: 'VERY_URGENT',
+  TOP_PRIORITY: 'TOP_PRIORITY',
+} as const
+export type TaskPriority = (typeof TaskPriority)[keyof typeof TaskPriority]
+
 export const NotificationType = {
   TASK_REMINDER: 'TASK_REMINDER',
+  TASK_ASSIGNED: 'TASK_ASSIGNED',
   GENERIC: 'GENERIC',
 } as const
 export type NotificationType = (typeof NotificationType)[keyof typeof NotificationType]
@@ -499,12 +508,15 @@ export interface Task {
   title: string
   description: string | null
   taskType: TaskType | null
+  priority: TaskPriority
   dueAt: string | null
   leadId: string | null
   lead: { id: string; fullName: string; phone: string } | null
+  user: { id: string; firstName: string; lastName: string; role: UserRole } | null
   status: TaskStatus
   completedAt: string | null
   createdById: string
+  createdBy: { id: string; firstName: string; lastName: string; role: UserRole } | null
   createdAt: string
   updatedAt: string
 }

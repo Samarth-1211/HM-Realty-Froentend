@@ -6,10 +6,13 @@ import { Button } from '@/components/ui/button'
 import { ReminderPicker } from './reminder-picker'
 import { useCreateTask, useUpdateTask } from '@/hooks/queries/use-tasks'
 import { useLeads } from '@/hooks/queries/use-leads'
-import { TASK_TYPE_LABELS } from '@/lib/constants'
-import { TaskType, type Task } from '@/types'
+import { useUsers } from '@/hooks/queries/use-users'
+import { useAuthStore } from '@/store/auth-store'
+import { ASSIGNER_ROLES, TASK_PRIORITY_LABELS, TASK_TYPE_LABELS } from '@/lib/constants'
+import { TaskPriority, TaskType, type Task } from '@/types'
 
 const TASK_TYPE_OPTIONS = Object.values(TaskType)
+const TASK_PRIORITY_OPTIONS = Object.values(TaskPriority)
 
 /** Converts a Date + local <input type="datetime-local"> string pair. */
 function toDatetimeLocal(iso?: string | null): string {
@@ -38,10 +41,15 @@ export function TaskFormModal({
   const create = useCreateTask()
   const update = useUpdateTask()
   const { data: leads } = useLeads()
+  const authUser = useAuthStore((s) => s.user)
+  const canAssign = !!authUser && ASSIGNER_ROLES.includes(authUser.role)
+  const { data: assignableUsers } = useUsers(canAssign)
 
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [taskType, setTaskType] = useState<TaskType | ''>('')
+  const [priority, setPriority] = useState<TaskPriority>(TaskPriority.NORMAL)
+  const [assignedToId, setAssignedToId] = useState('')
   const [dueAt, setDueAt] = useState('')
   const [leadId, setLeadId] = useState('')
   const [reminders, setReminders] = useState<number[]>([1440, 360])
@@ -51,6 +59,8 @@ export function TaskFormModal({
     setTitle(task?.title ?? '')
     setDescription(task?.description ?? '')
     setTaskType(task?.taskType ?? '')
+    setPriority(task?.priority ?? TaskPriority.NORMAL)
+    setAssignedToId(task?.userId ?? '')
     setDueAt(toDatetimeLocal(task?.dueAt))
     setLeadId(task?.leadId ?? lead?.id ?? '')
     setReminders([1440, 360])
@@ -66,6 +76,8 @@ export function TaskFormModal({
       title: title.trim(),
       description: description.trim() || undefined,
       taskType: taskType || undefined,
+      priority,
+      assignedToId: canAssign ? assignedToId || undefined : undefined,
       dueAt: dueAt ? new Date(dueAt).toISOString() : undefined,
       leadId: lead?.id ?? leadId ?? undefined,
       reminderOffsetsMinutes: dueAt ? reminders : undefined,
@@ -104,16 +116,43 @@ export function TaskFormModal({
           </Field>
         )}
 
-        <Field label="Task type">
-          <Select value={taskType} onChange={(e) => setTaskType(e.target.value as TaskType)}>
-            <option value="">General</option>
-            {TASK_TYPE_OPTIONS.map((t) => (
-              <option key={t} value={t}>
-                {TASK_TYPE_LABELS[t]}
-              </option>
-            ))}
-          </Select>
-        </Field>
+        <div className="grid grid-cols-2 gap-4">
+          <Field label="Task type">
+            <Select value={taskType} onChange={(e) => setTaskType(e.target.value as TaskType)}>
+              <option value="">General</option>
+              {TASK_TYPE_OPTIONS.map((t) => (
+                <option key={t} value={t}>
+                  {TASK_TYPE_LABELS[t]}
+                </option>
+              ))}
+            </Select>
+          </Field>
+
+          <Field label="Priority">
+            <Select value={priority} onChange={(e) => setPriority(e.target.value as TaskPriority)}>
+              {TASK_PRIORITY_OPTIONS.map((p) => (
+                <option key={p} value={p}>
+                  {TASK_PRIORITY_LABELS[p]}
+                </option>
+              ))}
+            </Select>
+          </Field>
+        </div>
+
+        {canAssign && (
+          <Field label="Assign to" hint="Leave as yourself for a personal task">
+            <Select value={assignedToId} onChange={(e) => setAssignedToId(e.target.value)}>
+              <option value="">Myself</option>
+              {(assignableUsers ?? [])
+                .filter((u) => u.id !== authUser?.id)
+                .map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.firstName} {u.lastName}
+                  </option>
+                ))}
+            </Select>
+          </Field>
+        )}
 
         <Field label="Description">
           <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Optional notes" />

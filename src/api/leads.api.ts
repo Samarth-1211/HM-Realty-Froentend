@@ -1,5 +1,14 @@
 import { apiClient } from '@/lib/api-client'
-import type { Lead, LeadProgressStage, LeadStatus, LeadWithActivity } from '@/types'
+import type {
+  BookingStatus,
+  Lead,
+  LeadProgressStage,
+  LeadPurpose,
+  LeadStatus,
+  LeadTemperature,
+  LeadWithActivity,
+  VisitStatus,
+} from '@/types'
 
 export interface CreateLeadManualPayload {
   fullName: string
@@ -24,6 +33,22 @@ export interface LeadQuery {
   status?: LeadStatus
 }
 
+export interface UpdateLeadFollowUpPayload {
+  lastContactedAt?: string
+  nextFollowUpAt?: string
+  siteVisitDate?: string
+  visitStatus?: VisitStatus
+  leadTemperature?: LeadTemperature
+  purpose?: LeadPurpose
+  plotSizeSqFt?: number
+  mainObjection?: string
+  bookingProbability?: number
+  bookingStatus?: BookingStatus
+  bookingValue?: number
+  lostNurtureReason?: string
+  remarks?: string
+}
+
 export const leadsApi = {
   // NOTE: /leads is NOT paginated on the backend today — it returns a plain
   // Lead[] (scoped to the caller's org, and to their own assignments for
@@ -42,4 +67,7 @@ export const leadsApi = {
 
   updateStatus: ({ id, status, progressStage, progressStageNote }: UpdateLeadStatusPayload) =>
     apiClient.patch<Lead>(`/leads/${id}/status`, { status, progressStage, progressStageNote }).then((r) => r.data),
+
+  updateFollowUp: (id: string, payload: UpdateLeadFollowUpPayload) =>
+    apiClient.patch<Lead>(`/leads/${id}/follow-up`, payload).then((r) => r.data),
 }

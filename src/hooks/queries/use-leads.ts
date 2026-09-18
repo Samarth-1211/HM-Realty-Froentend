@@ -1,6 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { leadsApi, type CreateLeadManualPayload, type LeadQuery, type UpdateLeadStatusPayload } from '@/api/leads.api'
+import {
+  leadsApi,
+  type CreateLeadManualPayload,
+  type LeadQuery,
+  type UpdateLeadFollowUpPayload,
+  type UpdateLeadStatusPayload,
+} from '@/api/leads.api'
 import { extractErrorMessage } from '@/lib/api-client'
 import { REFRESH_INTERVAL_MS } from '@/lib/constants'
 import { queryKeys } from './query-keys'
@@ -58,5 +64,19 @@ export function useUpdateLeadStatus() {
       qc.invalidateQueries({ queryKey: queryKeys.leads.detail(vars.id) })
     },
     onError: (error) => toast.error('Could not update lead status', { description: extractErrorMessage(error) }),
+  })
+}
+
+export function useUpdateLeadFollowUp() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: UpdateLeadFollowUpPayload }) =>
+      leadsApi.updateFollowUp(id, payload),
+    onSuccess: (_d, vars) => {
+      toast.success('Follow-up details saved')
+      qc.invalidateQueries({ queryKey: ['leads'] })
+      qc.invalidateQueries({ queryKey: queryKeys.leads.detail(vars.id) })
+    },
+    onError: (error) => toast.error('Could not save follow-up details', { description: extractErrorMessage(error) }),
   })
 }

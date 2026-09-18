@@ -9,18 +9,11 @@ import { useLeads } from '@/hooks/queries/use-leads'
 import { useUsers } from '@/hooks/queries/use-users'
 import { useAuthStore } from '@/store/auth-store'
 import { ASSIGNER_ROLES, TASK_PRIORITY_LABELS, TASK_TYPE_LABELS } from '@/lib/constants'
+import { toDatetimeLocal } from '@/lib/utils'
 import { TaskPriority, TaskType, type Task } from '@/types'
 
 const TASK_TYPE_OPTIONS = Object.values(TaskType)
 const TASK_PRIORITY_OPTIONS = Object.values(TaskPriority)
-
-/** Converts a Date + local <input type="datetime-local"> string pair. */
-function toDatetimeLocal(iso?: string | null): string {
-  if (!iso) return ''
-  const d = new Date(iso)
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
-}
 
 export function TaskFormModal({
   open,

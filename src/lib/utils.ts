@@ -52,6 +52,14 @@ export function formatRoleLabel(role: string) {
     .join(' ')
 }
 
+/** Converts an ISO date string to the value a <input type="datetime-local"> expects, in local time. */
+export function toDatetimeLocal(iso?: string | null): string {
+  if (!iso) return ''
+  const d = new Date(iso)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
 export function formatEnumLabel(value: string) {
   return value
     .toLowerCase()

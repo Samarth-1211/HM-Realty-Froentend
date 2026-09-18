@@ -41,6 +41,37 @@ export const LeadProgressStage = {
 } as const
 export type LeadProgressStage = (typeof LeadProgressStage)[keyof typeof LeadProgressStage]
 
+export const LeadTemperature = {
+  HOT: 'HOT',
+  WARM: 'WARM',
+  COLD: 'COLD',
+} as const
+export type LeadTemperature = (typeof LeadTemperature)[keyof typeof LeadTemperature]
+
+export const LeadPurpose = {
+  SELF_USE: 'SELF_USE',
+  INVESTMENT: 'INVESTMENT',
+  RENTAL: 'RENTAL',
+  OTHER: 'OTHER',
+} as const
+export type LeadPurpose = (typeof LeadPurpose)[keyof typeof LeadPurpose]
+
+export const VisitStatus = {
+  NOT_SCHEDULED: 'NOT_SCHEDULED',
+  SCHEDULED: 'SCHEDULED',
+  DONE: 'DONE',
+  CANCELLED: 'CANCELLED',
+  RESCHEDULED: 'RESCHEDULED',
+} as const
+export type VisitStatus = (typeof VisitStatus)[keyof typeof VisitStatus]
+
+export const BookingStatus = {
+  NOT_BOOKED: 'NOT_BOOKED',
+  BOOKED: 'BOOKED',
+  CANCELLED: 'CANCELLED',
+} as const
+export type BookingStatus = (typeof BookingStatus)[keyof typeof BookingStatus]
+
 export const EmployeeActivityType = {
   CALL: 'CALL',
   WHATSAPP: 'WHATSAPP',
@@ -328,6 +359,7 @@ export interface Lead {
   phone: string
   email: string | null
   projectId: string | null
+  project: { id: string; name: string } | null
   propertyInterest: string | null
   budgetMin: string | null
   budgetMax: string | null
@@ -351,6 +383,20 @@ export interface Lead {
   referredByPhone: string | null
   progressStage: LeadProgressStage | null
   progressStageNote: string | null
+  leadNumber: number
+  plotSizeSqFt: number | null
+  purpose: LeadPurpose | null
+  leadTemperature: LeadTemperature | null
+  lastContactedAt: string | null
+  nextFollowUpAt: string | null
+  siteVisitDate: string | null
+  visitStatus: VisitStatus | null
+  mainObjection: string | null
+  bookingProbability: number | null
+  bookingStatus: BookingStatus | null
+  bookingValue: string | null
+  lostNurtureReason: string | null
+  remarks: string | null
   createdAt: string
   updatedAt: string
 }

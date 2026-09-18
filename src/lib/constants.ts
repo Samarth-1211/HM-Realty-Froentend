@@ -88,6 +88,53 @@ export const LEAD_PROGRESS_STAGE_LABELS: Record<string, string> = {
   OTHER: 'Other',
 }
 
+export const LEAD_TEMPERATURE_LABELS: Record<string, string> = {
+  HOT: 'Hot',
+  WARM: 'Warm',
+  COLD: 'Cold',
+}
+
+export const LEAD_TEMPERATURE_COLORS: Record<string, string> = {
+  HOT: 'bg-rose-100 text-rose-700 ring-rose-600/20',
+  WARM: 'bg-amber-100 text-amber-700 ring-amber-600/20',
+  COLD: 'bg-sky-100 text-sky-700 ring-sky-600/20',
+}
+
+export const LEAD_PURPOSE_LABELS: Record<string, string> = {
+  SELF_USE: 'Self use',
+  INVESTMENT: 'Investment',
+  RENTAL: 'Rental',
+  OTHER: 'Other',
+}
+
+export const VISIT_STATUS_LABELS: Record<string, string> = {
+  NOT_SCHEDULED: 'Not scheduled',
+  SCHEDULED: 'Scheduled',
+  DONE: 'Done',
+  CANCELLED: 'Cancelled',
+  RESCHEDULED: 'Rescheduled',
+}
+
+export const VISIT_STATUS_COLORS: Record<string, string> = {
+  NOT_SCHEDULED: 'bg-slate-100 text-slate-600 ring-slate-500/20',
+  SCHEDULED: 'bg-sky-100 text-sky-700 ring-sky-600/20',
+  DONE: 'bg-emerald-100 text-emerald-700 ring-emerald-600/20',
+  CANCELLED: 'bg-rose-100 text-rose-700 ring-rose-600/20',
+  RESCHEDULED: 'bg-amber-100 text-amber-700 ring-amber-600/20',
+}
+
+export const BOOKING_STATUS_LABELS: Record<string, string> = {
+  NOT_BOOKED: 'Not booked',
+  BOOKED: 'Booked',
+  CANCELLED: 'Cancelled',
+}
+
+export const BOOKING_STATUS_COLORS: Record<string, string> = {
+  NOT_BOOKED: 'bg-slate-100 text-slate-600 ring-slate-500/20',
+  BOOKED: 'bg-emerald-100 text-emerald-700 ring-emerald-600/20',
+  CANCELLED: 'bg-rose-100 text-rose-700 ring-rose-600/20',
+}
+
 export const EMPLOYEE_ACTIVITY_OPTIONS: { value: string; label: string; emoji: string }[] = [
   { value: 'CALL', label: 'Called lead', emoji: '📞' },
   { value: 'WHATSAPP', label: 'Replied on WhatsApp', emoji: '💬' },

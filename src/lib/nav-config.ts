@@ -13,9 +13,10 @@ import {
   CircleUserRound,
   MessageCircle,
   ListChecks,
+  Sheet,
 } from 'lucide-react'
 import { UserRole } from '@/types'
-import { EMPLOYEE_MODULE_ROLES, ORG_OVERSIGHT_ROLES } from '@/lib/constants'
+import { ASSIGNER_ROLES, EMPLOYEE_MODULE_ROLES, ORG_OVERSIGHT_ROLES } from '@/lib/constants'
 
 export interface NavItem {
   to: string
@@ -68,6 +69,12 @@ export const NAV_ITEMS: NavItem[] = [
     icon: Contact,
     roles: Object.values(UserRole),
     mobilePrimary: true,
+  },
+  {
+    to: '/lead-sheet',
+    label: 'Lead Sheet',
+    icon: Sheet,
+    roles: ASSIGNER_ROLES,
   },
   {
     to: '/todo',

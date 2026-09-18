@@ -14,6 +14,7 @@ import {
   MessageCircle,
   ListChecks,
   Sheet,
+  Shuffle,
 } from 'lucide-react'
 import { UserRole } from '@/types'
 import { ASSIGNER_ROLES, EMPLOYEE_MODULE_ROLES, ORG_OVERSIGHT_ROLES } from '@/lib/constants'
@@ -74,6 +75,12 @@ export const NAV_ITEMS: NavItem[] = [
     to: '/lead-sheet',
     label: 'Lead Sheet',
     icon: Sheet,
+    roles: ASSIGNER_ROLES,
+  },
+  {
+    to: '/lost-leads',
+    label: 'Lost Leads',
+    icon: Shuffle,
     roles: ASSIGNER_ROLES,
   },
   {

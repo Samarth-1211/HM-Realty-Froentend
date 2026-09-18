@@ -14,6 +14,7 @@ import { UsersPage } from '@/pages/users-page'
 import { LeadsPage } from '@/pages/leads-page'
 import { LeadDetailPage } from '@/pages/lead-detail-page'
 import { LeadSheetPage } from '@/pages/lead-sheet-page'
+import { LostLeadsPage } from '@/pages/lost-leads-page'
 import { ReportsPage } from '@/pages/reports-page'
 import { IntegrationsPage } from '@/pages/integrations-page'
 import { WhatsAppInboxPage } from '@/pages/whatsapp-inbox-page'
@@ -149,6 +150,13 @@ const leadSheetRoute = createRoute({
   beforeLoad: requireRole(ASSIGNER_ROLES),
 })
 
+const lostLeadsRoute = createRoute({
+  getParentRoute: () => appLayoutRoute,
+  path: '/lost-leads',
+  component: LostLeadsPage,
+  beforeLoad: requireRole(ASSIGNER_ROLES),
+})
+
 const whatsappInboxRoute = createRoute({
   getParentRoute: () => appLayoutRoute,
   path: '/messaging',
@@ -216,6 +224,7 @@ const routeTree = rootRoute.addChildren([
     leadsRoute,
     leadDetailRoute,
     leadSheetRoute,
+    lostLeadsRoute,
     whatsappInboxRoute,
     reportsRoute,
     integrationsRoute,

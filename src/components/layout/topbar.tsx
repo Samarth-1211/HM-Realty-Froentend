@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouterState } from '@tanstack/react-router'
-import { Building2, Menu, RefreshCw } from 'lucide-react'
+import { Menu, RefreshCw } from 'lucide-react'
 import { NAV_ITEMS } from '@/lib/nav-config'
 import { cn } from '@/lib/utils'
 import { NotificationBell } from '@/components/notifications/notification-bell'
 import { MobileDrawer } from './mobile-drawer'
+import hmRealtyLogo from '@/assets/hm-realty-logo.jpg'
 
 export function Topbar() {
   const pathname = useRouterState({ select: (s) => s.location.pathname })
@@ -30,8 +31,8 @@ export function Topbar() {
           <Menu className="size-5" />
         </button>
         <div className="flex items-center gap-2 lg:hidden">
-          <div className="flex size-7 items-center justify-center rounded-lg bg-brand-600 text-white">
-            <Building2 className="size-4" />
+          <div className="flex size-7 items-center justify-center overflow-hidden rounded-lg bg-brand-950">
+            <img src={hmRealtyLogo} alt="HM Realty" className="size-full object-cover" />
           </div>
         </div>
 

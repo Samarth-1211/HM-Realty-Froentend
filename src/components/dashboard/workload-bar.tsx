@@ -22,10 +22,10 @@ export function WorkloadBar({ data }: { data: { name: string; leads: number }[] 
           />
           <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} allowDecimals={false} />
           <Tooltip
-            cursor={{ fill: '#f0fdfa' }}
+            cursor={{ fill: '#f4f4f5' }}
             contentStyle={{ borderRadius: 12, border: '1px solid #e2e8f0', fontSize: 12 }}
           />
-          <Bar dataKey="leads" fill="#0d9488" radius={[6, 6, 0, 0]} maxBarSize={36} />
+          <Bar dataKey="leads" fill="#52525b" radius={[6, 6, 0, 0]} maxBarSize={36} />
         </BarChart>
       </ResponsiveContainer>
     </div>

@@ -3,10 +3,11 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { motion } from 'framer-motion'
-import { Building2, Eye, EyeOff, KeyRound, Lock, Mail, ShieldCheck, Sparkles, TrendingUp, Users } from 'lucide-react'
+import { Eye, EyeOff, Lock, Mail, ShieldCheck, Sparkles, TrendingUp, Users } from 'lucide-react'
 import { useLogin } from '@/hooks/use-auth'
 import { Button } from '@/components/ui/button'
 import { Field, Input } from '@/components/ui/input'
+import hmRealtyLogo from '@/assets/hm-realty-logo.jpg'
 
 const schema = z.object({
   email: z.string().min(1, 'Email is required').email('Enter a valid email address'),
@@ -15,8 +16,6 @@ const schema = z.object({
 
 type FormValues = z.infer<typeof schema>
 
-const DEMO_ACCOUNTS = [{ label: 'Admin', email: 'admin@demorealty.com', password: 'Admin@123' }]
-
 export function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const login = useLogin()
@@ -24,23 +23,17 @@ export function LoginPage() {
   const {
     register,
     handleSubmit,
-    setValue,
     formState: { errors },
   } = useForm<FormValues>({ resolver: zodResolver(schema) })
-
-  const fillDemo = (email: string, password: string) => {
-    setValue('email', email, { shouldValidate: true })
-    setValue('password', password, { shouldValidate: true })
-  }
 
   return (
     <div className="relative flex min-h-dvh overflow-hidden bg-brand-950">
       {/* Animated brand panel */}
-      <div className="relative hidden w-1/2 flex-col justify-between overflow-hidden bg-gradient-to-br from-brand-800 via-brand-700 to-brand-900 p-12 text-white lg:flex">
+      <div className="relative hidden w-1/2 flex-col justify-between overflow-hidden bg-gradient-to-br from-brand-900 via-brand-800 to-black p-12 text-white lg:flex">
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div className="absolute -left-20 top-10 size-72 animate-blob rounded-full bg-brand-400/30 blur-3xl" />
-          <div className="absolute right-0 top-1/3 size-80 animate-blob rounded-full bg-teal-300/20 blur-3xl [animation-delay:2s]" />
-          <div className="absolute bottom-0 left-1/4 size-72 animate-blob rounded-full bg-emerald-300/20 blur-3xl [animation-delay:4s]" />
+          <div className="absolute -left-20 top-10 size-72 animate-blob rounded-full bg-brand-400/20 blur-3xl" />
+          <div className="absolute right-0 top-1/3 size-80 animate-blob rounded-full bg-brand-300/10 blur-3xl [animation-delay:2s]" />
+          <div className="absolute bottom-0 left-1/4 size-72 animate-blob rounded-full bg-white/5 blur-3xl [animation-delay:4s]" />
         </div>
 
         <motion.div
@@ -49,12 +42,12 @@ export function LoginPage() {
           transition={{ duration: 0.5 }}
           className="relative z-10 flex items-center gap-3"
         >
-          <div className="flex size-11 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/20 backdrop-blur">
-            <Building2 className="size-6" />
+          <div className="flex size-14 items-center justify-center overflow-hidden rounded-2xl bg-white/5 ring-1 ring-white/20 backdrop-blur">
+            <img src={hmRealtyLogo} alt="HM Realty" className="size-full object-cover" />
           </div>
           <div>
-            <p className="text-lg font-bold leading-tight">Real Estate CRM</p>
-            <p className="text-xs text-brand-200">Sales &amp; lead command center</p>
+            <p className="text-lg font-bold leading-tight tracking-wide">HM REALTY</p>
+            <p className="text-xs text-brand-200">Your Dreams, Our Responsibility</p>
           </div>
         </motion.div>
 
@@ -65,13 +58,14 @@ export function LoginPage() {
           className="relative z-10 max-w-md"
         >
           <h1 className="text-4xl font-bold leading-tight tracking-tight">
-            Every lead, every team,
+            One platform for every
             <br />
-            one clear pipeline.
+            client relationship.
           </h1>
           <p className="mt-4 text-sm leading-relaxed text-brand-100">
-            From the first webhook to a closed deal — manage organizations, teams and leads with
-            live data across every role.
+            The Exclusive CRM built for The Harshit Mehta Firm — engineered to streamline
+            operations, strengthen client relationships and keep every deal moving, from
+            first enquiry to closed sale.
           </p>
 
           <div className="mt-10 flex flex-col gap-4">
@@ -102,7 +96,7 @@ export function LoginPage() {
           transition={{ delay: 0.6 }}
           className="relative z-10 text-xs text-brand-300"
         >
-          © {new Date().getFullYear()} Real Estate CRM. All rights reserved.
+          © {new Date().getFullYear()} HM Realty — The Harshit Mehta Firm. All rights reserved.
         </motion.p>
       </div>
 
@@ -115,10 +109,10 @@ export function LoginPage() {
           className="w-full max-w-sm"
         >
           <div className="mb-8 flex items-center gap-3 lg:hidden">
-            <div className="flex size-10 items-center justify-center rounded-xl bg-brand-600 text-white">
-              <Building2 className="size-5" />
+            <div className="flex size-10 items-center justify-center overflow-hidden rounded-xl bg-brand-950">
+              <img src={hmRealtyLogo} alt="HM Realty" className="size-full object-cover" />
             </div>
-            <p className="text-lg font-bold text-slate-900">Real Estate CRM</p>
+            <p className="text-lg font-bold text-slate-900">HM Realty</p>
           </div>
 
           <div className="flex items-center gap-2 text-brand-600">
@@ -163,25 +157,9 @@ export function LoginPage() {
             </Button>
           </form>
 
-          <div className="mt-8 rounded-2xl border border-brand-100 bg-brand-50/50 p-4">
-            <div className="flex items-center gap-1.5 text-xs font-semibold text-brand-700">
-              <KeyRound className="size-3.5" />
-              Demo accounts
-            </div>
-            <div className="mt-2.5 flex flex-col gap-1.5">
-              {DEMO_ACCOUNTS.map((acc) => (
-                <button
-                  key={acc.email}
-                  type="button"
-                  onClick={() => fillDemo(acc.email, acc.password)}
-                  className="flex items-center justify-between rounded-xl bg-white px-3 py-2 text-left text-xs ring-1 ring-inset ring-brand-100 transition-colors hover:ring-brand-300"
-                >
-                  <span className="font-medium text-slate-700">{acc.label}</span>
-                  <span className="text-slate-400">{acc.email}</span>
-                </button>
-              ))}
-            </div>
-          </div>
+          <p className="mt-8 text-center text-xs text-slate-400">
+            HM Realty CRM · A Harshit Mehta Firm product
+          </p>
         </motion.div>
       </div>
     </div>

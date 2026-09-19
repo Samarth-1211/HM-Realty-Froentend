@@ -3,17 +3,17 @@
 @theme {
   --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
 
-  --color-brand-50: #f0fdfa;
-  --color-brand-100: #ccfbf1;
-  --color-brand-200: #99f6e4;
-  --color-brand-300: #5eead4;
-  --color-brand-400: #2dd4bf;
-  --color-brand-500: #14b8a6;
-  --color-brand-600: #0d9488;
-  --color-brand-700: #0f766e;
-  --color-brand-800: #115e59;
-  --color-brand-900: #134e4a;
-  --color-brand-950: #042f2e;
+  --color-brand-50: #fafafa;
+  --color-brand-100: #f2f2f3;
+  --color-brand-200: #e2e2e5;
+  --color-brand-300: #c8c8cd;
+  --color-brand-400: #9d9da5;
+  --color-brand-500: #71717a;
+  --color-brand-600: #52525b;
+  --color-brand-700: #3f3f46;
+  --color-brand-800: #292930;
+  --color-brand-900: #1c1c21;
+  --color-brand-950: #0e0e11;
 
   --animate-blob: blob 9s infinite;
   --animate-fade-in: fade-in 0.4s ease-out both;

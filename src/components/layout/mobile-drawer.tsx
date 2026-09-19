@@ -1,12 +1,13 @@
 import { createPortal } from 'react-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Link } from '@tanstack/react-router'
-import { Building2, LogOut, X } from 'lucide-react'
+import { LogOut, X } from 'lucide-react'
 import { navForRole } from '@/lib/nav-config'
 import { ROLE_LABELS } from '@/lib/constants'
 import { useAuthStore } from '@/store/auth-store'
 import { useLogout } from '@/hooks/use-auth'
 import { Avatar } from '@/components/ui/avatar'
+import hmRealtyLogo from '@/assets/hm-realty-logo.jpg'
 
 export function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
   const user = useAuthStore((s) => s.user)
@@ -34,10 +35,10 @@ export function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => 
           >
             <div className="flex items-center justify-between border-b border-slate-100 px-4 py-4">
               <div className="flex items-center gap-2">
-                <div className="flex size-8 items-center justify-center rounded-lg bg-brand-600 text-white">
-                  <Building2 className="size-4" />
+                <div className="flex size-8 items-center justify-center overflow-hidden rounded-lg bg-brand-950">
+                  <img src={hmRealtyLogo} alt="HM Realty" className="size-full object-cover" />
                 </div>
-                <span className="text-sm font-bold text-slate-900">Real Estate CRM</span>
+                <span className="text-sm font-bold text-slate-900">HM Realty</span>
               </div>
               <button onClick={onClose} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100">
                 <X className="size-5" />

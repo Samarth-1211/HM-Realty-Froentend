@@ -1,0 +1,16 @@
+node_modules
+dist
+dist-ssr
+.git
+.gitignore
+*.log
+npm-debug.log*
+.vscode
+.idea
+.DS_Store
+README.md
+
+# Note: .env is intentionally NOT ignored — Vite reads VITE_API_BASE_URL
+# from it at build time (see Dockerfile). .env.local is generated inside
+# the image only, never committed.
+.env.local

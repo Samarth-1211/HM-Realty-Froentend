@@ -1,0 +1,7 @@
+# Runtime vars/secrets for `wrangler dev`, mirroring what you'd set with
+# `wrangler secret put <NAME>` or in the dashboard under
+# Workers & Pages > hm-realty-crm-frontend > Settings > Variables and Secrets.
+#
+# Copy to `.dev.vars` (gitignored) and fill in for local testing.
+# These are read in worker/index.ts via `env.NAME` — NOT the VITE_* vars in .env,
+# which are build-time only and baked into the static bundle.

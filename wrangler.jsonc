@@ -1,0 +1,24 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "hm-realty-crm-frontend",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-09-21",
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    // SPA client-side routing (tanstack-router) — unmatched paths fall back to index.html,
+    // mirroring the try_files rule in nginx.conf used for the Docker deploy.
+    "not_found_handling": "single-page-application"
+  },
+  "observability": {
+    "enabled": true
+  },
+  // Non-secret runtime variables (readable in worker/index.ts via `env.NAME`).
+  // These are separate from the VITE_* build-time vars in .env — those get baked into
+  // the static JS at build time and are never read by this worker.
+  // Set here for values that can be public, or per-environment in the dashboard
+  // under Workers & Pages > this Worker > Settings > Variables and Secrets.
+  "vars": {
+    "APP_ENV": "production"
+  }
+}

@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useRouterState } from '@tanstack/react-router'
 import { Menu, RefreshCw } from 'lucide-react'
 import { NAV_ITEMS } from '@/lib/nav-config'
+import { APP_NAME } from '@/lib/constants'
 import { cn } from '@/lib/utils'
 import { NotificationBell } from '@/components/notifications/notification-bell'
 import { MobileDrawer } from './mobile-drawer'
@@ -32,7 +33,7 @@ export function Topbar() {
         </button>
         <div className="flex items-center gap-2 lg:hidden">
           <div className="flex size-7 items-center justify-center overflow-hidden rounded-lg bg-brand-950">
-            <img src={hmRealtyLogo} alt="HM Realty" className="size-full object-cover" />
+            <img src={hmRealtyLogo} alt={APP_NAME} className="size-full object-cover" />
           </div>
         </div>
 

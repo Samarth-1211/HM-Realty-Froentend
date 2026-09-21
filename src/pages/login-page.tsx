@@ -7,6 +7,13 @@ import { Eye, EyeOff, Lock, Mail, ShieldCheck, Sparkles, TrendingUp, Users } fro
 import { useLogin } from '@/hooks/use-auth'
 import { Button } from '@/components/ui/button'
 import { Field, Input } from '@/components/ui/input'
+import {
+  APP_FULL_NAME,
+  APP_LEGAL_NAME,
+  APP_MARKETING_BLURB,
+  APP_NAME,
+  APP_TAGLINE,
+} from '@/lib/constants'
 import hmRealtyLogo from '@/assets/hm-realty-logo.jpg'
 
 const schema = z.object({
@@ -43,11 +50,11 @@ export function LoginPage() {
           className="relative z-10 flex items-center gap-3"
         >
           <div className="flex size-14 items-center justify-center overflow-hidden rounded-2xl bg-white/5 ring-1 ring-white/20 backdrop-blur">
-            <img src={hmRealtyLogo} alt="HM Realty" className="size-full object-cover" />
+            <img src={hmRealtyLogo} alt={APP_NAME} className="size-full object-cover" />
           </div>
           <div>
-            <p className="text-lg font-bold leading-tight tracking-wide">HM REALTY</p>
-            <p className="text-xs text-brand-200">Your Dreams, Our Responsibility</p>
+            <p className="text-lg font-bold leading-tight tracking-wide">{APP_NAME.toUpperCase()}</p>
+            <p className="text-xs text-brand-200">{APP_TAGLINE}</p>
           </div>
         </motion.div>
 
@@ -62,11 +69,7 @@ export function LoginPage() {
             <br />
             client relationship.
           </h1>
-          <p className="mt-4 text-sm leading-relaxed text-brand-100">
-            The Exclusive CRM built for The Harshit Mehta Firm — engineered to streamline
-            operations, strengthen client relationships and keep every deal moving, from
-            first enquiry to closed sale.
-          </p>
+          <p className="mt-4 text-sm leading-relaxed text-brand-100">{APP_MARKETING_BLURB}</p>
 
           <div className="mt-10 flex flex-col gap-4">
             {[
@@ -96,7 +99,7 @@ export function LoginPage() {
           transition={{ delay: 0.6 }}
           className="relative z-10 text-xs text-brand-300"
         >
-          © {new Date().getFullYear()} HM Realty — The Harshit Mehta Firm. All rights reserved.
+          © {new Date().getFullYear()} {APP_NAME} — {APP_LEGAL_NAME}. All rights reserved.
         </motion.p>
       </div>
 
@@ -110,9 +113,9 @@ export function LoginPage() {
         >
           <div className="mb-8 flex items-center gap-3 lg:hidden">
             <div className="flex size-10 items-center justify-center overflow-hidden rounded-xl bg-brand-950">
-              <img src={hmRealtyLogo} alt="HM Realty" className="size-full object-cover" />
+              <img src={hmRealtyLogo} alt={APP_NAME} className="size-full object-cover" />
             </div>
-            <p className="text-lg font-bold text-slate-900">HM Realty</p>
+            <p className="text-lg font-bold text-slate-900">{APP_NAME}</p>
           </div>
 
           <div className="flex items-center gap-2 text-brand-600">
@@ -158,7 +161,7 @@ export function LoginPage() {
           </form>
 
           <p className="mt-8 text-center text-xs text-slate-400">
-            HM Realty CRM · A Harshit Mehta Firm product
+            {APP_FULL_NAME} · A {APP_LEGAL_NAME} product
           </p>
         </motion.div>
       </div>

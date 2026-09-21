@@ -1,7 +1,7 @@
 import { Link, useRouterState } from '@tanstack/react-router'
 import { LogOut } from 'lucide-react'
 import { navForRole } from '@/lib/nav-config'
-import { ROLE_LABELS } from '@/lib/constants'
+import { APP_NAME, APP_TAGLINE, ROLE_LABELS } from '@/lib/constants'
 import { useAuthStore } from '@/store/auth-store'
 import { useLogout } from '@/hooks/use-auth'
 import { Avatar } from '@/components/ui/avatar'
@@ -20,11 +20,11 @@ export function Sidebar() {
     <aside className="hidden w-64 shrink-0 flex-col border-r border-slate-100 bg-white lg:flex">
       <div className="flex h-16 items-center gap-2.5 border-b border-slate-100 px-5">
         <div className="flex size-9 items-center justify-center overflow-hidden rounded-xl bg-brand-950">
-          <img src={hmRealtyLogo} alt="HM Realty" className="size-full object-cover" />
+          <img src={hmRealtyLogo} alt={APP_NAME} className="size-full object-cover" />
         </div>
         <div>
-          <p className="text-sm font-bold leading-tight text-slate-900">HM Realty</p>
-          <p className="text-[11px] leading-tight text-slate-400">Your Dreams, Our Responsibility</p>
+          <p className="text-sm font-bold leading-tight text-slate-900">{APP_NAME}</p>
+          <p className="text-[11px] leading-tight text-slate-400">{APP_TAGLINE}</p>
         </div>
       </div>
 

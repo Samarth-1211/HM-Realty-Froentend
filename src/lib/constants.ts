@@ -1,9 +1,32 @@
 import { UserRole } from '@/types'
 
+function envNumber(value: string | undefined, fallback: number): number {
+  const n = Number(value)
+  return value !== undefined && value !== '' && Number.isFinite(n) ? n : fallback
+}
+
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000'
 
 /** Live-data refresh cadence for TanStack Query (smart polling). */
-export const REFRESH_INTERVAL_MS = 20_000
+export const REFRESH_INTERVAL_MS = envNumber(import.meta.env.VITE_REFRESH_INTERVAL_MS, 20_000)
+
+/** TanStack Query defaults (see lib/query-client.ts). */
+export const QUERY_STALE_TIME_MS = envNumber(import.meta.env.VITE_QUERY_STALE_TIME_MS, 10_000)
+export const QUERY_RETRY_COUNT = envNumber(import.meta.env.VITE_QUERY_RETRY_COUNT, 1)
+export const MUTATION_RETRY_COUNT = envNumber(import.meta.env.VITE_MUTATION_RETRY_COUNT, 0)
+
+// --- Branding (whitelabel-able via env) -------------------------------------
+
+export const APP_NAME = import.meta.env.VITE_APP_NAME ?? 'HM Realty'
+export const APP_FULL_NAME = import.meta.env.VITE_APP_FULL_NAME ?? 'HM Realty CRM'
+export const APP_LEGAL_NAME = import.meta.env.VITE_APP_LEGAL_NAME ?? 'The Harshit Mehta Firm'
+export const APP_TAGLINE = import.meta.env.VITE_APP_TAGLINE ?? 'Your Dreams, Our Responsibility'
+export const APP_DESCRIPTION =
+  import.meta.env.VITE_APP_DESCRIPTION ??
+  'HM Realty CRM — leads, teams and organizations in one place.'
+export const APP_MARKETING_BLURB =
+  import.meta.env.VITE_APP_MARKETING_BLURB ??
+  'The Exclusive CRM built for The Harshit Mehta Firm — engineered to streamline operations, strengthen client relationships and keep every deal moving, from first enquiry to closed sale.'
 
 export const ROLE_LABELS: Record<UserRole, string> = {
   SUPER_ADMIN: 'Super Admin',

@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "hm-realty-crm-frontend",
+  "name": "hm-realty-froentend",
   "main": "worker/index.ts",
   "compatibility_date": "2026-09-21",
   "assets": {

@@ -17,6 +17,7 @@ export function TaskList({ tasks }: { tasks: Task[] }) {
   const authUser = useAuthStore((s) => s.user)
   const [editing, setEditing] = useState<Task | null>(null)
   const [deleting, setDeleting] = useState<Task | null>(null)
+  const [completing, setCompleting] = useState<Task | null>(null)
 
   if (tasks.length === 0) {
     return <EmptyState icon={Calendar} title="No tasks here" description="Add a task to start tracking your day-to-day work." />
@@ -32,7 +33,7 @@ export function TaskList({ tasks }: { tasks: Task[] }) {
           className="flex items-start gap-3 rounded-xl border border-slate-100 p-3.5 hover:bg-slate-50/50"
         >
           <button
-            onClick={() => complete.mutate(task.id)}
+            onClick={() => setCompleting(task)}
             disabled={task.status !== TaskStatus.PENDING || complete.isPending}
             className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full border border-slate-300 text-transparent hover:border-brand-500 hover:text-brand-500 disabled:cursor-not-allowed disabled:opacity-50 data-[done=true]:border-emerald-500 data-[done=true]:bg-emerald-500 data-[done=true]:text-white"
             data-done={task.status === TaskStatus.COMPLETED}
@@ -111,6 +112,18 @@ export function TaskList({ tasks }: { tasks: Task[] }) {
         description={deleting ? `"${deleting.title}" and any pending reminders will be removed.` : undefined}
         confirmLabel="Delete"
         variant="danger"
+      />
+
+      <ConfirmDialog
+        open={!!completing}
+        onClose={() => setCompleting(null)}
+        onConfirm={() => {
+          if (completing) complete.mutate(completing.id, { onSuccess: () => setCompleting(null) })
+        }}
+        loading={complete.isPending}
+        title="Mark this task as complete?"
+        description={completing ? `"${completing.title}" will be closed. A completed task cannot be reopened.` : undefined}
+        confirmLabel="Mark complete"
       />
     </div>
   )

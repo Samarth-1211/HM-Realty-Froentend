@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from '@tanstack/react-router'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
@@ -154,6 +155,12 @@ export function LoginPage() {
                 {...register('password')}
               />
             </Field>
+
+            <div className="flex justify-end">
+              <Link to="/forgot-password" className="text-xs font-medium text-brand-600 hover:text-brand-700">
+                Forgot password?
+              </Link>
+            </div>
 
             <Button type="submit" size="lg" loading={login.isPending} className="mt-2 w-full">
               Sign in

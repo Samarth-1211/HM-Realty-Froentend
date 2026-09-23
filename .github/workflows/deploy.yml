@@ -1,0 +1,42 @@
+name: Deploy frontend
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - run: npm ci
+
+      # Vite bakes VITE_* vars into the build at this step (not at deploy
+      # time), so they must come from GitHub Secrets here, one per line.
+      - name: Write .env
+        run: |
+          cat <<EOF > .env
+          VITE_API_BASE_URL=${{ secrets.VITE_API_BASE_URL }}
+          VITE_REFRESH_INTERVAL_MS=${{ vars.VITE_REFRESH_INTERVAL_MS || '20000' }}
+          VITE_QUERY_STALE_TIME_MS=${{ vars.VITE_QUERY_STALE_TIME_MS || '10000' }}
+          VITE_QUERY_RETRY_COUNT=${{ vars.VITE_QUERY_RETRY_COUNT || '1' }}
+          VITE_MUTATION_RETRY_COUNT=${{ vars.VITE_MUTATION_RETRY_COUNT || '0' }}
+          VITE_APP_NAME=${{ vars.VITE_APP_NAME || 'HM Realty' }}
+          VITE_APP_FULL_NAME=${{ vars.VITE_APP_FULL_NAME || 'HM Realty CRM' }}
+          VITE_APP_LEGAL_NAME=${{ vars.VITE_APP_LEGAL_NAME || 'The Harshit Mehta Firm' }}
+          VITE_APP_TAGLINE=${{ vars.VITE_APP_TAGLINE || 'Your Dreams, Our Responsibility' }}
+          VITE_APP_DESCRIPTION=${{ vars.VITE_APP_DESCRIPTION }}
+          VITE_APP_MARKETING_BLURB=${{ vars.VITE_APP_MARKETING_BLURB }}
+          EOF
+
+      - run: npm run build
+
+      - name: Deploy to Cloudflare Workers
+        run: npx wrangler deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}

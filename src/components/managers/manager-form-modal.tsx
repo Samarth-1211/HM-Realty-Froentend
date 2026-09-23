@@ -88,7 +88,12 @@ export function ManagerFormModal({
           <Input {...register('email')} />
         </Field>
         {!isEdit && (
-          <Field label="Password" error={errors.password?.message} required hint="Minimum 8 characters">
+          <Field
+            label="Temporary password"
+            error={errors.password?.message}
+            required
+            hint="Minimum 8 characters — the manager will verify their account via an emailed link before they can sign in"
+          >
             <Input type="password" {...register('password')} />
           </Field>
         )}

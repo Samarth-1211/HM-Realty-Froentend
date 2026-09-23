@@ -5,6 +5,8 @@ import { useAuthStore } from '@/store/auth-store'
 import { UserRole } from '@/types'
 import { LoginPage } from '@/pages/login-page'
 import { SuperAdminLoginPage } from '@/pages/super-admin-login-page'
+import { VerifyEmailPage } from '@/pages/verify-email-page'
+import { ForgotPasswordPage } from '@/pages/forgot-password-page'
 import { DashboardPage } from '@/pages/dashboard/dashboard-page'
 import { OrganizationsPage } from '@/pages/organizations-page'
 import { ManagersPage } from '@/pages/managers-page'
@@ -63,6 +65,21 @@ const loginRoute = createRoute({
   path: '/login',
   component: LoginPage,
   beforeLoad: requireGuest,
+})
+
+const forgotPasswordRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/forgot-password',
+  component: ForgotPasswordPage,
+  beforeLoad: requireGuest,
+})
+
+// No auth guard: an already-logged-in admin may click a verification link
+// addressed to a different account than the one they're signed in as.
+const verifyEmailRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/verify-email',
+  component: VerifyEmailPage,
 })
 
 // Undocumented, unlinked entry point for the super admin portal. The path segment
@@ -213,6 +230,8 @@ const todoRoute = createRoute({
 const routeTree = rootRoute.addChildren([
   indexRoute,
   loginRoute,
+  forgotPasswordRoute,
+  verifyEmailRoute,
   superAdminLoginRoute,
   appLayoutRoute.addChildren([
     dashboardRoute,

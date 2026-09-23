@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Pencil, Play, Plus, Trash2, UserCog, UserX } from 'lucide-react'
+import { Mail, Pencil, Play, Plus, Trash2, UserCog, UserX } from 'lucide-react'
 import { PageHeader } from '@/components/ui/page-header'
 import { Card } from '@/components/ui/card'
 import { DataTable, type Column } from '@/components/ui/data-table'
@@ -14,6 +14,7 @@ import {
   useDeleteManager,
   useManagers,
   useReactivateManager,
+  useResendManagerVerification,
 } from '@/hooks/queries/use-managers'
 import { formatDate } from '@/lib/utils'
 import type { ManagerSummary } from '@/types'
@@ -25,6 +26,7 @@ type DialogState =
   | { type: 'deactivate'; manager: ManagerSummary }
   | { type: 'reactivate'; manager: ManagerSummary }
   | { type: 'delete'; manager: ManagerSummary }
+  | { type: 'resend'; manager: ManagerSummary }
 
 export function ManagersPage() {
   const [dialog, setDialog] = useState<DialogState>({ type: 'none' })
@@ -32,6 +34,7 @@ export function ManagersPage() {
   const deactivate = useDeactivateManager()
   const reactivate = useReactivateManager()
   const remove = useDeleteManager()
+  const resendVerification = useResendManagerVerification()
 
   const close = () => setDialog({ type: 'none' })
 
@@ -59,6 +62,27 @@ export function ManagersPage() {
       ),
     },
     { key: 'created', header: 'Created', render: (m) => <span className="text-slate-400">{formatDate(m.createdAt)}</span> },
+    {
+      key: 'verification',
+      header: 'Verification',
+      render: (m) =>
+        m.isVerified ? (
+          <Badge variant="success">Verified</Badge>
+        ) : (
+          <div className="flex items-center gap-2">
+            <Badge variant="warning">Pending</Badge>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setDialog({ type: 'resend', manager: m })}
+            >
+              <Mail className="size-3.5" />
+              Resend
+            </Button>
+          </div>
+        ),
+    },
     {
       key: 'actions',
       header: '',
@@ -158,6 +182,18 @@ export function ManagersPage() {
           reasonLabel="Reason (optional)"
           loading={remove.isPending}
           onConfirm={(reason) => remove.mutate({ id: dialog.manager.id, reason }, { onSuccess: close })}
+        />
+      )}
+
+      {dialog.type === 'resend' && (
+        <ConfirmDialog
+          open
+          onClose={close}
+          title={`Resend the verification email to ${dialog.manager.firstName}?`}
+          description={`A new verification link will be emailed to ${dialog.manager.email}. Any link sent earlier stops working.`}
+          confirmLabel="Send email"
+          loading={resendVerification.isPending}
+          onConfirm={() => resendVerification.mutate(dialog.manager.id, { onSuccess: close })}
         />
       )}
     </div>

@@ -42,4 +42,7 @@ export const teamApi = {
     apiClient
       .post<ProjectManagerLink>(`/manager/team-members/${id}/projects`, { projectId })
       .then((r) => r.data),
+
+  resendVerification: (id: string) =>
+    apiClient.post<{ success: boolean }>(`/manager/team-members/${id}/resend-verification`).then((r) => r.data),
 }

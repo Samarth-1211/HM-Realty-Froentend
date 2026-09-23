@@ -17,7 +17,9 @@ export interface CreateOrganizationPayload {
   plan?: SubscriptionPlan
   maxUsers?: number
   maxLeadsPerMonth?: number
-  admin?: CreateOrgAdminPayload
+  // Required: the org's first admin is created with it and emailed the
+  // welcome + verification link straight away.
+  admin: CreateOrgAdminPayload
 }
 
 export type UpdateOrganizationPayload = Partial<
@@ -59,4 +61,7 @@ export const organizationsApi = {
 
   archive: (id: string) =>
     apiClient.delete<Organization>(`/organizations/${id}`).then((r) => r.data),
+
+  resendAdminVerification: (id: string) =>
+    apiClient.post<{ success: boolean }>(`/organizations/${id}/resend-verification`).then((r) => r.data),
 }

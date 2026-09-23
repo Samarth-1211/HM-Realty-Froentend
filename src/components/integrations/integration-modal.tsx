@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { CheckCircle2, Eye, PauseCircle, PlayCircle, Save } from 'lucide-react'
 import { Modal } from '@/components/ui/modal'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Field, Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -46,6 +47,7 @@ export function IntegrationModal(props: Props) {
   const [created, setCreated] = useState<PlatformIntegration | null>(null)
   const [editing, setEditing] = useState(false)
   const [revealedSecret, setRevealedSecret] = useState<string | undefined>()
+  const [confirmToggle, setConfirmToggle] = useState(false)
 
   const {
     register,
@@ -59,6 +61,7 @@ export function IntegrationModal(props: Props) {
       setCreated(null)
       setEditing(false)
       setRevealedSecret(undefined)
+      setConfirmToggle(false)
       return
     }
     if (props.mode === 'manage') {
@@ -106,9 +109,12 @@ export function IntegrationModal(props: Props) {
   const toggleActive = () => {
     if (props.mode !== 'manage') return
     if (props.integration.isActive) {
-      deactivate.mutate(props.integration.id)
+      deactivate.mutate(props.integration.id, { onSuccess: () => setConfirmToggle(false) })
     } else {
-      update.mutate({ id: props.integration.id, payload: { isActive: true } })
+      update.mutate(
+        { id: props.integration.id, payload: { isActive: true } },
+        { onSuccess: () => setConfirmToggle(false) },
+      )
     }
   }
 
@@ -238,8 +244,7 @@ export function IntegrationModal(props: Props) {
             <Button
               variant={props.integration.isActive ? 'outline' : 'secondary'}
               size="sm"
-              loading={deactivate.isPending || update.isPending}
-              onClick={toggleActive}
+              onClick={() => setConfirmToggle(true)}
             >
               {props.integration.isActive ? (
                 <>
@@ -261,6 +266,23 @@ export function IntegrationModal(props: Props) {
           </Button>
         </div>
       </div>
+
+      {props.mode === 'manage' && canEdit && confirmToggle && (
+        <ConfirmDialog
+          open
+          onClose={() => setConfirmToggle(false)}
+          title={props.integration.isActive ? `Deactivate ${meta.label}?` : `Reactivate ${meta.label}?`}
+          description={
+            props.integration.isActive
+              ? `New leads sent from ${meta.label} will be rejected until you reactivate this integration. Existing leads are not affected, and the webhook URL and secret stay the same.`
+              : `${meta.label} will start accepting leads again on the existing webhook URL and secret.`
+          }
+          confirmLabel={props.integration.isActive ? 'Deactivate' : 'Reactivate'}
+          variant={props.integration.isActive ? 'danger' : 'primary'}
+          loading={deactivate.isPending || update.isPending}
+          onConfirm={toggleActive}
+        />
+      )}
     </Modal>
   )
 }

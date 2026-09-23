@@ -7,6 +7,7 @@ import {
   type UpdateTeamMemberPayload,
 } from '@/api/team.api'
 import { extractErrorMessage } from '@/lib/api-client'
+import { toastWithEmailDelivery } from '@/lib/email-delivery'
 import { REFRESH_INTERVAL_MS } from '@/lib/constants'
 import { queryKeys } from './query-keys'
 
@@ -30,8 +31,8 @@ export function useCreateTeamMember() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (payload: CreateTeamMemberPayload) => teamApi.create(payload),
-    onSuccess: () => {
-      toast.success('Team member added')
+    onSuccess: (data) => {
+      toastWithEmailDelivery(data, 'Team member added')
       qc.invalidateQueries({ queryKey: ['team-members'] })
     },
     onError: (error) => toast.error('Could not add team member', { description: extractErrorMessage(error) }),
@@ -49,6 +50,14 @@ export function useUpdateTeamMember() {
       qc.invalidateQueries({ queryKey: queryKeys.team.detail(vars.id) })
     },
     onError: (error) => toast.error('Could not update team member', { description: extractErrorMessage(error) }),
+  })
+}
+
+export function useResendTeamMemberVerification() {
+  return useMutation({
+    mutationFn: (id: string) => teamApi.resendVerification(id),
+    onSuccess: () => toast.success('Verification email resent'),
+    onError: (error) => toast.error('Could not resend verification', { description: extractErrorMessage(error) }),
   })
 }
 

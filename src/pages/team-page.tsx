@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Plus, UsersRound } from 'lucide-react'
+import { Mail, Plus, UsersRound } from 'lucide-react'
 import { PageHeader } from '@/components/ui/page-header'
 import { Card } from '@/components/ui/card'
 import { DataTable, type Column } from '@/components/ui/data-table'
@@ -11,7 +11,7 @@ import { Pagination } from '@/components/ui/pagination'
 import { TeamMemberCreateModal } from '@/components/team/team-member-create-modal'
 import { TeamMemberDetailModal } from '@/components/team/team-member-detail-modal'
 import { TeamRollupPanel } from '@/components/team/team-rollup-panel'
-import { useTeamMembers } from '@/hooks/queries/use-team'
+import { useResendTeamMemberVerification, useTeamMembers } from '@/hooks/queries/use-team'
 import { STAFF_ROLES } from '@/lib/constants'
 import { formatRoleLabel } from '@/lib/utils'
 import type { User } from '@/types'
@@ -30,6 +30,7 @@ export function TeamPage() {
     page,
     pageSize,
   })
+  const resendVerification = useResendTeamMemberVerification()
 
   const columns: Column<User>[] = [
     {
@@ -52,6 +53,31 @@ export function TeamPage() {
       key: 'status',
       header: 'Status',
       render: (u) => <Badge variant={u.isActive ? 'success' : 'neutral'}>{u.isActive ? 'Active' : 'Inactive'}</Badge>,
+    },
+    {
+      key: 'verification',
+      header: 'Verification',
+      render: (u) =>
+        u.isVerified ? (
+          <Badge variant="success">Verified</Badge>
+        ) : (
+          <div className="flex items-center gap-2">
+            <Badge variant="warning">Pending</Badge>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              loading={resendVerification.isPending}
+              onClick={(e) => {
+                e.stopPropagation()
+                resendVerification.mutate(u.id)
+              }}
+            >
+              <Mail className="size-3.5" />
+              Resend
+            </Button>
+          </div>
+        ),
     },
   ]
 

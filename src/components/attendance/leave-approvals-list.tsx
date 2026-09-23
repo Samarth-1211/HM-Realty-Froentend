@@ -7,10 +7,11 @@ import { Avatar } from '@/components/ui/avatar'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Spinner } from '@/components/ui/spinner'
 import { StatusPill } from '@/components/ui/badge'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useApproveLeave, useOrgLeaveRequests, useRejectLeave, useTeamPendingLeave } from '@/hooks/queries/use-leave'
 import { LEAVE_STATUS_COLORS } from '@/lib/constants'
 import { formatDate, formatEnumLabel } from '@/lib/utils'
-import { LeaveStatus } from '@/types'
+import { LeaveStatus, type LeaveRequest } from '@/types'
 
 const STATUS_FILTERS: { value: LeaveStatus | 'ALL'; label: string }[] = [
   { value: 'ALL', label: 'All statuses' },
@@ -27,6 +28,12 @@ export function LeaveApprovalsList({ scope = 'team' }: { scope?: 'team' | 'org' 
   const { data: requests, isLoading } = scope === 'org' ? orgQuery : teamQuery
   const approve = useApproveLeave()
   const reject = useRejectLeave()
+  const [review, setReview] = useState<{ action: 'approve' | 'reject'; request: LeaveRequest } | null>(null)
+
+  const reviewName = review?.request.user
+    ? `${review.request.user.firstName} ${review.request.user.lastName}`
+    : 'this team member'
+  const reviewDates = review ? `${formatDate(review.request.startDate)} – ${formatDate(review.request.endDate)}` : ''
 
   return (
     <Card>
@@ -82,8 +89,7 @@ export function LeaveApprovalsList({ scope = 'team' }: { scope?: 'team' | 'org' 
                     <Button
                       size="sm"
                       variant="secondary"
-                      loading={approve.isPending}
-                      onClick={() => approve.mutate({ id: r.id })}
+                      onClick={() => setReview({ action: 'approve', request: r })}
                     >
                       <Check className="size-3.5" />
                       Approve
@@ -91,8 +97,7 @@ export function LeaveApprovalsList({ scope = 'team' }: { scope?: 'team' | 'org' 
                     <Button
                       size="sm"
                       variant="danger"
-                      loading={reject.isPending}
-                      onClick={() => reject.mutate({ id: r.id })}
+                      onClick={() => setReview({ action: 'reject', request: r })}
                     >
                       <X className="size-3.5" />
                       Reject
@@ -106,6 +111,31 @@ export function LeaveApprovalsList({ scope = 'team' }: { scope?: 'team' | 'org' 
           </div>
         )}
       </CardBody>
+
+      {review && (
+        <ConfirmDialog
+          open
+          onClose={() => setReview(null)}
+          title={review.action === 'approve' ? `Approve leave for ${reviewName}?` : `Reject leave for ${reviewName}?`}
+          description={
+            review.action === 'approve'
+              ? `${reviewDates} will be marked as approved leave on their attendance record. This decision is final — it cannot be changed afterwards.`
+              : `${reviewDates} will be marked as rejected and they will need to re-apply. This decision is final — it cannot be changed afterwards.`
+          }
+          confirmLabel={review.action === 'approve' ? 'Approve' : 'Reject'}
+          variant={review.action === 'approve' ? 'primary' : 'danger'}
+          requireReason
+          reasonLabel={review.action === 'approve' ? 'Comment (optional)' : 'Reason for rejection (optional)'}
+          loading={approve.isPending || reject.isPending}
+          onConfirm={(comment) => {
+            const mutation = review.action === 'approve' ? approve : reject
+            mutation.mutate(
+              { id: review.request.id, payload: comment ? { comment } : undefined },
+              { onSuccess: () => setReview(null) },
+            )
+          }}
+        />
+      )}
     </Card>
   )
 }

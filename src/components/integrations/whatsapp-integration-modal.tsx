@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { AlertTriangle, CheckCircle2, Eye, KeyRound, Link2, PauseCircle, PlayCircle, ShieldAlert, Save } from 'lucide-react'
 import { Modal } from '@/components/ui/modal'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Field, Input, Label } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -68,6 +69,7 @@ export function WhatsAppIntegrationModal({
   const [created, setCreated] = useState<WhatsAppIntegration | null>(null)
   const [editing, setEditing] = useState(false)
   const [revealedToken, setRevealedToken] = useState<string | undefined>()
+  const [confirmToggle, setConfirmToggle] = useState(false)
 
   const connectForm = useForm<ConnectFormValues>({ resolver: zodResolver(connectSchema) })
   const manageForm = useForm<ManageFormValues>({ resolver: zodResolver(manageSchema) })
@@ -77,6 +79,7 @@ export function WhatsAppIntegrationModal({
       setCreated(null)
       setEditing(false)
       setRevealedToken(undefined)
+      setConfirmToggle(false)
       connectForm.reset({ wabaId: '', phoneNumberId: '', accessToken: '', displayPhoneNumber: '', businessManagerId: '', businessName: '' })
       return
     }
@@ -121,8 +124,9 @@ export function WhatsAppIntegrationModal({
 
   const toggleActive = () => {
     if (!integration) return
-    if (integration.isActive) disable.mutate()
-    else enable.mutate()
+    const onSuccess = () => setConfirmToggle(false)
+    if (integration.isActive) disable.mutate(undefined, { onSuccess })
+    else enable.mutate(undefined, { onSuccess })
   }
 
   const title = isManage ? 'WhatsApp Business' : 'Connect WhatsApp Business'
@@ -316,8 +320,7 @@ export function WhatsAppIntegrationModal({
             <Button
               variant={integration.isActive ? 'outline' : 'secondary'}
               size="sm"
-              loading={disable.isPending || enable.isPending}
-              onClick={toggleActive}
+              onClick={() => setConfirmToggle(true)}
             >
               {integration.isActive ? (
                 <>
@@ -339,6 +342,23 @@ export function WhatsAppIntegrationModal({
           </Button>
         </div>
       </div>
+
+      {isManage && integration && canEdit && confirmToggle && (
+        <ConfirmDialog
+          open
+          onClose={() => setConfirmToggle(false)}
+          title={integration.isActive ? 'Disable WhatsApp Business?' : 'Re-enable WhatsApp Business?'}
+          description={
+            integration.isActive
+              ? 'Incoming WhatsApp messages will stop creating leads and you will not be able to reply from the CRM. Existing chat history is kept, and your Meta credentials and verify token stay saved.'
+              : 'Incoming WhatsApp messages will create leads again and replies from the CRM will resume, using the credentials already on file.'
+          }
+          confirmLabel={integration.isActive ? 'Disable' : 'Re-enable'}
+          variant={integration.isActive ? 'danger' : 'primary'}
+          loading={disable.isPending || enable.isPending}
+          onConfirm={toggleActive}
+        />
+      )}
     </Modal>
   )
 }

@@ -1,11 +1,12 @@
 import { useState } from 'react'
-import { Archive, Building2, Pencil, Play, Plus, Search, ShieldPlus, PauseCircle } from 'lucide-react'
+import { Archive, Building2, Mail, Pencil, Play, Plus, Search, ShieldPlus, PauseCircle } from 'lucide-react'
 import { PageHeader } from '@/components/ui/page-header'
 import { Card } from '@/components/ui/card'
 import { DataTable, type Column } from '@/components/ui/data-table'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { DropdownMenu } from '@/components/ui/dropdown-menu'
 import { OrgStatusBadge } from '@/components/leads/lead-status-badge'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
@@ -15,6 +16,7 @@ import {
   useArchiveOrganization,
   useOrganizations,
   useReactivateOrganization,
+  useResendOrgAdminVerification,
   useSuspendOrganization,
 } from '@/hooks/queries/use-organizations'
 import { OrganizationStatus, SubscriptionPlan, type Organization } from '@/types'
@@ -28,6 +30,7 @@ type DialogState =
   | { type: 'suspend'; org: Organization }
   | { type: 'reactivate'; org: Organization }
   | { type: 'archive'; org: Organization }
+  | { type: 'resend'; org: Organization }
 
 export function OrganizationsPage() {
   const [search, setSearch] = useState('')
@@ -44,6 +47,7 @@ export function OrganizationsPage() {
   const suspend = useSuspendOrganization()
   const reactivate = useReactivateOrganization()
   const archive = useArchiveOrganization()
+  const resendVerification = useResendOrgAdminVerification()
 
   const close = () => setDialog({ type: 'none' })
 
@@ -72,6 +76,27 @@ export function OrganizationsPage() {
       ),
     },
     { key: 'created', header: 'Created', render: (o) => <span className="text-slate-400">{formatDate(o.createdAt)}</span> },
+    {
+      key: 'verification',
+      header: 'Admin verification',
+      render: (o) =>
+        o.isVerified ? (
+          <Badge variant="success">Verified</Badge>
+        ) : (
+          <div className="flex items-center gap-2">
+            <Badge variant="warning">Pending</Badge>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setDialog({ type: 'resend', org: o })}
+            >
+              <Mail className="size-3.5" />
+              Resend
+            </Button>
+          </div>
+        ),
+    },
     {
       key: 'actions',
       header: '',
@@ -219,6 +244,18 @@ export function OrganizationsPage() {
           variant="danger"
           loading={archive.isPending}
           onConfirm={() => archive.mutate(dialog.org.id, { onSuccess: close })}
+        />
+      )}
+
+      {dialog.type === 'resend' && (
+        <ConfirmDialog
+          open
+          onClose={close}
+          title={`Resend the admin verification email for ${dialog.org.name}?`}
+          description="A new verification link will be emailed to this organization's admin. Any link sent earlier stops working."
+          confirmLabel="Send email"
+          loading={resendVerification.isPending}
+          onConfirm={() => resendVerification.mutate(dialog.org.id, { onSuccess: close })}
         />
       )}
     </div>

@@ -20,4 +20,13 @@ export const authApi = {
     apiClient
       .post<{ success: boolean }>('/auth/logout', { refreshToken })
       .then((r) => r.data),
+
+  verifyEmail: (token: string) =>
+    apiClient.post<{ success: boolean }>('/auth/verify-email', { token }).then((r) => r.data),
+
+  forgotPassword: (email: string) =>
+    apiClient.post<{ success: boolean }>('/auth/forgot-password', { email }).then((r) => r.data),
+
+  resetPassword: (payload: { email: string; otp: string; newPassword: string }) =>
+    apiClient.post<{ success: boolean }>('/auth/reset-password', payload).then((r) => r.data),
 }

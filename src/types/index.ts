@@ -254,6 +254,9 @@ export interface User {
   lastName: string
   role: UserRole
   isActive: boolean
+  isVerified: boolean
+  verifiedAt: string | null
+  isTemporaryPassword: boolean
   isDeleted: boolean
   deletedAt: string | null
   createdById: string | null
@@ -263,6 +266,18 @@ export interface User {
   photoUrl: string | null
   createdAt: string
   updatedAt: string
+  /** Present on create responses only — see EmailDeliveryStatus. */
+  emailDelivery?: EmailDeliveryStatus
+}
+
+/**
+ * Whether the invite/verification email for a just-created account actually
+ * left the SMTP server. Returned by the create endpoints, which commit the
+ * account first and report a mail failure rather than rolling it back.
+ */
+export interface EmailDeliveryStatus {
+  sent: boolean
+  error?: string
 }
 
 export interface Organization {
@@ -280,8 +295,12 @@ export interface Organization {
   suspendedAt: string | null
   suspendedReason: string | null
   isDemo: boolean
+  isVerified: boolean
+  verifiedAt: string | null
   createdAt: string
   updatedAt: string
+  /** Present on create responses only — see EmailDeliveryStatus. */
+  emailDelivery?: EmailDeliveryStatus
 }
 
 export interface ManagerSummary {
@@ -290,6 +309,9 @@ export interface ManagerSummary {
   firstName: string
   lastName: string
   isActive: boolean
+  isVerified: boolean
+  verifiedAt: string | null
+  isTemporaryPassword: boolean
   createdAt: string
   createdById: string | null
 }
@@ -341,6 +363,9 @@ export interface TeamMember {
   lastName: string
   role: UserRole
   isActive: boolean
+  isVerified: boolean
+  verifiedAt: string | null
+  isTemporaryPassword: boolean
   managerId: string | null
   phone: string | null
   employeeCode: string | null
@@ -348,6 +373,8 @@ export interface TeamMember {
   projectAssignments: ProjectAssignment[]
   createdAt: string
   updatedAt: string
+  /** Present on create responses only — see EmailDeliveryStatus. */
+  emailDelivery?: EmailDeliveryStatus
 }
 
 export interface Lead {
@@ -524,6 +551,8 @@ export interface EmployeeProfile {
   photoUrl: string | null
   joiningDate: string
   isActive: boolean
+  isVerified: boolean
+  isTemporaryPassword: boolean
   managerId: string | null
   managerName: string | null
 }

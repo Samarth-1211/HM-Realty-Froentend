@@ -29,7 +29,7 @@ export function ConfirmDialog({
   const [reason, setReason] = useState('')
 
   return (
-    <Modal open={open} onClose={onClose} title={options.title} size="sm">
+    <Modal open={open} onClose={onClose} title={options.title} size="sm" level="elevated">
       <div className="flex flex-col gap-4">
         <div className="flex items-start gap-3">
           <div

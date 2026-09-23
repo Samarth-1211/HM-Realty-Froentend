@@ -11,7 +11,7 @@ import { SubscriptionPlan } from '@/types'
 import { formatEnumLabel } from '@/lib/utils'
 import type { Organization } from '@/types'
 
-const schema = z.object({
+const orgFields = {
   name: z.string().min(1, 'Required'),
   contactEmail: z.string().min(1, 'Required').email('Enter a valid email'),
   contactPhone: z.string().optional(),
@@ -20,14 +20,43 @@ const schema = z.object({
   plan: z.enum(Object.values(SubscriptionPlan) as [string, ...string[]]).optional(),
   maxUsers: z.coerce.number().int().min(1).optional(),
   maxLeadsPerMonth: z.coerce.number().int().min(1).optional(),
-  adminEmail: z.string().email('Enter a valid email').optional().or(z.literal('')),
-  adminPassword: z.string().min(8, 'Min 8 characters').optional().or(z.literal('')),
+}
+
+const baseSchema = z.object({
+  ...orgFields,
   adminFirstName: z.string().optional(),
   adminLastName: z.string().optional(),
+  adminEmail: z.string().optional(),
+  adminPassword: z.string().optional(),
 })
 
-type FormValues = z.input<typeof schema>
-type FormOutput = z.output<typeof schema>
+// The first admin is mandatory when creating — they are the recipient of the
+// welcome + verification email, and the organization stays pending until they
+// click its link. Editing an existing org never touches its admins, so the
+// same fields are skipped there (the block isn't even rendered).
+const schemaFor = (isEdit: boolean) =>
+  baseSchema.superRefine((values, ctx) => {
+    if (isEdit) return
+
+    const required = [
+      ['adminFirstName', values.adminFirstName, 'Required'],
+      ['adminLastName', values.adminLastName, 'Required'],
+      ['adminEmail', values.adminEmail, 'Required'],
+    ] as const
+    for (const [path, value, message] of required) {
+      if (!value?.trim()) ctx.addIssue({ code: z.ZodIssueCode.custom, path: [path], message })
+    }
+
+    if (values.adminEmail?.trim() && !z.string().email().safeParse(values.adminEmail).success) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['adminEmail'], message: 'Enter a valid email' })
+    }
+    if ((values.adminPassword ?? '').length < 8) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['adminPassword'], message: 'Min 8 characters' })
+    }
+  })
+
+type FormValues = z.input<typeof baseSchema>
+type FormOutput = z.output<typeof baseSchema>
 
 export function OrganizationFormModal({
   open,
@@ -47,7 +76,7 @@ export function OrganizationFormModal({
     handleSubmit,
     reset,
     formState: { errors },
-  } = useForm<FormValues, unknown, FormOutput>({ resolver: zodResolver(schema) })
+  } = useForm<FormValues, unknown, FormOutput>({ resolver: zodResolver(schemaFor(isEdit)) })
 
   useEffect(() => {
     if (open) {
@@ -97,15 +126,13 @@ export function OrganizationFormModal({
           plan: values.plan as typeof SubscriptionPlan[keyof typeof SubscriptionPlan],
           maxUsers: values.maxUsers,
           maxLeadsPerMonth: values.maxLeadsPerMonth,
-          admin:
-            values.adminEmail && values.adminPassword && values.adminFirstName && values.adminLastName
-              ? {
-                  adminEmail: values.adminEmail,
-                  adminPassword: values.adminPassword,
-                  adminFirstName: values.adminFirstName,
-                  adminLastName: values.adminLastName,
-                }
-              : undefined,
+          // Non-null: schemaFor(false) rejects the submit unless all four are set.
+          admin: {
+            adminEmail: values.adminEmail!,
+            adminPassword: values.adminPassword!,
+            adminFirstName: values.adminFirstName!,
+            adminLastName: values.adminLastName!,
+          },
         },
         { onSuccess: onClose },
       )
@@ -159,22 +186,26 @@ export function OrganizationFormModal({
         {!isEdit && (
           <div className="rounded-xl border border-dashed border-slate-200 p-4">
             <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
-              First admin (optional)
+              First admin
             </p>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Field label="Admin first name" error={errors.adminFirstName?.message}>
+              <Field label="Admin first name" error={errors.adminFirstName?.message} required>
                 <Input {...register('adminFirstName')} placeholder="Aakash" />
               </Field>
-              <Field label="Admin last name" error={errors.adminLastName?.message}>
+              <Field label="Admin last name" error={errors.adminLastName?.message} required>
                 <Input {...register('adminLastName')} placeholder="Sharma" />
               </Field>
-              <Field label="Admin email" error={errors.adminEmail?.message}>
+              <Field label="Admin email" error={errors.adminEmail?.message} required>
                 <Input {...register('adminEmail')} placeholder="admin@aakashrealty.com" />
               </Field>
-              <Field label="Admin password" error={errors.adminPassword?.message}>
+              <Field label="Admin temporary password" error={errors.adminPassword?.message} required>
                 <Input type="password" {...register('adminPassword')} placeholder="Min 8 characters" />
               </Field>
             </div>
+            <p className="mt-3 text-xs text-slate-400">
+              The admin is emailed their credentials and a verification link the moment you create the
+              organization — it stays pending until they verify.
+            </p>
           </div>
         )}
 

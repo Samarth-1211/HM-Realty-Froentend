@@ -1,6 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { employeesApi, type UpdateMyProfilePayload } from '@/api/employees.api'
+import {
+  employeesApi,
+  type ChangeEmailPayload,
+  type ChangePasswordPayload,
+  type UpdateMyProfilePayload,
+} from '@/api/employees.api'
 import { extractErrorMessage } from '@/lib/api-client'
 import { REFRESH_INTERVAL_MS } from '@/lib/constants'
 import { queryKeys } from './query-keys'
@@ -49,6 +54,26 @@ export function useUpdateMyProfile() {
       qc.invalidateQueries({ queryKey: queryKeys.employees.profile(data.userId) })
     },
     onError: (error) => toast.error('Could not update profile', { description: extractErrorMessage(error) }),
+  })
+}
+
+export function useChangeMyEmail() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (payload: ChangeEmailPayload) => employeesApi.changeMyEmail(payload),
+    onSuccess: (data) => {
+      toast.success('Email updated')
+      qc.invalidateQueries({ queryKey: queryKeys.employees.profile(data.userId) })
+    },
+    onError: (error) => toast.error('Could not update email', { description: extractErrorMessage(error) }),
+  })
+}
+
+export function useChangeMyPassword() {
+  return useMutation({
+    mutationFn: (payload: ChangePasswordPayload) => employeesApi.changeMyPassword(payload),
+    onSuccess: () => toast.success('Password changed'),
+    onError: (error) => toast.error('Could not change password', { description: extractErrorMessage(error) }),
   })
 }
 

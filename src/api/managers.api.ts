@@ -41,4 +41,7 @@ export const managersApi = {
         data: reason ? { reason } : {},
       })
       .then((r) => r.data),
+
+  resendVerification: (id: string) =>
+    apiClient.post<{ success: boolean }>(`/managers/${id}/resend-verification`).then((r) => r.data),
 }

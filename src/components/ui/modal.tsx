@@ -1,8 +1,15 @@
-import { type ReactNode, useEffect } from 'react'
+import { type ReactNode, useEffect, useId, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
+
+/**
+ * Ids of the modals currently open, bottom-first. Confirmation dialogs open on
+ * top of the modal that triggered them, so Escape must only close the topmost
+ * one and the scroll lock must survive until every modal is closed.
+ */
+const modalStack: string[] = []
 
 export function Modal({
   open,
@@ -11,6 +18,7 @@ export function Modal({
   subtitle,
   children,
   size = 'md',
+  level = 'base',
 }: {
   open: boolean
   onClose: () => void
@@ -18,24 +26,45 @@ export function Modal({
   subtitle?: string
   children: ReactNode
   size?: 'sm' | 'md' | 'lg' | 'xl'
+  /** `elevated` renders above a modal that is already open — used by ConfirmDialog. */
+  level?: 'base' | 'elevated'
 }) {
+  const id = useId()
+  const onCloseRef = useRef(onClose)
+  useEffect(() => {
+    onCloseRef.current = onClose
+  })
+
   useEffect(() => {
     if (!open) return
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
-    document.addEventListener('keydown', onKey)
+    modalStack.push(id)
     document.body.style.overflow = 'hidden'
+
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      if (modalStack[modalStack.length - 1] !== id) return
+      onCloseRef.current()
+    }
+    document.addEventListener('keydown', onKey)
     return () => {
       document.removeEventListener('keydown', onKey)
-      document.body.style.overflow = ''
+      const i = modalStack.indexOf(id)
+      if (i !== -1) modalStack.splice(i, 1)
+      if (modalStack.length === 0) document.body.style.overflow = ''
     }
-  }, [open, onClose])
+  }, [open, id])
 
   const sizes = { sm: 'max-w-sm', md: 'max-w-lg', lg: 'max-w-2xl', xl: 'max-w-4xl' }
 
   return createPortal(
     <AnimatePresence>
       {open && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4">
+        <div
+          className={cn(
+            'fixed inset-0 flex items-end justify-center sm:items-center sm:p-4',
+            level === 'elevated' ? 'z-[60]' : 'z-50',
+          )}
+        >
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}

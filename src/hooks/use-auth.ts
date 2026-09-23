@@ -44,6 +44,30 @@ export function useSuperAdminLogin() {
   })
 }
 
+export function useVerifyEmail() {
+  return useMutation({
+    mutationFn: (token: string) => authApi.verifyEmail(token),
+  })
+}
+
+export function useForgotPassword() {
+  return useMutation({
+    mutationFn: (email: string) => authApi.forgotPassword(email),
+    onError: (error) => {
+      toast.error('Could not send reset code', { description: extractErrorMessage(error) })
+    },
+  })
+}
+
+export function useResetPassword() {
+  return useMutation({
+    mutationFn: (payload: { email: string; otp: string; newPassword: string }) => authApi.resetPassword(payload),
+    onError: (error) => {
+      toast.error('Could not reset password', { description: extractErrorMessage(error) })
+    },
+  })
+}
+
 export function useLogout() {
   const clearSession = useAuthStore((s) => s.clearSession)
   const navigate = useNavigate()

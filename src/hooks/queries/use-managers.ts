@@ -6,6 +6,7 @@ import {
   type UpdateManagerPayload,
 } from '@/api/managers.api'
 import { extractErrorMessage } from '@/lib/api-client'
+import { toastWithEmailDelivery } from '@/lib/email-delivery'
 import { REFRESH_INTERVAL_MS } from '@/lib/constants'
 import { queryKeys } from './query-keys'
 
@@ -29,8 +30,8 @@ export function useCreateManager() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (payload: CreateManagerPayload) => managersApi.create(payload),
-    onSuccess: () => {
-      toast.success('Manager created')
+    onSuccess: (data) => {
+      toastWithEmailDelivery(data, 'Manager created')
       qc.invalidateQueries({ queryKey: queryKeys.managers.all })
     },
     onError: (error) => toast.error('Could not create manager', { description: extractErrorMessage(error) }),
@@ -71,6 +72,14 @@ export function useReactivateManager() {
       qc.invalidateQueries({ queryKey: queryKeys.managers.all })
     },
     onError: (error) => toast.error('Could not reactivate manager', { description: extractErrorMessage(error) }),
+  })
+}
+
+export function useResendManagerVerification() {
+  return useMutation({
+    mutationFn: (id: string) => managersApi.resendVerification(id),
+    onSuccess: () => toast.success('Verification email resent'),
+    onError: (error) => toast.error('Could not resend verification', { description: extractErrorMessage(error) }),
   })
 }
 

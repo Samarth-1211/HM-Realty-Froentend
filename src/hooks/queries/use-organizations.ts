@@ -8,6 +8,7 @@ import {
   type UpdateOrganizationPayload,
 } from '@/api/organizations.api'
 import { extractErrorMessage } from '@/lib/api-client'
+import { toastWithEmailDelivery } from '@/lib/email-delivery'
 import { REFRESH_INTERVAL_MS } from '@/lib/constants'
 import { queryKeys } from './query-keys'
 
@@ -31,8 +32,8 @@ export function useCreateOrganization() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (payload: CreateOrganizationPayload) => organizationsApi.create(payload),
-    onSuccess: () => {
-      toast.success('Organization created')
+    onSuccess: (data) => {
+      toastWithEmailDelivery(data, 'Organization created')
       qc.invalidateQueries({ queryKey: ['organizations'] })
     },
     onError: (error) => toast.error('Could not create organization', { description: extractErrorMessage(error) }),
@@ -58,8 +59,8 @@ export function useAddOrgAdmin() {
   return useMutation({
     mutationFn: ({ id, payload }: { id: string; payload: CreateOrgAdminPayload }) =>
       organizationsApi.addAdmin(id, payload),
-    onSuccess: () => {
-      toast.success('Admin added to organization')
+    onSuccess: (data) => {
+      toastWithEmailDelivery(data, 'Admin added to organization')
       qc.invalidateQueries({ queryKey: ['organizations'] })
     },
     onError: (error) => toast.error('Could not add admin', { description: extractErrorMessage(error) }),
@@ -89,6 +90,14 @@ export function useReactivateOrganization() {
       qc.invalidateQueries({ queryKey: ['organizations'] })
     },
     onError: (error) => toast.error('Could not reactivate organization', { description: extractErrorMessage(error) }),
+  })
+}
+
+export function useResendOrgAdminVerification() {
+  return useMutation({
+    mutationFn: (id: string) => organizationsApi.resendAdminVerification(id),
+    onSuccess: () => toast.success('Verification email resent'),
+    onError: (error) => toast.error('Could not resend verification', { description: extractErrorMessage(error) }),
   })
 }
 

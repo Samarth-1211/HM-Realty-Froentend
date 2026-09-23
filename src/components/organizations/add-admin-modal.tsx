@@ -57,7 +57,12 @@ export function AddAdminModal({
         <Field label="Email" error={errors.adminEmail?.message} required>
           <Input {...register('adminEmail')} />
         </Field>
-        <Field label="Password" error={errors.adminPassword?.message} required hint="Minimum 8 characters">
+        <Field
+          label="Temporary password"
+          error={errors.adminPassword?.message}
+          required
+          hint="Minimum 8 characters — the admin will verify their account via an emailed link before they can sign in"
+        >
           <Input type="password" {...register('adminPassword')} />
         </Field>
         <div className="flex justify-end gap-2 pt-2">

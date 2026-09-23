@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { UserCog, X } from 'lucide-react'
 import { Modal } from '@/components/ui/modal'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Select } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
 import { Avatar } from '@/components/ui/avatar'
@@ -23,6 +24,7 @@ export function AssignManagersModal({
   project: Project | null
 }) {
   const [selected, setSelected] = useState('')
+  const [unassigning, setUnassigning] = useState<{ managerId: string; name: string } | null>(null)
   const { data: allManagers } = useManagers()
   const { data: assigned, isLoading } = useProjectManagers(project?.id)
   const assign = useAssignProjectManager()
@@ -79,7 +81,12 @@ export function AssignManagersModal({
                 <p className="truncate text-xs text-slate-400">{link.manager?.email}</p>
               </div>
               <button
-                onClick={() => unassign.mutate({ id: project.id, managerId: link.managerId })}
+                onClick={() =>
+                  setUnassigning({
+                    managerId: link.managerId,
+                    name: `${link.manager?.firstName ?? ''} ${link.manager?.lastName ?? ''}`.trim() || 'this manager',
+                  })
+                }
                 className="flex size-7 shrink-0 items-center justify-center rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-600"
               >
                 <X className="size-4" />
@@ -95,6 +102,24 @@ export function AssignManagersModal({
           </p>
         )}
       </div>
+
+      {unassigning && (
+        <ConfirmDialog
+          open
+          onClose={() => setUnassigning(null)}
+          title={`Remove ${unassigning.name} from ${project.name}?`}
+          description="They will lose access to this project and to the leads under it. You can assign them again at any time."
+          confirmLabel="Remove"
+          variant="danger"
+          loading={unassign.isPending}
+          onConfirm={() =>
+            unassign.mutate(
+              { id: project.id, managerId: unassigning.managerId },
+              { onSuccess: () => setUnassigning(null) },
+            )
+          }
+        />
+      )}
     </Modal>
   )
 }

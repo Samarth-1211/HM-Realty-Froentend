@@ -10,9 +10,6 @@
     // mirroring the try_files rule in nginx.conf used for the Docker deploy.
     "not_found_handling": "single-page-application"
   },
-  "routes": [
-    { "pattern": "hmrealtyindore.com", "custom_domain": true }
-  ],
   "observability": {
     "enabled": true
   },

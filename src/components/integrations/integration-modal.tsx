@@ -2,14 +2,14 @@ import { useEffect, useState } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
-import { CheckCircle2, Eye, PauseCircle, PlayCircle, Save, Send } from 'lucide-react'
+import { CheckCircle2, Eye, PauseCircle, PlayCircle, Save } from 'lucide-react'
 import { Modal } from '@/components/ui/modal'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Field, Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { PlatformIcon } from './platform-icon'
-import { WebhookSnippet, buildSamplePayload } from './webhook-snippet'
+import { WebhookSnippet } from './webhook-snippet'
 import { getPlatformMeta } from '@/lib/platform-catalog'
 import { formatDateTime } from '@/lib/utils'
 import {
@@ -30,36 +30,6 @@ const rmSchema = z.object({
     .or(z.literal('')),
 })
 type RmFormValues = z.infer<typeof rmSchema>
-
-/** wa.me wants digits only, with country code. Bare 10-digit numbers are assumed Indian. */
-function toWhatsAppNumber(phone: string | null | undefined): string {
-  const digits = (phone ?? '').replace(/\D/g, '')
-  return digits.length === 10 ? `91${digits}` : digits
-}
-
-function buildShareMessage(opts: {
-  platformLabel: string
-  monogram: string
-  rmName: string | null
-  webhookUrl: string
-  secret?: string
-}) {
-  const payload = JSON.stringify(buildSamplePayload(opts.platformLabel, opts.monogram), null, 2)
-  return [
-    `Hi${opts.rmName ? ` ${opts.rmName}` : ''},`,
-    '',
-    `Please push our ${opts.platformLabel} leads to the webhook below.`,
-    '',
-    `*Webhook URL (POST, JSON):*`,
-    opts.webhookUrl,
-    '',
-    ...(opts.secret ? [`*Webhook secret* (send as the "x-webhook-secret" header):`, opts.secret, ''] : []),
-    `*Sample payload* (only fullName and phone are required):`,
-    '```',
-    payload,
-    '```',
-  ].join('\n')
-}
 
 type Props =
   | { open: boolean; onClose: () => void; mode: 'connect'; platform: LeadSource; canEdit: boolean }
@@ -107,33 +77,6 @@ export function IntegrationModal(props: Props) {
   }, [open, props.mode])
 
   const integration = props.mode === 'manage' ? props.integration : created
-
-  const shareOnWhatsApp = async () => {
-    if (!integration) return
-    // Open the tab synchronously so popup blockers allow it, then point it at
-    // wa.me once we have the secret (manage mode may need to fetch it first).
-    const win = window.open('', '_blank')
-    let secret = integration.webhookSecret ?? revealedSecret
-    if (!secret) {
-      try {
-        secret = (await reveal.mutateAsync(integration.id)).webhookSecret
-        setRevealedSecret(secret)
-      } catch {
-        win?.close()
-        return
-      }
-    }
-    const text = buildShareMessage({
-      platformLabel: meta.label,
-      monogram: meta.monogram,
-      rmName: integration.rmName,
-      webhookUrl: integration.webhookUrl,
-      secret,
-    })
-    const url = `https://wa.me/${toWhatsAppNumber(integration.rmPhone)}?text=${encodeURIComponent(text)}`
-    if (win) win.location.href = url
-    else window.location.href = url
-  }
 
   const onConnect = (values: RmFormValues) => {
     if (props.mode !== 'connect') return
@@ -292,30 +235,7 @@ export function IntegrationModal(props: Props) {
                 Connected — save this secret now, it won't be shown again on this screen.
               </p>
             )}
-            <WebhookSnippet
-              webhookUrl={integration.webhookUrl}
-              secret={integration.webhookSecret ?? revealedSecret}
-              platformLabel={meta.label}
-              monogram={meta.monogram}
-            />
-            {canEdit && (
-              <div className="mt-4 flex flex-col gap-1.5 border-t border-slate-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-xs text-slate-400">
-                  {integration.rmPhone
-                    ? `Send the URL, secret and sample payload to ${integration.rmName || 'the RM'} (${integration.rmPhone}).`
-                    : 'No RM phone on file — WhatsApp will ask you to pick a contact.'}
-                </p>
-                <Button
-                  size="sm"
-                  className="shrink-0 bg-[#25D366] text-white hover:bg-[#1ebe5a]"
-                  loading={reveal.isPending}
-                  onClick={shareOnWhatsApp}
-                >
-                  <Send className="size-3.5" />
-                  Share credentials on WhatsApp
-                </Button>
-              </div>
-            )}
+            <WebhookSnippet webhookUrl={integration.webhookUrl} secret={integration.webhookSecret ?? revealedSecret} />
           </div>
         )}
 

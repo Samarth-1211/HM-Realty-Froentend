@@ -1,40 +1,31 @@
 import { KeyRound, Link2, ShieldAlert } from 'lucide-react'
 import { CopyButton } from '@/components/ui/copy-button'
 
-/** Sample lead payload tailored to the platform it is being shared with. */
-export function buildSamplePayload(platformLabel: string, monogram: string) {
-  return {
-    leadSource: platformLabel,
-    sourceLeadId: `${monogram.toUpperCase()}-2026-55501`,
-    fullName: 'Priya Sharma',
-    phone: '+919812345678',
-    email: 'priya@example.com',
-    projectName: 'Sunrise Meadows Phase 2',
-    propertyInterest: '2BHK',
-    unitType: '2BHK',
-    budgetMin: 3500000,
-    budgetMax: 5000000,
-    city: 'Indore',
-    message: 'Looking for a corner plot',
-    receivedAt: '2026-09-11T09:00:00.000Z',
-  }
+const SAMPLE_PAYLOAD = {
+  sourceLeadId: '99A-2026-55501',
+  fullName: 'Priya Sharma',
+  phone: '+919812345678',
+  email: 'priya@example.com',
+  projectName: 'Sunrise Meadows Phase 2',
+  propertyInterest: '2BHK',
+  unitType: '2BHK',
+  budgetMin: 3500000,
+  budgetMax: 5000000,
+  city: 'Indore',
+  message: 'Looking for a corner plot',
+  receivedAt: '2026-09-11T09:00:00.000Z',
 }
 
 export function WebhookSnippet({
   webhookUrl,
   secret,
-  platformLabel,
-  monogram,
 }: {
   webhookUrl: string
   secret?: string
-  platformLabel: string
-  monogram: string
 }) {
-  const samplePayload = buildSamplePayload(platformLabel, monogram)
   const secretPlaceholder = secret ?? '<your-webhook-secret>'
-  const payloadJson = JSON.stringify(samplePayload, null, 2)
-  const curl = `curl -X POST "${webhookUrl}" \\\n  -H "Content-Type: application/json" \\\n  -H "x-webhook-secret: ${secretPlaceholder}" \\\n  -d '${JSON.stringify(samplePayload)}'`
+  const payloadJson = JSON.stringify(SAMPLE_PAYLOAD, null, 2)
+  const curl = `curl -X POST "${webhookUrl}" \\\n  -H "Content-Type: application/json" \\\n  -H "x-webhook-secret: ${secretPlaceholder}" \\\n  -d '${JSON.stringify(SAMPLE_PAYLOAD)}'`
 
   return (
     <div className="flex flex-col gap-4">

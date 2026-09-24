@@ -26,7 +26,7 @@ const WHATSAPP_STATUS_BADGE: Record<string, { label: string; variant: 'success' 
 type DialogState =
   | { type: 'none' }
   | { type: 'connect'; platform: LeadSource }
-  | { type: 'manage'; integration: PlatformIntegration }
+  | { type: 'manage'; integrationId: string }
   | { type: 'whatsapp' }
 
 export function IntegrationsPage() {
@@ -41,6 +41,11 @@ export function IntegrationsPage() {
     for (const i of integrations ?? []) map.set(i.platform, i)
     return map
   }, [integrations])
+
+  // Resolve from the live query rather than a snapshot taken when the modal
+  // opened, so status changes (deactivate/reactivate, RM edits) show immediately.
+  const managedIntegration =
+    dialog.type === 'manage' ? integrations?.find((i) => i.id === dialog.integrationId) : undefined
 
   const connectedCount = byPlatform.size
   const categories = ['Property Portals', 'Ads & Social'] as const
@@ -101,7 +106,7 @@ export function IntegrationsPage() {
                 canEdit={canEdit}
                 delay={i * 0.03}
                 onConnect={() => setDialog({ type: 'connect', platform: platform.value as LeadSource })}
-                onManage={(integration) => setDialog({ type: 'manage', integration })}
+                onManage={(integration) => setDialog({ type: 'manage', integrationId: integration.id })}
               />
             ))}
           </div>
@@ -117,12 +122,12 @@ export function IntegrationsPage() {
           canEdit={canEdit}
         />
       )}
-      {dialog.type === 'manage' && (
+      {managedIntegration && (
         <IntegrationModal
           open
           onClose={() => setDialog({ type: 'none' })}
           mode="manage"
-          integration={dialog.integration}
+          integration={managedIntegration}
           canEdit={canEdit}
         />
       )}

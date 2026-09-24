@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 import { useNavigate, useSearch } from '@tanstack/react-router'
 import { CheckCircle2, XCircle } from 'lucide-react'
 import { AuthPageShell } from '@/components/auth/auth-page-shell'
@@ -12,26 +12,37 @@ export function VerifyEmailPage() {
   const navigate = useNavigate()
   const verifyEmail = useVerifyEmail()
   const [error, setError] = useState<string | null>(null)
-  const attempted = useRef(false)
 
-  useEffect(() => {
-    if (attempted.current) return
-    attempted.current = true
-
+  // Verification only fires on an explicit click, never automatically on page
+  // load. Corporate mail scanners (Safe Links, Proofpoint, Mimecast) and chat
+  // link-preview bots open this URL before the person ever sees the email, and
+  // since the token is single-use, an automatic call here would silently burn
+  // it — the person would then click the real link and see "expired" even
+  // though it was actually just already consumed by a bot.
+  const handleVerify = () => {
     if (!token) {
       setError('This verification link is missing its token.')
       return
     }
 
+    setError(null)
     verifyEmail.mutate(token, {
       onError: (err) => setError(extractErrorMessage(err)),
     })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token])
+  }
 
   return (
-    <AuthPageShell title="Verify your account" description="Confirming your verification link.">
+    <AuthPageShell title="Verify your account" description="Confirm your account to finish setting up access.">
       <div className="flex flex-col items-center gap-4 rounded-2xl border border-slate-100 bg-white p-8 text-center shadow-sm">
+        {!verifyEmail.isPending && !verifyEmail.isSuccess && !error && (
+          <>
+            <p className="text-sm text-slate-500">Click below to confirm this is you and verify your account.</p>
+            <Button className="mt-2 w-full" onClick={handleVerify}>
+              Verify my account
+            </Button>
+          </>
+        )}
+
         {verifyEmail.isPending && (
           <>
             <Spinner className="size-8" />

@@ -447,8 +447,6 @@ export interface TeamSummaryItem {
   fullName: string
   role: UserRole
   activeLeadCount: number
-  totalCallsMock: number
-  totalTalkTimeMinutesMock: number
 }
 
 export interface TeamPerformanceRow {
@@ -475,6 +473,11 @@ export interface EmployeeSummary {
   statusBreakdown: Record<LeadStatus, number>
 }
 
+/** A lead the employee reported working on in their check-out summary. */
+export interface WorkedLead {
+  lead: { id: string; fullName: string; leadNumber: number; status: LeadStatus }
+}
+
 export interface Attendance {
   id: string
   organizationId: string
@@ -486,6 +489,10 @@ export interface Attendance {
   checkOutAt: string | null
   leaveRequestId: string | null
   notes: string | null
+  /** End-of-day work summary, mandatory at check-out. */
+  checkOutSummary: string | null
+  /** Absent on the check-in response; present on every attendance read. */
+  workedLeads?: WorkedLead[]
   createdAt: string
   updatedAt: string
 }
@@ -499,6 +506,8 @@ export interface TeamAttendanceItem {
   checkInAt: string | null
   checkOutAt: string | null
   notes: string | null
+  checkOutSummary: string | null
+  workedLeads: WorkedLead[]
 }
 
 export interface LeaveRequest {
@@ -557,6 +566,54 @@ export interface EmployeeProfile {
   managerName: string | null
 }
 
+/** GET /employees/:id/overview — everything shown on the Admin's user detail page. */
+export interface EmployeeOverview {
+  profile: EmployeeProfile
+  leadSummary: {
+    total: number
+    activeWorkload: number
+    conversions: number
+    overdueFollowUps: number
+    statusBreakdown: Record<LeadStatus, number>
+  }
+  leads: {
+    id: string
+    leadNumber: number
+    fullName: string
+    phone: string
+    email: string | null
+    source: LeadSource
+    status: LeadStatus
+    progressStage: LeadProgressStage | null
+    progressStageNote: string | null
+    leadTemperature: LeadTemperature | null
+    lastContactedAt: string | null
+    nextFollowUpAt: string | null
+    visitStatus: VisitStatus | null
+    bookingStatus: BookingStatus | null
+    bookingValue: string | null
+    assignedAt: string | null
+    createdAt: string
+    updatedAt: string
+    project: { id: string; name: string } | null
+  }[]
+  leaveRequests: (LeaveRequest & { reviewedBy: { id: string; firstName: string; lastName: string } | null })[]
+  target: TargetProgress
+  projects: { id: string; name: string; location: string | null; isActive: boolean; assignedAs: string[] }[]
+  directReports: { id: string; firstName: string; lastName: string; email: string; role: UserRole; isActive: boolean }[]
+  tasks: {
+    id: string
+    title: string
+    taskType: TaskType | null
+    priority: TaskPriority
+    status: TaskStatus
+    dueAt: string | null
+    completedAt: string | null
+    createdAt: string
+    lead: { id: string; fullName: string } | null
+  }[]
+}
+
 export interface TeamRollupItem {
   userId: string
   fullName: string
@@ -593,7 +650,13 @@ export interface TeamActivityItem {
 
 export interface ActivityReportDay {
   date: string
-  attendance: { status: AttendanceStatus; checkInAt: string | null; checkOutAt: string | null } | null
+  attendance: {
+    status: AttendanceStatus
+    checkInAt: string | null
+    checkOutAt: string | null
+    checkOutSummary: string | null
+    workedLeads: WorkedLead[]
+  } | null
   activities: EmployeeActivity[]
 }
 
@@ -660,19 +723,23 @@ export const WhatsAppMessageStatus = {
 } as const
 export type WhatsAppMessageStatus = (typeof WhatsAppMessageStatus)[keyof typeof WhatsAppMessageStatus]
 
+/**
+ * The Meta identifiers, webhook URL and lastError are admin-only — the backend
+ * omits them for every other role, which gets a status-only view.
+ */
 export interface WhatsAppIntegration {
   id: string
   organizationId: string
-  wabaId: string
-  phoneNumberId: string
+  wabaId?: string
+  phoneNumberId?: string
   displayPhoneNumber: string | null
   businessName: string | null
-  businessManagerId: string | null
-  webhookUrl: string
+  businessManagerId?: string | null
+  webhookUrl?: string
   verifyToken?: string
   status: WhatsAppIntegrationStatus
   verifiedAt: string | null
-  lastError: string | null
+  lastError?: string | null
   lastInboundAt: string | null
   lastOutboundAt: string | null
   isActive: boolean
@@ -711,7 +778,8 @@ export interface WhatsAppThread {
 export interface PlatformIntegration {
   id: string
   platform: LeadSource
-  webhookUrl: string
+  /** Admin/Super Admin only — omitted for Managers, since the URL embeds the webhook token. */
+  webhookUrl?: string
   webhookSecret?: string
   rmName: string | null
   rmEmail: string | null

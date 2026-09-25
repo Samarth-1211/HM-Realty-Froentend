@@ -166,7 +166,7 @@ function WhatsAppCard({
           </div>
           <p className="mt-0.5 text-xs text-slate-400">
             {connected
-              ? integration.displayPhoneNumber || integration.phoneNumberId
+              ? integration.displayPhoneNumber || integration.phoneNumberId || 'Connected'
               : 'Capture WhatsApp leads automatically and chat with them from inside the CRM.'}
           </p>
           {connected && integration.lastInboundAt && (

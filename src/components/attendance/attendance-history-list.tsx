@@ -5,7 +5,8 @@ import { EmptyState } from '@/components/ui/empty-state'
 import { Spinner } from '@/components/ui/spinner'
 import { useMyAttendance } from '@/hooks/queries/use-attendance'
 import { ATTENDANCE_STATUS_LABELS } from '@/lib/constants'
-import { formatDate } from '@/lib/utils'
+import { formatDate, formatTime } from '@/lib/utils'
+import { WorkReport } from './work-report'
 
 const BADGE_VARIANT: Record<string, 'success' | 'warning' | 'brand' | 'danger'> = {
   PRESENT: 'success',
@@ -35,20 +36,22 @@ export function AttendanceHistoryList() {
         ) : (
           <div className="flex flex-col divide-y divide-slate-100">
             {records.map((r) => (
-              <div key={r.id} className="flex items-center justify-between py-2.5">
-                <p className="text-sm font-medium text-slate-700">{formatDate(r.date)}</p>
-                <div className="flex items-center gap-3">
-                  {r.checkInAt && (
-                    <span className="text-xs text-slate-400">
-                      {new Intl.DateTimeFormat('en-IN', { hour: '2-digit', minute: '2-digit' }).format(
-                        new Date(r.checkInAt),
-                      )}
-                    </span>
-                  )}
-                  <Badge variant={BADGE_VARIANT[r.status] ?? 'brand'}>
-                    {ATTENDANCE_STATUS_LABELS[r.status] ?? r.status}
-                  </Badge>
+              <div key={r.id} className="py-2.5">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium text-slate-700">{formatDate(r.date)}</p>
+                  <div className="flex items-center gap-3">
+                    {r.checkInAt && (
+                      <span className="text-xs text-slate-400">
+                        {formatTime(r.checkInAt)}
+                        {r.checkOutAt && ` – ${formatTime(r.checkOutAt)}`}
+                      </span>
+                    )}
+                    <Badge variant={BADGE_VARIANT[r.status] ?? 'brand'}>
+                      {ATTENDANCE_STATUS_LABELS[r.status] ?? r.status}
+                    </Badge>
+                  </div>
                 </div>
+                <WorkReport summary={r.checkOutSummary} workedLeads={r.workedLeads} className="mt-1.5" />
               </div>
             ))}
           </div>

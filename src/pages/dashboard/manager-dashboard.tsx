@@ -1,4 +1,4 @@
-import { PhoneCall, TrendingUp, UsersRound } from 'lucide-react'
+import { TrendingUp, UsersRound } from 'lucide-react'
 import { useTeamSummary } from '@/hooks/queries/use-employees'
 import { useLeads } from '@/hooks/queries/use-leads'
 import { StatCard } from '@/components/dashboard/stat-card'
@@ -18,15 +18,13 @@ export function ManagerDashboard() {
 
   const members = team ?? []
   const totalActiveLeads = members.reduce((sum, m) => sum + m.activeLeadCount, 0)
-  const totalCalls = members.reduce((sum, m) => sum + m.totalCallsMock, 0)
   const chartData = members.map((m) => ({ name: m.fullName.split(' ')[0], leads: m.activeLeadCount }))
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <StatCard label="Team members" value={members.length} icon={UsersRound} tone="brand" delay={0} />
         <StatCard label="Active leads (team)" value={totalActiveLeads} icon={TrendingUp} tone="violet" delay={0.05} />
-        <StatCard label="Calls logged (mock)" value={totalCalls} icon={PhoneCall} tone="sky" delay={0.1} />
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -64,7 +62,6 @@ export function ManagerDashboard() {
                 </div>
                 <div className="text-right text-xs text-slate-500">
                   <p className="font-semibold text-slate-700">{m.activeLeadCount} active</p>
-                  <p>{m.totalCallsMock} calls</p>
                 </div>
               </div>
             ))}

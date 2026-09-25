@@ -30,6 +30,7 @@ export const queryKeys = {
     teamRollup: ['employees', 'team-rollup'] as const,
     summary: (id: string) => ['employees', id, 'summary'] as const,
     profile: (id: string) => ['employees', id, 'profile'] as const,
+    overview: (id: string) => ['employees', id, 'overview'] as const,
   },
   attendance: {
     today: ['attendance', 'today'] as const,

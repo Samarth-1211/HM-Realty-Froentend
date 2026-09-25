@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from '@tanstack/react-router'
 import { Plus, Trash2, UserX, Users2 } from 'lucide-react'
 import { PageHeader } from '@/components/ui/page-header'
 import { Card } from '@/components/ui/card'
@@ -19,6 +20,7 @@ type DialogState = { type: 'none' } | { type: 'create' } | { type: 'deactivate';
 
 export function UsersPage() {
   const currentUser = useAuthStore((s) => s.user)
+  const navigate = useNavigate()
   const [dialog, setDialog] = useState<DialogState>({ type: 'none' })
   const { data: users, isLoading } = useUsers()
   const deactivate = useDeactivateUser()
@@ -88,7 +90,7 @@ export function UsersPage() {
     <div>
       <PageHeader
         title="Users"
-        description="Everyone with access to your organization."
+        description="Everyone with access to your organization. Click a user for their attendance, leads and full details."
         actions={
           canCreate && (
             <Button onClick={() => setDialog({ type: 'create' })}>
@@ -105,6 +107,7 @@ export function UsersPage() {
           data={users ?? []}
           isLoading={isLoading}
           rowKey={(u) => u.id}
+          onRowClick={(u) => navigate({ to: '/users/$userId', params: { userId: u.id } })}
           emptyIcon={Users2}
           emptyTitle="No users found"
         />

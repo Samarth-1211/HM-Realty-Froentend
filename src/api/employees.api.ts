@@ -1,5 +1,5 @@
 import { apiClient } from '@/lib/api-client'
-import type { EmployeeProfile, EmployeeSummary, TeamRollupItem, TeamSummaryItem } from '@/types'
+import type { EmployeeOverview, EmployeeProfile, EmployeeSummary, TeamRollupItem, TeamSummaryItem } from '@/types'
 
 export interface UpdateMyProfilePayload {
   firstName?: string
@@ -30,6 +30,9 @@ export const employeesApi = {
 
   profile: (userId: string) =>
     apiClient.get<EmployeeProfile>(`/employees/${userId}/profile`).then((r) => r.data),
+
+  overview: (userId: string) =>
+    apiClient.get<EmployeeOverview>(`/employees/${userId}/overview`).then((r) => r.data),
 
   updateMyProfile: (payload: UpdateMyProfilePayload) =>
     apiClient.patch<EmployeeProfile>('/employees/me/profile', payload).then((r) => r.data),

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
-import { AlertTriangle, CheckCircle2, Eye, KeyRound, Link2, PauseCircle, PlayCircle, ShieldAlert, Save } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, Eye, KeyRound, Link2, Lock, PauseCircle, PlayCircle, ShieldAlert, Save } from 'lucide-react'
 import { Modal } from '@/components/ui/modal'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Field, Input, Label } from '@/components/ui/input'
@@ -143,7 +143,7 @@ export function WhatsAppIntegrationModal({
               <WhatsAppMark />
               <div>
                 <p className="font-semibold text-slate-800">{integration.businessName || 'WhatsApp Business'}</p>
-                <p className="text-xs text-slate-400">{integration.displayPhoneNumber || integration.phoneNumberId}</p>
+                <p className="text-xs text-slate-400">{integration.displayPhoneNumber || integration.phoneNumberId || '—'}</p>
               </div>
             </div>
             <div className="flex flex-col items-end gap-1.5">
@@ -153,7 +153,14 @@ export function WhatsAppIntegrationModal({
           </div>
         )}
 
-        {isManage && integration?.status === 'PENDING' && (
+        {isManage && integration?.status === 'PENDING' && !canEdit && (
+          <div className="flex items-start gap-2 rounded-xl bg-amber-50 p-3 text-xs text-amber-700">
+            <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+            <p>Waiting for Meta's webhook verification — an Admin needs to finish the setup in Meta.</p>
+          </div>
+        )}
+
+        {isManage && integration?.status === 'PENDING' && canEdit && (
           <div className="flex items-start gap-2 rounded-xl bg-amber-50 p-3 text-xs text-amber-700">
             <AlertTriangle className="mt-0.5 size-4 shrink-0" />
             <p>
@@ -242,7 +249,7 @@ export function WhatsAppIntegrationModal({
           <div className="grid grid-cols-2 gap-3 rounded-xl border border-slate-100 p-4 text-sm sm:grid-cols-4">
             <InfoStat label="Last message in" value={formatDateTime(integration.lastInboundAt)} />
             <InfoStat label="Last reply sent" value={formatDateTime(integration.lastOutboundAt)} />
-            <InfoStat label="Business Manager ID" value={integration.businessManagerId || '—'} />
+            {canEdit && <InfoStat label="Business Manager ID" value={integration.businessManagerId || '—'} />}
             <InfoStat label="Verified" value={integration.verifiedAt ? formatDateTime(integration.verifiedAt) : 'Not yet'} />
             {canEdit && (
               <div className="col-span-2 flex items-end sm:col-span-4">
@@ -254,8 +261,14 @@ export function WhatsAppIntegrationModal({
           </div>
         )}
 
-        {/* Webhook credentials */}
-        {shown && (
+        {/* Webhook credentials — Admin/Super Admin only; the API omits them for everyone else */}
+        {shown && !canEdit && (
+          <div className="flex items-center gap-2 rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-500">
+            <Lock className="size-3.5 shrink-0" />
+            Meta account IDs, the webhook URL and the verify token are only visible to Admins.
+          </div>
+        )}
+        {shown && canEdit && shown.webhookUrl && (
           <div className="rounded-xl border border-slate-100 p-4">
             {!isManage && created && (
               <p className="mb-4 flex items-center gap-1.5 text-sm font-medium text-emerald-600">

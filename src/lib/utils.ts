@@ -44,6 +44,18 @@ export function formatDateTime(value: string | null | undefined) {
   }).format(date)
 }
 
+export function formatTime(value: string | null | undefined) {
+  if (!value) return '—'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return '—'
+  return new Intl.DateTimeFormat('en-IN', { hour: '2-digit', minute: '2-digit' }).format(date)
+}
+
+/** Human-friendly sequential lead id, e.g. 123 -> "LD-000123". */
+export function formatLeadNumber(leadNumber: number) {
+  return `LD-${String(leadNumber).padStart(6, '0')}`
+}
+
 export function formatRoleLabel(role: string) {
   return role
     .toLowerCase()

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
-import { CheckCircle2, Eye, PauseCircle, PlayCircle, Save } from 'lucide-react'
+import { CheckCircle2, Eye, Lock, PauseCircle, PlayCircle, Save } from 'lucide-react'
 import { Modal } from '@/components/ui/modal'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Field, Input } from '@/components/ui/input'
@@ -210,10 +210,16 @@ export function IntegrationModal(props: Props) {
           </div>
         ) : null}
 
-        {/* Webhook credentials */}
-        {integration && (
+        {/* Webhook credentials — Admin/Super Admin only; the API omits them for everyone else */}
+        {integration && !canEdit && (
+          <div className="flex items-center gap-2 rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-500">
+            <Lock className="size-3.5 shrink-0" />
+            Webhook URL and secret are only visible to Admins.
+          </div>
+        )}
+        {integration && canEdit && integration.webhookUrl && (
           <div className="rounded-xl border border-slate-100 p-4">
-            {props.mode === 'manage' && canEdit && !revealedSecret && (
+            {props.mode === 'manage' && !revealedSecret && (
               <Button
                 variant="secondary"
                 size="sm"

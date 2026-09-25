@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from '@tanstack/react-router'
 import { Mail, Pencil, Play, Plus, Trash2, UserCog, UserX } from 'lucide-react'
 import { PageHeader } from '@/components/ui/page-header'
 import { Card } from '@/components/ui/card'
@@ -29,6 +30,7 @@ type DialogState =
   | { type: 'resend'; manager: ManagerSummary }
 
 export function ManagersPage() {
+  const navigate = useNavigate()
   const [dialog, setDialog] = useState<DialogState>({ type: 'none' })
   const { data: managers, isLoading } = useManagers()
   const deactivate = useDeactivateManager()
@@ -75,7 +77,10 @@ export function ManagersPage() {
               type="button"
               variant="ghost"
               size="sm"
-              onClick={() => setDialog({ type: 'resend', manager: m })}
+              onClick={(e) => {
+                e.stopPropagation()
+                setDialog({ type: 'resend', manager: m })
+              }}
             >
               <Mail className="size-3.5" />
               Resend
@@ -134,6 +139,7 @@ export function ManagersPage() {
           data={managers ?? []}
           isLoading={isLoading}
           rowKey={(m) => m.id}
+          onRowClick={(m) => navigate({ to: '/users/$userId', params: { userId: m.id } })}
           emptyIcon={UserCog}
           emptyTitle="No managers yet"
           emptyDescription="Create your first manager to start building sales teams."

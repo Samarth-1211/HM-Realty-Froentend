@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { CheckCircle2, PhoneCall, TrendingUp, UsersRound } from 'lucide-react'
+import { CheckCircle2, TrendingUp, UsersRound } from 'lucide-react'
 import { PageHeader } from '@/components/ui/page-header'
 import { Card, CardBody, CardHeader } from '@/components/ui/card'
 import { DataTable, type Column } from '@/components/ui/data-table'
@@ -75,8 +75,6 @@ function ManagerReports() {
       ),
     },
     { key: 'active', header: 'Active leads', render: (m) => <span className="font-medium text-slate-700">{m.activeLeadCount}</span> },
-    { key: 'calls', header: 'Calls (mock)', render: (m) => <span className="text-slate-500">{m.totalCallsMock}</span> },
-    { key: 'talk', header: 'Talk time (mock)', render: (m) => <span className="text-slate-500">{m.totalTalkTimeMinutesMock} min</span> },
   ]
 
   return (
@@ -160,10 +158,9 @@ function SelfReport({ userId }: { userId: string }) {
 
   return (
     <div>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <StatCard label="Active workload" value={summary.activeWorkload} icon={TrendingUp} tone="brand" />
         <StatCard label="Conversions" value={summary.totalConversions} icon={CheckCircle2} tone="emerald" />
-        <StatCard label="Calls (mock)" value="—" icon={PhoneCall} tone="sky" />
       </div>
       <Card className="mt-6">
         <CardHeader title="Pipeline breakdown" />

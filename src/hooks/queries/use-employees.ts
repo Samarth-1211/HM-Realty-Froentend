@@ -45,6 +45,15 @@ export function useEmployeeProfile(userId: string | undefined) {
   })
 }
 
+export function useEmployeeOverview(userId: string | undefined) {
+  return useQuery({
+    queryKey: queryKeys.employees.overview(userId ?? ''),
+    queryFn: () => employeesApi.overview(userId!),
+    enabled: !!userId,
+    refetchInterval: REFRESH_INTERVAL_MS,
+  })
+}
+
 export function useUpdateMyProfile() {
   const qc = useQueryClient()
   return useMutation({

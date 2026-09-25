@@ -6,6 +6,13 @@ export interface CheckInPayload {
   notes?: string
 }
 
+export interface CheckOutPayload {
+  /** Mandatory end-of-day summary of the work done. */
+  summary: string
+  /** Leads the day's work was done on. */
+  leadIds?: string[]
+}
+
 export interface AttendanceRangeQuery {
   from?: string
   to?: string
@@ -15,7 +22,8 @@ export const attendanceApi = {
   checkIn: (payload: CheckInPayload) =>
     apiClient.post<Attendance>('/attendance/check-in', payload).then((r) => r.data),
 
-  checkOut: () => apiClient.post<Attendance>('/attendance/check-out').then((r) => r.data),
+  checkOut: (payload: CheckOutPayload) =>
+    apiClient.post<Attendance>('/attendance/check-out', payload).then((r) => r.data),
 
   today: () => apiClient.get<Attendance | null>('/attendance/today').then((r) => r.data),
 

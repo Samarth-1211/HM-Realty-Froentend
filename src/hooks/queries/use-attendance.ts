@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { attendanceApi, type AttendanceRangeQuery, type CheckInPayload } from '@/api/attendance.api'
+import { attendanceApi, type AttendanceRangeQuery, type CheckInPayload, type CheckOutPayload } from '@/api/attendance.api'
 import { extractErrorMessage } from '@/lib/api-client'
 import { queryKeys } from './query-keys'
 
@@ -58,7 +58,7 @@ export function useCheckIn() {
 export function useCheckOut() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: () => attendanceApi.checkOut(),
+    mutationFn: (payload: CheckOutPayload) => attendanceApi.checkOut(payload),
     onSuccess: () => {
       toast.success('Checked out for today')
       qc.invalidateQueries({ queryKey: queryKeys.attendance.today })

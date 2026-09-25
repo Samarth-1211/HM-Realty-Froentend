@@ -21,11 +21,11 @@ import {
   VISIT_STATUS_COLORS,
   VISIT_STATUS_LABELS,
 } from '@/lib/constants'
-import { formatCurrency, formatDate, formatDateTime, formatEnumLabel } from '@/lib/utils'
+import { formatCurrency, formatDate, formatDateTime, formatEnumLabel, formatLeadNumber } from '@/lib/utils'
 import { BookingStatus, LeadSource, LeadStatus, LeadTemperature, type Lead } from '@/types'
 
 function leadIdLabel(lead: Lead): string {
-  return `LD-${String(lead.leadNumber).padStart(6, '0')}`
+  return formatLeadNumber(lead.leadNumber)
 }
 
 function assigneeLabel(lead: Lead): string {

@@ -13,6 +13,7 @@ import { ManagersPage } from '@/pages/managers-page'
 import { ProjectsPage } from '@/pages/projects-page'
 import { TeamPage } from '@/pages/team-page'
 import { UsersPage } from '@/pages/users-page'
+import { UserDetailPage } from '@/pages/user-detail-page'
 import { LeadsPage } from '@/pages/leads-page'
 import { LeadDetailPage } from '@/pages/lead-detail-page'
 import { LeadSheetPage } from '@/pages/lead-sheet-page'
@@ -148,6 +149,15 @@ const usersRoute = createRoute({
   beforeLoad: requireRole([UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER]),
 })
 
+// Access is re-checked server-side: Admins see anyone in their org, Managers
+// only their own direct reports.
+const userDetailRoute = createRoute({
+  getParentRoute: () => appLayoutRoute,
+  path: '/users/$userId',
+  component: UserDetailPage,
+  beforeLoad: requireRole([UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER]),
+})
+
 const leadsRoute = createRoute({
   getParentRoute: () => appLayoutRoute,
   path: '/leads',
@@ -240,6 +250,7 @@ const routeTree = rootRoute.addChildren([
     projectsRoute,
     teamRoute,
     usersRoute,
+    userDetailRoute,
     leadsRoute,
     leadDetailRoute,
     leadSheetRoute,

@@ -241,7 +241,11 @@ export function IntegrationModal(props: Props) {
                 Connected — save this secret now, it won't be shown again on this screen.
               </p>
             )}
-            <WebhookSnippet webhookUrl={integration.webhookUrl} secret={integration.webhookSecret ?? revealedSecret} />
+            <WebhookSnippet
+              webhookUrl={integration.webhookUrl}
+              secret={integration.webhookSecret ?? revealedSecret}
+              platform={integration.platform}
+            />
           </div>
         )}
 

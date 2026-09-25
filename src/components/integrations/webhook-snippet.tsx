@@ -1,9 +1,13 @@
 import { KeyRound, Link2, ShieldAlert } from 'lucide-react'
 import { CopyButton } from '@/components/ui/copy-button'
+import { getPlatformMeta, PLATFORM_CATALOG } from '@/lib/platform-catalog'
+import type { LeadSource } from '@/types'
 
 // The CRM assigns each lead's ID and received time itself on arrival, so
-// neither is part of the format shared with RMs.
-const SAMPLE_PAYLOAD = {
+// neither is part of the format shared with RMs. leadSource is pre-filled
+// with the integration's own platform code.
+const samplePayload = (platform: LeadSource) => ({
+  leadSource: platform,
   fullName: 'Priya Sharma',
   phone: '+919812345678',
   email: 'priya@example.com',
@@ -14,18 +18,23 @@ const SAMPLE_PAYLOAD = {
   budgetMax: 5000000,
   city: 'Indore',
   message: 'Looking for a corner plot',
-}
+})
 
 export function WebhookSnippet({
   webhookUrl,
   secret,
+  platform,
 }: {
   webhookUrl: string
   secret?: string
+  /** This integration's platform — pre-filled as the sample's leadSource. */
+  platform: LeadSource
 }) {
   const secretPlaceholder = secret ?? '<your-webhook-secret>'
-  const payloadJson = JSON.stringify(SAMPLE_PAYLOAD, null, 2)
-  const curl = `curl -X POST "${webhookUrl}" \\\n  -H "Content-Type: application/json" \\\n  -H "x-webhook-secret: ${secretPlaceholder}" \\\n  -d '${JSON.stringify(SAMPLE_PAYLOAD)}'`
+  const payload = samplePayload(platform)
+  const payloadJson = JSON.stringify(payload, null, 2)
+  const curl = `curl -X POST "${webhookUrl}" \\\n  -H "Content-Type: application/json" \\\n  -H "x-webhook-secret: ${secretPlaceholder}" \\\n  -d '${JSON.stringify(payload)}'`
+  const sourceCodes = PLATFORM_CATALOG.map((p) => `${p.value} — ${p.label}`).join('\n')
 
   return (
     <div className="flex flex-col gap-4">
@@ -88,6 +97,25 @@ export function WebhookSnippet({
           by the CRM when the lead arrives, and a phone number that's already in the CRM is never saved twice — the
           enquiry is added to the existing lead instead.
         </p>
+        <p className="mt-1.5 text-xs text-slate-400">
+          <code className="rounded bg-slate-100 px-1 py-0.5 text-slate-600">leadSource</code> is pre-filled with{' '}
+          {getPlatformMeta(platform).label}'s code. If this one URL carries leads from several platforms (e.g.
+          Housing.com, PropTiger and Makaan), send the matching code with each lead. A missing or unknown value is
+          saved as {getPlatformMeta(platform).label}.
+        </p>
+        <details className="mt-2 rounded-xl border border-slate-100 bg-slate-50/60 px-3 py-2">
+          <summary className="cursor-pointer text-xs font-medium text-slate-600">Accepted leadSource codes</summary>
+          <div className="relative mt-2">
+            <CopyButton value={sourceCodes} className="absolute right-0 top-0" />
+            <ul className="grid grid-cols-1 gap-x-4 gap-y-1 pr-10 sm:grid-cols-2">
+              {PLATFORM_CATALOG.map((p) => (
+                <li key={p.value} className="text-xs text-slate-500">
+                  <code className="font-mono text-[11px] text-slate-700">{p.value}</code> — {p.label}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </details>
       </div>
 
       <div>

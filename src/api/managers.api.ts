@@ -38,7 +38,7 @@ export const managersApi = {
   remove: (id: string, reason?: string) =>
     apiClient
       .delete<{ message: string; id: string }>(`/managers/${id}`, {
-        data: reason ? { reason } : {},
+        data: { confirmation: 'delete', ...(reason ? { reason } : {}) },
       })
       .then((r) => r.data),
 

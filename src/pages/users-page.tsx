@@ -130,11 +130,12 @@ export function UsersPage() {
           open
           onClose={close}
           title={`Delete admin ${dialog.user.firstName}?`}
-          description="This permanently removes the admin account. This cannot be undone."
+          description="This permanently deletes the admin account from the database. This cannot be undone. If they still have assigned leads, tasks, attendance, targets, or direct reports, you'll need to reassign those first."
           confirmLabel="Delete"
           variant="danger"
           requireReason
           reasonLabel="Reason (optional)"
+          requireTypedConfirmation="delete"
           loading={remove.isPending}
           onConfirm={(reason) => remove.mutate({ id: dialog.user.id, reason }, { onSuccess: close })}
         />

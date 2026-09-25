@@ -23,6 +23,8 @@ export const usersApi = {
 
   remove: (id: string, reason?: string) =>
     apiClient
-      .delete<{ message: string; id: string }>(`/users/${id}`, { data: reason ? { reason } : {} })
+      .delete<{ message: string; id: string }>(`/users/${id}`, {
+        data: { confirmation: 'delete', ...(reason ? { reason } : {}) },
+      })
       .then((r) => r.data),
 }

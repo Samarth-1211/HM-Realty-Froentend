@@ -175,11 +175,12 @@ export function ManagersPage() {
           open
           onClose={close}
           title={`Delete ${dialog.manager.firstName}?`}
-          description="This soft-deletes the manager. This action cannot be undone from here."
+          description="This permanently deletes the manager account from the database. This cannot be undone. If they still have assigned leads, tasks, attendance, targets, or direct reports, you'll need to reassign those first."
           confirmLabel="Delete"
           variant="danger"
           requireReason
           reasonLabel="Reason (optional)"
+          requireTypedConfirmation="delete"
           loading={remove.isPending}
           onConfirm={(reason) => remove.mutate({ id: dialog.manager.id, reason }, { onSuccess: close })}
         />

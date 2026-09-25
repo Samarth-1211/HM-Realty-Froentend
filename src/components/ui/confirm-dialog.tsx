@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { AlertTriangle } from 'lucide-react'
 import { Modal } from './modal'
 import { Button } from './button'
-import { Field } from './input'
+import { Field, Input } from './input'
 import { Textarea } from './select'
 
 interface ConfirmOptions {
@@ -12,6 +12,8 @@ interface ConfirmOptions {
   variant?: 'primary' | 'danger'
   requireReason?: boolean
   reasonLabel?: string
+  /** The exact word (case-insensitive) the user must type before the confirm button unlocks, e.g. "delete". */
+  requireTypedConfirmation?: string
 }
 
 export function ConfirmDialog({
@@ -27,6 +29,11 @@ export function ConfirmDialog({
   loading?: boolean
 }) {
   const [reason, setReason] = useState('')
+  const [typedConfirmation, setTypedConfirmation] = useState('')
+
+  const confirmationSatisfied =
+    !options.requireTypedConfirmation ||
+    typedConfirmation.trim().toLowerCase() === options.requireTypedConfirmation.trim().toLowerCase()
 
   return (
     <Modal open={open} onClose={onClose} title={options.title} size="sm" level="elevated">
@@ -53,6 +60,17 @@ export function ConfirmDialog({
             />
           </Field>
         )}
+        {options.requireTypedConfirmation && (
+          <Field label={`Type "${options.requireTypedConfirmation}" to confirm`}>
+            <Input
+              value={typedConfirmation}
+              onChange={(e) => setTypedConfirmation(e.target.value)}
+              placeholder={options.requireTypedConfirmation}
+              autoComplete="off"
+              autoFocus
+            />
+          </Field>
+        )}
         <div className="flex justify-end gap-2 pt-1">
           <Button variant="ghost" onClick={onClose} disabled={loading}>
             Cancel
@@ -60,6 +78,7 @@ export function ConfirmDialog({
           <Button
             variant={options.variant === 'danger' ? 'danger' : 'primary'}
             loading={loading}
+            disabled={!confirmationSatisfied}
             onClick={() => onConfirm(reason || undefined)}
           >
             {options.confirmLabel ?? 'Confirm'}

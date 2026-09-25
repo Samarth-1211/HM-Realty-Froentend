@@ -15,6 +15,11 @@ const schema = z.object({
   firstName: z.string().min(1, 'Required'),
   lastName: z.string().min(1, 'Required'),
   email: z.string().min(1, 'Required').email('Enter a valid email'),
+  phone: z
+    .string()
+    .trim()
+    .min(1, 'Required')
+    .regex(/^\+?[0-9]{7,15}$/, 'Enter a valid mobile number'),
   password: z.string().min(8, 'Min 8 characters'),
   role: z.string().min(1, 'Required'),
 })
@@ -40,7 +45,7 @@ export function UserFormModal({
   } = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: { role: allowedRoles[0] } })
 
   useEffect(() => {
-    if (open) reset({ firstName: '', lastName: '', email: '', password: '', role: allowedRoles[0] })
+    if (open) reset({ firstName: '', lastName: '', email: '', phone: '', password: '', role: allowedRoles[0] })
   }, [open, reset, allowedRoles])
 
   const onSubmit = (values: FormValues) => {
@@ -58,6 +63,9 @@ export function UserFormModal({
         </Field>
         <Field label="Email" error={errors.email?.message} required>
           <Input {...register('email')} />
+        </Field>
+        <Field label="Mobile number" error={errors.phone?.message} required>
+          <Input type="tel" placeholder="+919876543210" {...register('phone')} />
         </Field>
         <Field label="Password" error={errors.password?.message} required hint="Minimum 8 characters">
           <Input type="password" {...register('password')} />

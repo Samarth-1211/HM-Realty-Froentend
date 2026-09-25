@@ -310,6 +310,7 @@ export interface ManagerSummary {
   email: string
   firstName: string
   lastName: string
+  phone: string | null
   isActive: boolean
   isVerified: boolean
   verifiedAt: string | null

@@ -6,6 +6,7 @@ export interface CreateTeamMemberPayload {
   password: string
   firstName: string
   lastName: string
+  phone: string
   role: Extract<UserRole, 'AGENT' | 'PRESALES' | 'POSTSALES'>
   projectIds?: string[]
 }
@@ -13,6 +14,8 @@ export interface CreateTeamMemberPayload {
 export interface UpdateTeamMemberPayload {
   firstName?: string
   lastName?: string
+  /** null clears the stored number. */
+  phone?: string | null
   isActive?: boolean
 }
 

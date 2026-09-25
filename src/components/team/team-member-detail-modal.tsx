@@ -15,6 +15,11 @@ import { formatCurrency, formatDate } from '@/lib/utils'
 const schema = z.object({
   firstName: z.string().min(1, 'Required'),
   lastName: z.string().min(1, 'Required'),
+  // Blank clears the stored number.
+  phone: z
+    .string()
+    .trim()
+    .refine((v) => v === '' || /^\+?[0-9]{7,15}$/.test(v), 'Enter a valid mobile number'),
   isActive: z.boolean(),
 })
 type FormValues = z.infer<typeof schema>
@@ -44,13 +49,19 @@ export function TeamMemberDetailModal({
   } = useForm<FormValues>({ resolver: zodResolver(schema) })
 
   useEffect(() => {
-    if (member) reset({ firstName: member.firstName, lastName: member.lastName, isActive: member.isActive })
+    if (member)
+      reset({
+        firstName: member.firstName,
+        lastName: member.lastName,
+        phone: member.phone ?? '',
+        isActive: member.isActive,
+      })
     setEmployeeCodeInput(member?.employeeCode ?? '')
   }, [member, reset])
 
   const onSubmit = (values: FormValues) => {
     if (!member) return
-    update.mutate({ id: member.id, payload: values })
+    update.mutate({ id: member.id, payload: { ...values, phone: values.phone || null } })
   }
 
   return (
@@ -70,6 +81,14 @@ export function TeamMemberDetailModal({
                 <Input {...register('lastName')} />
               </Field>
             </div>
+            <Field label="Mobile number" error={errors.phone?.message}>
+              <Input
+                type="tel"
+                placeholder="+919876543210"
+                leftIcon={<Phone className="size-4" />}
+                {...register('phone')}
+              />
+            </Field>
             <Controller
               control={control}
               name="isActive"
@@ -86,14 +105,8 @@ export function TeamMemberDetailModal({
 
           <div className="border-t border-slate-100 pt-4">
             <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">Employee profile</p>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div className="flex items-center gap-2 text-sm text-slate-600">
-                <Phone className="size-4 shrink-0 text-slate-400" />
-                {member.phone ?? 'No phone on file'}
-              </div>
-              <div className="flex items-center gap-2 text-sm text-slate-600">
-                Joined {formatDate(member.createdAt)}
-              </div>
+            <div className="flex items-center gap-2 text-sm text-slate-600">
+              Joined {formatDate(member.createdAt)}
             </div>
             <div className="mt-3 flex gap-2">
               <Input

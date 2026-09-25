@@ -12,14 +12,21 @@ interface FormValues {
   firstName: string
   lastName: string
   email: string
+  phone: string
   password: string | undefined
 }
+
+const PHONE_REGEX = /^\+?[0-9]{7,15}$/
 
 function buildSchema(isEdit: boolean) {
   return z.object({
     firstName: z.string().min(1, 'Required'),
     lastName: z.string().min(1, 'Required'),
     email: z.string().min(1, 'Required').email('Enter a valid email'),
+    // Required for new managers; on edit, blank clears the stored number.
+    phone: isEdit
+      ? z.string().trim().refine((v) => v === '' || PHONE_REGEX.test(v), 'Enter a valid mobile number')
+      : z.string().trim().min(1, 'Required').regex(PHONE_REGEX, 'Enter a valid mobile number'),
     password: isEdit ? z.string().optional() : z.string().min(8, 'Min 8 characters'),
   })
 }
@@ -49,8 +56,14 @@ export function ManagerFormModal({
     if (open) {
       reset(
         manager
-          ? { firstName: manager.firstName, lastName: manager.lastName, email: manager.email, password: '' }
-          : { firstName: '', lastName: '', email: '', password: '' },
+          ? {
+              firstName: manager.firstName,
+              lastName: manager.lastName,
+              email: manager.email,
+              phone: manager.phone ?? '',
+              password: '',
+            }
+          : { firstName: '', lastName: '', email: '', phone: '', password: '' },
       )
     }
   }, [open, manager, reset])
@@ -58,12 +71,26 @@ export function ManagerFormModal({
   const onSubmit = (values: FormValues) => {
     if (isEdit && manager) {
       update.mutate(
-        { id: manager.id, payload: { firstName: values.firstName, lastName: values.lastName, email: values.email } },
+        {
+          id: manager.id,
+          payload: {
+            firstName: values.firstName,
+            lastName: values.lastName,
+            email: values.email,
+            phone: values.phone || null,
+          },
+        },
         { onSuccess: onClose },
       )
     } else {
       create.mutate(
-        { firstName: values.firstName, lastName: values.lastName, email: values.email, password: values.password! },
+        {
+          firstName: values.firstName,
+          lastName: values.lastName,
+          email: values.email,
+          phone: values.phone,
+          password: values.password!,
+        },
         { onSuccess: onClose },
       )
     }
@@ -86,6 +113,9 @@ export function ManagerFormModal({
         </Field>
         <Field label="Email" error={errors.email?.message} required>
           <Input {...register('email')} />
+        </Field>
+        <Field label="Mobile number" error={errors.phone?.message} required={!isEdit}>
+          <Input type="tel" placeholder="+919876543210" {...register('phone')} />
         </Field>
         {!isEdit && (
           <Field

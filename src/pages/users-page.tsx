@@ -47,6 +47,7 @@ export function UsersPage() {
         </div>
       ),
     },
+    { key: 'phone', header: 'Mobile', render: (u) => <span className="text-slate-500">{u.phone ?? '—'}</span> },
     { key: 'role', header: 'Role', render: (u) => <Badge variant="brand">{formatRoleLabel(u.role)}</Badge> },
     {
       key: 'status',

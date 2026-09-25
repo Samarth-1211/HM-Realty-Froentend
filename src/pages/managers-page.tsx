@@ -56,6 +56,7 @@ export function ManagersPage() {
         </div>
       ),
     },
+    { key: 'phone', header: 'Mobile', render: (m) => <span className="text-slate-500">{m.phone ?? '—'}</span> },
     {
       key: 'status',
       header: 'Status',

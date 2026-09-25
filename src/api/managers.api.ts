@@ -6,12 +6,15 @@ export interface CreateManagerPayload {
   password: string
   firstName: string
   lastName: string
+  phone: string
 }
 
 export interface UpdateManagerPayload {
   email?: string
   firstName?: string
   lastName?: string
+  /** null clears the stored number. */
+  phone?: string | null
 }
 
 export const managersApi = {

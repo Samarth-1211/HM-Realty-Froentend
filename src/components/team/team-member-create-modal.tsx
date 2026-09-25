@@ -14,6 +14,11 @@ const schema = z.object({
   firstName: z.string().min(1, 'Required'),
   lastName: z.string().min(1, 'Required'),
   email: z.string().min(1, 'Required').email('Enter a valid email'),
+  phone: z
+    .string()
+    .trim()
+    .min(1, 'Required')
+    .regex(/^\+?[0-9]{7,15}$/, 'Enter a valid mobile number'),
   password: z.string().min(8, 'Min 8 characters'),
   role: z.enum(['AGENT', 'PRESALES', 'POSTSALES']),
 })
@@ -30,7 +35,7 @@ export function TeamMemberCreateModal({ open, onClose }: { open: boolean; onClos
   } = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: { role: 'AGENT' } })
 
   useEffect(() => {
-    if (open) reset({ firstName: '', lastName: '', email: '', password: '', role: 'AGENT' })
+    if (open) reset({ firstName: '', lastName: '', email: '', phone: '', password: '', role: 'AGENT' })
   }, [open, reset])
 
   const onSubmit = (values: FormValues) => {
@@ -48,6 +53,9 @@ export function TeamMemberCreateModal({ open, onClose }: { open: boolean; onClos
         </Field>
         <Field label="Email" error={errors.email?.message} required>
           <Input {...register('email')} />
+        </Field>
+        <Field label="Mobile number" error={errors.phone?.message} required>
+          <Input type="tel" placeholder="+919876543210" {...register('phone')} />
         </Field>
         <Field
           label="Temporary password"

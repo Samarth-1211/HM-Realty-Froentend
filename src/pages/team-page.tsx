@@ -48,6 +48,7 @@ export function TeamPage() {
         </div>
       ),
     },
+    { key: 'phone', header: 'Mobile', render: (u) => <span className="text-slate-500">{u.phone ?? '—'}</span> },
     { key: 'role', header: 'Role', render: (u) => <span className="text-slate-500">{formatRoleLabel(u.role)}</span> },
     {
       key: 'status',

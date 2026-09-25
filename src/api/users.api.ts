@@ -6,6 +6,7 @@ export interface CreateUserPayload {
   password: string
   firstName: string
   lastName: string
+  phone: string
   role: UserRole
   managerId?: string
 }

@@ -75,4 +75,9 @@ export const leadsApi = {
 
   teamPerformance: () =>
     apiClient.get<TeamPerformanceRow[]>('/leads/team-performance').then((r) => r.data),
+
+  remove: (id: string) =>
+    apiClient
+      .delete<{ message: string; id: string }>(`/leads/${id}`, { data: { confirmation: 'delete' } })
+      .then((r) => r.data),
 }

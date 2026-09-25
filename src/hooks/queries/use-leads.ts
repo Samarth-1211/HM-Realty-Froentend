@@ -76,6 +76,22 @@ export function useUpdateLeadStatus() {
   })
 }
 
+export function useDeleteLead() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => leadsApi.remove(id),
+    onSuccess: (_d, id) => {
+      toast.success('Lead deleted')
+      // Drop the deleted lead's detail query instead of refetching it into a 404.
+      qc.removeQueries({ queryKey: queryKeys.leads.detail(id), exact: true })
+      qc.invalidateQueries({ queryKey: ['leads'], predicate: (q) => q.queryKey[1] !== id })
+      // Tasks linked to the lead are kept but unlinked from it.
+      qc.invalidateQueries({ queryKey: ['tasks'] })
+    },
+    onError: (error) => toast.error('Could not delete lead', { description: extractErrorMessage(error) }),
+  })
+}
+
 export function useTeamPerformance(enabled = true) {
   return useQuery({
     queryKey: queryKeys.leads.teamPerformance,

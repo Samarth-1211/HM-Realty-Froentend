@@ -14,6 +14,7 @@ import {
   Tag,
   Target,
   ThumbsDown,
+  Trash2,
   User,
   UserPlus,
   UserRound,
@@ -28,6 +29,7 @@ import { LeadStatusControl } from '@/components/leads/lead-status-control'
 import { AssignLeadModal } from '@/components/leads/assign-lead-modal'
 import { WhatsAppChatPanel } from '@/components/leads/whatsapp-chat-panel'
 import { FollowUpModal } from '@/components/leads/follow-up-modal'
+import { DeleteLeadDialog } from '@/components/leads/delete-lead-dialog'
 import { TaskFormModal } from '@/components/tasks/task-form-modal'
 import { useLead } from '@/hooks/queries/use-leads'
 import { useAuthStore } from '@/store/auth-store'
@@ -39,6 +41,7 @@ import {
   LEAD_PURPOSE_LABELS,
   LEAD_TEMPERATURE_COLORS,
   LEAD_TEMPERATURE_LABELS,
+  ORG_OVERSIGHT_ROLES,
   VISIT_STATUS_COLORS,
   VISIT_STATUS_LABELS,
 } from '@/lib/constants'
@@ -62,8 +65,10 @@ export function LeadDetailPage() {
   const [assignOpen, setAssignOpen] = useState(false)
   const [taskOpen, setTaskOpen] = useState(false)
   const [followUpOpen, setFollowUpOpen] = useState(false)
+  const [deleteOpen, setDeleteOpen] = useState(false)
 
   const canAssign = currentUser && ASSIGNER_ROLES.includes(currentUser.role)
+  const canDelete = currentUser && ORG_OVERSIGHT_ROLES.includes(currentUser.role)
 
   if (isLoading || !lead) return <PageLoader label="Loading lead…" />
 
@@ -122,6 +127,12 @@ export function LeadDetailPage() {
           <Button size="sm" variant="outline" onClick={() => setFollowUpOpen(true)}>
             <NotebookPen className="size-4" />
             Follow-up
+          </Button>
+        )}
+        {canDelete && (
+          <Button size="sm" variant="danger" onClick={() => setDeleteOpen(true)}>
+            <Trash2 className="size-4" />
+            Delete
           </Button>
         )}
       </div>
@@ -267,6 +278,9 @@ export function LeadDetailPage() {
       <AssignLeadModal open={assignOpen} onClose={() => setAssignOpen(false)} lead={lead} />
       <TaskFormModal open={taskOpen} onClose={() => setTaskOpen(false)} lead={{ id: lead.id, fullName: lead.fullName }} />
       {canChangeStatus && <FollowUpModal open={followUpOpen} onClose={() => setFollowUpOpen(false)} lead={lead} />}
+      {deleteOpen && (
+        <DeleteLeadDialog lead={lead} onClose={() => setDeleteOpen(false)} onDeleted={() => navigate({ to: '/leads' })} />
+      )}
     </div>
   )
 }

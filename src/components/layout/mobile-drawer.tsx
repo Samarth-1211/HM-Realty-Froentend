@@ -6,12 +6,15 @@ import { navForRole } from '@/lib/nav-config'
 import { APP_NAME, ROLE_LABELS } from '@/lib/constants'
 import { useAuthStore } from '@/store/auth-store'
 import { useLogout } from '@/hooks/use-auth'
+import { useNavDots } from '@/hooks/use-nav-dots'
 import { Avatar } from '@/components/ui/avatar'
 import hmRealtyLogo from '@/assets/hm-realty-logo.jpg'
+import { NavDot } from './nav-dot'
 
 export function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
   const user = useAuthStore((s) => s.user)
   const logout = useLogout()
+  const hasDot = useNavDots()
   if (!user) return null
   const items = navForRole(user.role)
 
@@ -67,6 +70,7 @@ export function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => 
                     >
                       <item.icon className="size-[18px]" />
                       {item.label}
+                      {hasDot(item.to) && <NavDot className="ml-auto" />}
                     </Link>
                   </li>
                 ))}

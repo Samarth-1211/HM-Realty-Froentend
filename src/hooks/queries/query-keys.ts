@@ -24,6 +24,9 @@ export const queryKeys = {
     list: (query?: unknown) => ['leads', query] as const,
     detail: (id: string) => ['leads', id] as const,
     teamPerformance: ['leads', 'team-performance'] as const,
+    // Under the 'leads' prefix on purpose: every lead mutation's
+    // invalidateQueries(['leads']) refreshes the nav dot too.
+    unseenCount: ['leads', 'unseen-count'] as const,
   },
   employees: {
     teamSummary: ['employees', 'team-summary'] as const,

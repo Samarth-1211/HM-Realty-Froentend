@@ -9,7 +9,7 @@ import {
   useNotifications,
   useUnreadNotificationCount,
 } from '@/hooks/queries/use-notifications'
-import type { Notification } from '@/types'
+import { NotificationType, type Notification } from '@/types'
 
 export function NotificationBell() {
   const [open, setOpen] = useState(false)
@@ -33,8 +33,12 @@ export function NotificationBell() {
   const handleClick = (n: Notification) => {
     if (!n.isRead) markRead.mutate(n.id)
     setOpen(false)
-    if (n.task?.leadId) {
-      navigate({ to: '/leads/$leadId', params: { leadId: n.task.leadId } })
+    const leadId = n.leadId ?? n.task?.leadId
+    if (leadId) {
+      navigate({ to: '/leads/$leadId', params: { leadId } })
+    } else if (n.type === NotificationType.LEAD_CAPTURED || n.type === NotificationType.LEAD_ASSIGNED) {
+      // The lead has since been deleted.
+      navigate({ to: '/leads' })
     } else {
       navigate({ to: '/todo' })
     }

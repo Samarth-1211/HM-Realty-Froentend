@@ -4,14 +4,17 @@ import { navForRole } from '@/lib/nav-config'
 import { APP_NAME, APP_TAGLINE, ROLE_LABELS } from '@/lib/constants'
 import { useAuthStore } from '@/store/auth-store'
 import { useLogout } from '@/hooks/use-auth'
+import { useNavDots } from '@/hooks/use-nav-dots'
 import { Avatar } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
 import hmRealtyLogo from '@/assets/hm-realty-logo.jpg'
+import { NavDot } from './nav-dot'
 
 export function Sidebar() {
   const user = useAuthStore((s) => s.user)
   const pathname = useRouterState({ select: (s) => s.location.pathname })
   const logout = useLogout()
+  const hasDot = useNavDots()
 
   if (!user) return null
   const items = navForRole(user.role)
@@ -45,6 +48,8 @@ export function Sidebar() {
                 >
                   <item.icon className={cn('size-[18px]', active && 'text-brand-600')} />
                   {item.label}
+                  {/* Opening the page itself clears the dot. */}
+                  {hasDot(item.to) && pathname !== item.to && <NavDot className="ml-auto" />}
                 </Link>
               </li>
             )

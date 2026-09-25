@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import {
@@ -27,6 +28,40 @@ export function useLead(id: string | undefined) {
     enabled: !!id,
     refetchInterval: REFRESH_INTERVAL_MS,
   })
+}
+
+/**
+ * Leads new to the current user since they last opened the Leads list:
+ * every new lead in the org for Admins/Managers, newly allocated ones for
+ * everyone else. Non-zero lights the dot on the Leads nav item.
+ */
+export function useUnseenLeadsCount() {
+  return useQuery({
+    queryKey: queryKeys.leads.unseenCount,
+    queryFn: () => leadsApi.unseenCount(),
+    refetchInterval: REFRESH_INTERVAL_MS,
+  })
+}
+
+/**
+ * For the Leads list page: keeps the nav dot cleared while it's open —
+ * marks the list seen on arrival, and again whenever a poll finds leads that
+ * came in since, refreshing the list so they show up right away.
+ */
+export function useMarkLeadsSeenWhileOpen() {
+  const qc = useQueryClient()
+  const { data: unseen } = useUnseenLeadsCount()
+  const { mutate: markSeen } = useMutation({
+    mutationFn: () => leadsApi.markSeen(),
+    onSuccess: () => {
+      qc.setQueryData(queryKeys.leads.unseenCount, 0)
+      qc.invalidateQueries({ queryKey: ['leads'] })
+    },
+  })
+
+  useEffect(() => {
+    if (unseen) markSeen()
+  }, [unseen, markSeen])
 }
 
 export function useCreateLead() {

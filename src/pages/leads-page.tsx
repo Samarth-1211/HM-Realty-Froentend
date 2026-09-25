@@ -11,7 +11,7 @@ import { LeadStatusBadge } from '@/components/leads/lead-status-badge'
 import { LeadFormModal } from '@/components/leads/lead-form-modal'
 import { AssignLeadModal } from '@/components/leads/assign-lead-modal'
 import { DeleteLeadDialog } from '@/components/leads/delete-lead-dialog'
-import { useLeads } from '@/hooks/queries/use-leads'
+import { useLeads, useMarkLeadsSeenWhileOpen } from '@/hooks/queries/use-leads'
 import { useAuthStore } from '@/store/auth-store'
 import { ASSIGNER_ROLES, ORG_OVERSIGHT_ROLES } from '@/lib/constants'
 import { LeadSource, LeadStatus, type Lead } from '@/types'
@@ -27,6 +27,9 @@ export function LeadsPage() {
   const [assignLead, setAssignLead] = useState<Lead | null>(null)
   const [deleteLead, setDeleteLead] = useState<Lead | null>(null)
   const pageSize = 10
+
+  // Viewing the list is what "seeing" new leads means — clears the nav dot.
+  useMarkLeadsSeenWhileOpen()
 
   const canAssign = currentUser && ASSIGNER_ROLES.includes(currentUser.role)
   const canDelete = currentUser && ORG_OVERSIGHT_ROLES.includes(currentUser.role)

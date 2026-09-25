@@ -121,6 +121,10 @@ export const NotificationType = {
   TASK_REMINDER: 'TASK_REMINDER',
   TASK_ASSIGNED: 'TASK_ASSIGNED',
   GENERIC: 'GENERIC',
+  /** A new lead came in — sent to the org's Admins and Managers. */
+  LEAD_CAPTURED: 'LEAD_CAPTURED',
+  /** A lead was allocated to this user. */
+  LEAD_ASSIGNED: 'LEAD_ASSIGNED',
 } as const
 export type NotificationType = (typeof NotificationType)[keyof typeof NotificationType]
 
@@ -708,6 +712,8 @@ export interface Notification {
   message: string
   taskId: string | null
   task: { id: string; title: string; leadId: string | null; status: TaskStatus } | null
+  /** The lead a LEAD_* (or re-enquiry) notification is about; null once that lead is deleted. */
+  leadId: string | null
   isRead: boolean
   createdAt: string
 }

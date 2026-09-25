@@ -76,6 +76,11 @@ export const leadsApi = {
   teamPerformance: () =>
     apiClient.get<TeamPerformanceRow[]>('/leads/team-performance').then((r) => r.data),
 
+  /** Leads that arrived since the caller last opened the Leads list — drives the nav dot. */
+  unseenCount: () => apiClient.get<number>('/leads/unseen-count').then((r) => r.data),
+
+  markSeen: () => apiClient.patch<void>('/leads/seen').then((r) => r.data),
+
   remove: (id: string) =>
     apiClient
       .delete<{ message: string; id: string }>(`/leads/${id}`, { data: { confirmation: 'delete' } })

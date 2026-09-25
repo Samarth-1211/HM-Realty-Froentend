@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from '@tanstack/react-router'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import { ChevronDown, ChevronRight } from 'lucide-react'
@@ -36,6 +37,7 @@ export function LeadFormModal({ open, onClose }: { open: boolean; onClose: () =>
   const canAssign = currentUser && ASSIGNER_ROLES.includes(currentUser.role)
   const { data: users } = useUsers(!!canAssign)
   const create = useCreateLead()
+  const navigate = useNavigate()
   const [showReference, setShowReference] = useState(false)
 
   const {
@@ -73,7 +75,13 @@ export function LeadFormModal({ open, onClose }: { open: boolean; onClose: () =>
         referredByEmail: values.referredByEmail || undefined,
         referredByPhone: values.referredByPhone || undefined,
       },
-      { onSuccess: onClose },
+      {
+        onSuccess: (lead) => {
+          onClose()
+          // Phone number already belonged to a lead — take the user to it.
+          if (lead.deduplicated) navigate({ to: '/leads/$leadId', params: { leadId: lead.id } })
+        },
+      },
     )
   }
 

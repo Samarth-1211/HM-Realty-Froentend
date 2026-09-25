@@ -1,6 +1,7 @@
 import { apiClient } from '@/lib/api-client'
 import type {
   BookingStatus,
+  CreateLeadManualResult,
   Lead,
   LeadProgressStage,
   LeadPurpose,
@@ -61,7 +62,7 @@ export const leadsApi = {
   get: (id: string) => apiClient.get<LeadWithActivity>(`/leads/${id}`).then((r) => r.data),
 
   createManual: (payload: CreateLeadManualPayload) =>
-    apiClient.post<Lead>('/leads/manual', payload).then((r) => r.data),
+    apiClient.post<CreateLeadManualResult>('/leads/manual', payload).then((r) => r.data),
 
   assign: (id: string, assignedToId: string) =>
     apiClient.patch<Lead>(`/leads/${id}/assign`, { assignedToId }).then((r) => r.data),

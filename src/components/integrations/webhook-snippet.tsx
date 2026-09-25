@@ -1,8 +1,9 @@
 import { KeyRound, Link2, ShieldAlert } from 'lucide-react'
 import { CopyButton } from '@/components/ui/copy-button'
 
+// The CRM assigns each lead's ID and received time itself on arrival, so
+// neither is part of the format shared with RMs.
 const SAMPLE_PAYLOAD = {
-  sourceLeadId: '99A-2026-55501',
   fullName: 'Priya Sharma',
   phone: '+919812345678',
   email: 'priya@example.com',
@@ -13,7 +14,6 @@ const SAMPLE_PAYLOAD = {
   budgetMax: 5000000,
   city: 'Indore',
   message: 'Looking for a corner plot',
-  receivedAt: '2026-09-11T09:00:00.000Z',
 }
 
 export function WebhookSnippet({
@@ -82,7 +82,12 @@ export function WebhookSnippet({
 {payloadJson}
           </pre>
         </div>
-        <p className="mt-1.5 text-xs text-slate-400">Only fullName and phone are required — everything else is optional.</p>
+        <p className="mt-1.5 text-xs text-slate-400">
+          Only fullName and phone are required — everything else is optional. Extra fields the platform sends are
+          fine: they're kept with the lead, never rejected. The lead ID and received time are assigned automatically
+          by the CRM when the lead arrives, and a phone number that's already in the CRM is never saved twice — the
+          enquiry is added to the existing lead instead.
+        </p>
       </div>
 
       <div>

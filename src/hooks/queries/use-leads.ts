@@ -8,6 +8,7 @@ import {
   type UpdateLeadStatusPayload,
 } from '@/api/leads.api'
 import { extractErrorMessage } from '@/lib/api-client'
+import { formatLeadNumber } from '@/lib/utils'
 import { REFRESH_INTERVAL_MS } from '@/lib/constants'
 import { queryKeys } from './query-keys'
 
@@ -32,8 +33,16 @@ export function useCreateLead() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (payload: CreateLeadManualPayload) => leadsApi.createManual(payload),
-    onSuccess: () => {
-      toast.success('Lead added')
+    onSuccess: (lead) => {
+      if (lead.deduplicated) {
+        toast.info(`${lead.fullName} is already in the CRM as ${formatLeadNumber(lead.leadNumber)}`, {
+          description: lead.reopened
+            ? 'No duplicate was created — the lost lead has been reopened and this enquiry added to its timeline.'
+            : 'No duplicate was created — this enquiry was added to the existing lead’s timeline.',
+        })
+      } else {
+        toast.success('Lead added')
+      }
       qc.invalidateQueries({ queryKey: ['leads'] })
     },
     onError: (error) => toast.error('Could not add lead', { description: extractErrorMessage(error) }),

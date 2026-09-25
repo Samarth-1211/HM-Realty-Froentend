@@ -27,6 +27,8 @@ export const LeadActivityType = {
   ASSIGNED: 'ASSIGNED',
   REASSIGNED: 'REASSIGNED',
   NOTE_ADDED: 'NOTE_ADDED',
+  /** Same phone number enquired again — logged on the existing lead instead of a duplicate. */
+  RE_ENQUIRED: 'RE_ENQUIRED',
 } as const
 export type LeadActivityType = (typeof LeadActivityType)[keyof typeof LeadActivityType]
 
@@ -440,7 +442,16 @@ export interface LeadActivityLog {
 
 export interface LeadWithActivity extends Lead {
   activityLogs: LeadActivityLog[]
+  /** A non-zero count means there's a WhatsApp chat to show, whatever the lead's source. */
+  _count: { whatsappMessages: number }
 }
+
+/**
+ * POST /leads/manual response. When the phone number already belongs to a
+ * lead, no new lead is created: the existing one comes back with
+ * `deduplicated: true` (and `reopened: true` if it was lost).
+ */
+export type CreateLeadManualResult = Lead & { deduplicated: boolean; reopened: boolean }
 
 export interface TeamSummaryItem {
   userId: string

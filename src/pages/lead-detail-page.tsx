@@ -51,6 +51,7 @@ const ACTIVITY_LABELS: Record<string, string> = {
   ASSIGNED: 'Assigned',
   REASSIGNED: 'Reassigned',
   NOTE_ADDED: 'Note added',
+  RE_ENQUIRED: 'Enquired again',
 }
 
 export function LeadDetailPage() {
@@ -254,7 +255,7 @@ export function LeadDetailPage() {
         </CardBody>
       </Card>
 
-      {lead.source === 'WHATSAPP' && (
+      {(lead.source === 'WHATSAPP' || lead._count.whatsappMessages > 0) && (
         <Card>
           <CardHeader title="WhatsApp conversation" subtitle="Full chat history with this lead — reply directly from here" />
           <CardBody>

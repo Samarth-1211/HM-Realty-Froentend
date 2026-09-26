@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Mail, Plus, UsersRound } from 'lucide-react'
+import { Mail, Plus, Trash2, UsersRound } from 'lucide-react'
 import { PageHeader } from '@/components/ui/page-header'
 import { Card } from '@/components/ui/card'
 import { DataTable, type Column } from '@/components/ui/data-table'
@@ -8,9 +8,11 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Avatar } from '@/components/ui/avatar'
 import { Pagination } from '@/components/ui/pagination'
+import { DropdownMenu } from '@/components/ui/dropdown-menu'
 import { TeamMemberCreateModal } from '@/components/team/team-member-create-modal'
 import { TeamMemberDetailModal } from '@/components/team/team-member-detail-modal'
 import { TeamRollupPanel } from '@/components/team/team-rollup-panel'
+import { DeleteUserDialog } from '@/components/users/delete-user-dialog'
 import { useResendTeamMemberVerification, useTeamMembers } from '@/hooks/queries/use-team'
 import { STAFF_ROLES } from '@/lib/constants'
 import { formatRoleLabel } from '@/lib/utils'
@@ -22,6 +24,7 @@ export function TeamPage() {
   const [page, setPage] = useState(1)
   const [createOpen, setCreateOpen] = useState(false)
   const [detailId, setDetailId] = useState<string | null>(null)
+  const [deleting, setDeleting] = useState<User | null>(null)
   const pageSize = 10
 
   const { data, isLoading } = useTeamMembers({
@@ -79,6 +82,24 @@ export function TeamPage() {
             </Button>
           </div>
         ),
+    },
+    {
+      key: 'actions',
+      header: '',
+      headerClassName: 'w-10',
+      className: 'w-10',
+      render: (u) => (
+        <DropdownMenu
+          actions={[
+            {
+              label: 'Delete',
+              icon: <Trash2 className="size-4" />,
+              danger: true,
+              onClick: () => setDeleting(u),
+            },
+          ]}
+        />
+      ),
     },
   ]
 
@@ -147,6 +168,7 @@ export function TeamPage() {
 
       <TeamMemberCreateModal open={createOpen} onClose={() => setCreateOpen(false)} />
       <TeamMemberDetailModal open={!!detailId} onClose={() => setDetailId(null)} memberId={detailId} />
+      {deleting && <DeleteUserDialog scope="team" user={deleting} onClose={() => setDeleting(null)} />}
     </div>
   )
 }

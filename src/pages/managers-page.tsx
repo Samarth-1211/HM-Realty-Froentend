@@ -10,9 +10,9 @@ import { Badge } from '@/components/ui/badge'
 import { Avatar } from '@/components/ui/avatar'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { ManagerFormModal } from '@/components/managers/manager-form-modal'
+import { DeleteUserDialog } from '@/components/users/delete-user-dialog'
 import {
   useDeactivateManager,
-  useDeleteManager,
   useManagers,
   useReactivateManager,
   useResendManagerVerification,
@@ -35,7 +35,6 @@ export function ManagersPage() {
   const { data: managers, isLoading } = useManagers()
   const deactivate = useDeactivateManager()
   const reactivate = useReactivateManager()
-  const remove = useDeleteManager()
   const resendVerification = useResendManagerVerification()
 
   const close = () => setDialog({ type: 'none' })
@@ -177,21 +176,7 @@ export function ManagersPage() {
         />
       )}
 
-      {dialog.type === 'delete' && (
-        <ConfirmDialog
-          open
-          onClose={close}
-          title={`Delete ${dialog.manager.firstName}?`}
-          description="This permanently deletes the manager account from the database. This cannot be undone. If they still have assigned leads, tasks, attendance, targets, or direct reports, you'll need to reassign those first."
-          confirmLabel="Delete"
-          variant="danger"
-          requireReason
-          reasonLabel="Reason (optional)"
-          requireTypedConfirmation="delete"
-          loading={remove.isPending}
-          onConfirm={(reason) => remove.mutate({ id: dialog.manager.id, reason }, { onSuccess: close })}
-        />
-      )}
+      {dialog.type === 'delete' && <DeleteUserDialog scope="org" user={dialog.manager} onClose={close} />}
 
       {dialog.type === 'resend' && (
         <ConfirmDialog

@@ -1,7 +1,9 @@
 export const queryKeys = {
   users: {
     all: ['users'] as const,
+    deleted: ['users', 'deleted'] as const,
     detail: (id: string) => ['users', id] as const,
+    deletionImpact: (id: string) => ['users', id, 'deletion-impact'] as const,
   },
   organizations: {
     list: (query?: unknown) => ['organizations', query] as const,

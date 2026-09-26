@@ -8,8 +8,17 @@ import { queryKeys } from './query-keys'
 export function useUsers(enabled = true) {
   return useQuery({
     queryKey: queryKeys.users.all,
-    queryFn: usersApi.list,
+    queryFn: () => usersApi.list(),
     refetchInterval: REFRESH_INTERVAL_MS,
+    enabled,
+  })
+}
+
+/** Archive of deleted accounts — Admins can still open their history. */
+export function useDeletedUsers(enabled = true) {
+  return useQuery({
+    queryKey: queryKeys.users.deleted,
+    queryFn: () => usersApi.list(true),
     enabled,
   })
 }
@@ -41,19 +50,21 @@ export function useDeactivateUser() {
     onSuccess: () => {
       toast.success('User deactivated')
       qc.invalidateQueries({ queryKey: queryKeys.users.all })
+      qc.invalidateQueries({ queryKey: queryKeys.managers.all })
     },
     onError: (error) => toast.error('Could not deactivate user', { description: extractErrorMessage(error) }),
   })
 }
 
-export function useDeleteUser() {
+export function useReactivateUser() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({ id, reason }: { id: string; reason?: string }) => usersApi.remove(id, reason),
+    mutationFn: (id: string) => usersApi.reactivate(id),
     onSuccess: () => {
-      toast.success('User deleted')
+      toast.success('User reactivated')
       qc.invalidateQueries({ queryKey: queryKeys.users.all })
+      qc.invalidateQueries({ queryKey: queryKeys.managers.all })
     },
-    onError: (error) => toast.error('Could not delete user', { description: extractErrorMessage(error) }),
+    onError: (error) => toast.error('Could not reactivate user', { description: extractErrorMessage(error) }),
   })
 }

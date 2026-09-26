@@ -1,5 +1,5 @@
 import { apiClient } from '@/lib/api-client'
-import type { ManagerSummary, User } from '@/types'
+import type { EmailDeliveryStatus, ManagerSummary, User } from '@/types'
 
 export interface CreateManagerPayload {
   email: string
@@ -25,8 +25,11 @@ export const managersApi = {
   create: (payload: CreateManagerPayload) =>
     apiClient.post<User>('/managers', payload).then((r) => r.data),
 
+  /** emailDelivery is present only when the email changed and a verification link was sent. */
   update: (id: string, payload: UpdateManagerPayload) =>
-    apiClient.patch<User>(`/managers/${id}`, payload).then((r) => r.data),
+    apiClient
+      .patch<User & { emailDelivery?: EmailDeliveryStatus }>(`/managers/${id}`, payload)
+      .then((r) => r.data),
 
   deactivate: (id: string) =>
     apiClient
@@ -36,13 +39,6 @@ export const managersApi = {
   reactivate: (id: string) =>
     apiClient
       .patch<{ message: string; id: string }>(`/managers/${id}/reactivate`)
-      .then((r) => r.data),
-
-  remove: (id: string, reason?: string) =>
-    apiClient
-      .delete<{ message: string; id: string }>(`/managers/${id}`, {
-        data: { confirmation: 'delete', ...(reason ? { reason } : {}) },
-      })
       .then((r) => r.data),
 
   resendVerification: (id: string) =>

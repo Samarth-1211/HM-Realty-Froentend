@@ -111,7 +111,16 @@ export function ManagerFormModal({
         <Field label="Last name" error={errors.lastName?.message} required>
           <Input {...register('lastName')} />
         </Field>
-        <Field label="Email" error={errors.email?.message} required>
+        <Field
+          label="Email"
+          error={errors.email?.message}
+          required
+          hint={
+            isEdit
+              ? 'Changing this emails a verification link to the new address — the manager must verify it before signing in again'
+              : undefined
+          }
+        >
           <Input {...register('email')} />
         </Field>
         <Field label="Mobile number" error={errors.phone?.message} required={!isEdit}>

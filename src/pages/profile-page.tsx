@@ -163,7 +163,10 @@ export function ProfilePage() {
         </Card>
 
         <Card className="lg:col-span-2">
-          <CardHeader title="Change email" subtitle="Requires your current password" />
+          <CardHeader
+            title="Change email"
+            subtitle="Requires your current password. We'll send a verification link to the new address."
+          />
           <CardBody>
             <form onSubmit={emailForm.handleSubmit(onChangeEmail)} className="flex flex-col gap-4">
               <Field label="New email" error={emailForm.formState.errors.newEmail?.message} required>

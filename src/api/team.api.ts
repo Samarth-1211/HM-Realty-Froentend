@@ -1,5 +1,5 @@
 import { apiClient } from '@/lib/api-client'
-import type { Paginated, ProjectManagerLink, TeamMember, User, UserRole } from '@/types'
+import type { DeleteUserPayload, DeletionImpact, Paginated, ProjectManagerLink, TeamMember, User, UserRole } from '@/types'
 
 export interface CreateTeamMemberPayload {
   email: string
@@ -48,4 +48,14 @@ export const teamApi = {
 
   resendVerification: (id: string) =>
     apiClient.post<{ success: boolean }>(`/manager/team-members/${id}/resend-verification`).then((r) => r.data),
+
+  deletionImpact: (id: string) =>
+    apiClient.get<DeletionImpact>(`/manager/team-members/${id}/deletion-impact`).then((r) => r.data),
+
+  remove: (id: string, payload: DeleteUserPayload) =>
+    apiClient
+      .delete<{ message: string; id: string }>(`/manager/team-members/${id}`, {
+        data: { confirmation: 'delete', ...payload },
+      })
+      .then((r) => r.data),
 }

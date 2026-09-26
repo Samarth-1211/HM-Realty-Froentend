@@ -43,9 +43,22 @@ export function useUpdateManager() {
   return useMutation({
     mutationFn: ({ id, payload }: { id: string; payload: UpdateManagerPayload }) =>
       managersApi.update(id, payload),
-    onSuccess: () => {
-      toast.success('Manager updated')
+    onSuccess: (data, { id }) => {
+      const delivery = data.emailDelivery
+      if (!delivery) {
+        toast.success('Manager updated')
+      } else if (delivery.sent) {
+        toast.success('Manager updated', {
+          description: `A verification link was sent to ${data.email}. They'll show as unverified until they click it.`,
+        })
+      } else {
+        toast.warning('Manager updated, but the verification email was not sent', {
+          description: `${delivery.error ?? 'Email delivery failed.'} Use "Resend verification" once email is working.`,
+          duration: 12000,
+        })
+      }
       qc.invalidateQueries({ queryKey: queryKeys.managers.all })
+      qc.invalidateQueries({ queryKey: ['employees', id] })
     },
     onError: (error) => toast.error('Could not update manager', { description: extractErrorMessage(error) }),
   })
@@ -80,17 +93,5 @@ export function useResendManagerVerification() {
     mutationFn: (id: string) => managersApi.resendVerification(id),
     onSuccess: () => toast.success('Verification email resent'),
     onError: (error) => toast.error('Could not resend verification', { description: extractErrorMessage(error) }),
-  })
-}
-
-export function useDeleteManager() {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: ({ id, reason }: { id: string; reason?: string }) => managersApi.remove(id, reason),
-    onSuccess: () => {
-      toast.success('Manager deleted')
-      qc.invalidateQueries({ queryKey: queryKeys.managers.all })
-    },
-    onError: (error) => toast.error('Could not delete manager', { description: extractErrorMessage(error) }),
   })
 }

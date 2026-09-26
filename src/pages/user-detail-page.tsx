@@ -87,7 +87,11 @@ export function UserDetailPage() {
           <p className="truncate text-sm text-slate-500">{profile.email}</p>
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <Badge variant="brand">{formatRoleLabel(profile.role)}</Badge>
-            <Badge variant={profile.isActive ? 'success' : 'neutral'}>{profile.isActive ? 'Active' : 'Inactive'}</Badge>
+            {profile.deletedAt ? (
+              <Badge variant="danger">Deleted {formatDate(profile.deletedAt)}</Badge>
+            ) : (
+              <Badge variant={profile.isActive ? 'success' : 'neutral'}>{profile.isActive ? 'Active' : 'Inactive'}</Badge>
+            )}
             <Badge variant={profile.isVerified ? 'success' : 'warning'}>
               {profile.isVerified ? 'Email verified' : 'Verification pending'}
             </Badge>
@@ -132,7 +136,11 @@ function OverviewTab({ data }: { data: EmployeeOverview }) {
           <InfoRow icon={IdCard} label="Employee code" value={profile.employeeCode ?? '—'} />
           <InfoRow icon={UserRound} label="Reports to" value={profile.managerName ?? '—'} />
           <InfoRow icon={CalendarClock} label="Joined" value={formatDate(profile.joiningDate)} />
-          <InfoRow icon={ShieldCheck} label="Account" value={profile.isActive ? 'Active' : 'Deactivated'} />
+          <InfoRow
+            icon={ShieldCheck}
+            label="Account"
+            value={profile.deletedAt ? `Deleted on ${formatDate(profile.deletedAt)}` : profile.isActive ? 'Active' : 'Deactivated'}
+          />
           <InfoRow icon={Mail} label="Email verification" value={profile.isVerified ? 'Verified' : 'Pending'} />
           <InfoRow
             icon={KeyRound}

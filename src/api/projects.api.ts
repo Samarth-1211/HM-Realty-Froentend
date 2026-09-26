@@ -1,13 +1,50 @@
 import { apiClient } from '@/lib/api-client'
-import type { LeadSource, PlotSizeUnit, Project, ProjectManagerLink } from '@/types'
+import type {
+  EmChargesStatus,
+  LeadSource,
+  PaymentTerms,
+  PlotSizeMode,
+  Project,
+  ProjectManagerLink,
+  PropertyType,
+} from '@/types'
 
+export interface PlotSizePayload {
+  areaSqft: number
+  widthFt?: number | null
+  lengthFt?: number | null
+}
+
+/** `null` clears a field on update. Rates are ₹ per sq.ft; budget is whole rupees. */
 export interface CreateProjectPayload {
   name: string
-  description?: string
-  location?: string
-  price?: number
-  plotSize?: number
-  plotSizeUnit?: PlotSizeUnit
+  zone: string
+  location: string
+  landmark?: string | null
+  propertyType?: PropertyType
+  basicRateMin?: number | null
+  basicRateMax?: number | null
+  emChargesStatus?: EmChargesStatus | null
+  emCharges?: number | null
+  emChargesNote?: string | null
+  plcMinPercent?: number | null
+  plcMaxPercent?: number | null
+  plcNa?: boolean
+  guidelineRate?: number | null
+  guidelineRateApprox?: boolean
+  guidelineRateNa?: boolean
+  plotSizeMode?: PlotSizeMode
+  plotSizes?: PlotSizePayload[]
+  plotAreaMin?: number | null
+  plotAreaMax?: number | null
+  budgetIsManual?: boolean
+  budgetMin?: number | null
+  budgetMax?: number | null
+  paymentTerms?: PaymentTerms | null
+  remarks?: string | null
+  sourceAgentName?: string | null
+  rateListDate?: string | null
+  description?: string | null
   activePlatforms?: LeadSource[]
   isActive?: boolean
 }

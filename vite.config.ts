@@ -12,7 +12,9 @@ export default defineConfig({
   },
   server: {
     // Matches CORS_ORIGINS in nestjs-crm-backend/.env
-    port: 5174,
+    // 5174 is in a Windows-reserved TCP port exclusion range (Hyper-V/WSL NAT),
+    // which makes Vite fail with EACCES on some machines.
+    port: 5273,
     strictPort: true,
     host: true,
   },

@@ -151,6 +151,35 @@ export const PlotSizeUnit = {
 } as const
 export type PlotSizeUnit = (typeof PlotSizeUnit)[keyof typeof PlotSizeUnit]
 
+export const PropertyType = {
+  PLOT: 'PLOT',
+  DUPLEX: 'DUPLEX',
+  VILLA: 'VILLA',
+  FLAT: 'FLAT',
+  COMMERCIAL: 'COMMERCIAL',
+} as const
+export type PropertyType = (typeof PropertyType)[keyof typeof PropertyType]
+
+export const EmChargesStatus = {
+  AMOUNT: 'AMOUNT',
+  NA: 'NA',
+  OTHERS: 'OTHERS',
+} as const
+export type EmChargesStatus = (typeof EmChargesStatus)[keyof typeof EmChargesStatus]
+
+export const PlotSizeMode = {
+  LIST: 'LIST',
+  RANGE: 'RANGE',
+} as const
+export type PlotSizeMode = (typeof PlotSizeMode)[keyof typeof PlotSizeMode]
+
+export const PaymentTerms = {
+  FULL_WHITE: 'FULL_WHITE',
+  STANDARD: 'STANDARD',
+  OTHER: 'OTHER',
+} as const
+export type PaymentTerms = (typeof PaymentTerms)[keyof typeof PaymentTerms]
+
 export const LeadSource = {
   MANUAL: 'MANUAL',
   NINETYNINE_ACRES: 'NINETYNINE_ACRES',
@@ -276,6 +305,37 @@ export interface User {
   emailDelivery?: EmailDeliveryStatus
 }
 
+/** Someone who can take over a deleted account's team or open work. */
+export interface HandoverCandidate {
+  id: string
+  firstName: string
+  lastName: string
+  email: string
+  role: UserRole
+}
+
+/** GET /users/:id/deletion-impact (or /manager/team-members/:id/deletion-impact). */
+export interface DeletionImpact {
+  user: HandoverCandidate
+  /** New / assigned / in-progress leads — converted and lost leads stay on the archived account. */
+  openLeads: number
+  /** Pending tasks. */
+  openTasks: number
+  directReports: (HandoverCandidate & { isActive: boolean })[]
+  /** Who can take over the open leads + tasks (empty when there's nothing to hand over). */
+  workCandidates: HandoverCandidate[]
+  /** Managers who can take over the direct reports (empty when there are none). */
+  managerCandidates: HandoverCandidate[]
+}
+
+export interface DeleteUserPayload {
+  reason?: string
+  /** Required when the user still has open leads or pending tasks. */
+  reassignWorkToId?: string
+  /** Required when the user still has direct reports. */
+  reassignTeamToId?: string
+}
+
 /**
  * Whether the invite/verification email for a just-created account actually
  * left the SMTP server. Returned by the create endpoints, which commit the
@@ -323,15 +383,48 @@ export interface ManagerSummary {
   createdById: string | null
 }
 
+export interface ProjectPlotSize {
+  id: string
+  areaSqft: number
+  widthFt: number | null
+  lengthFt: number | null
+  sortOrder: number
+}
+
+// Decimal columns (rates, PLC %, budget) arrive as strings, like other money fields.
 export interface Project {
   id: string
   organizationId: string
   name: string
   description: string | null
+  /** Null only for projects created before zones were recorded. */
+  zone: string | null
   location: string | null
-  price: string | null
-  plotSize: number | null
-  plotSizeUnit: PlotSizeUnit | null
+  landmark: string | null
+  propertyType: PropertyType
+  basicRateMin: string | null
+  basicRateMax: string | null
+  emChargesStatus: EmChargesStatus | null
+  emCharges: string | null
+  emChargesNote: string | null
+  plcMinPercent: string | null
+  plcMaxPercent: string | null
+  plcNa: boolean
+  guidelineRate: string | null
+  guidelineRateApprox: boolean
+  guidelineRateNa: boolean
+  plotSizeMode: PlotSizeMode
+  plotAreaMin: number | null
+  plotAreaMax: number | null
+  /** Included by the projects endpoints; absent when a project is embedded elsewhere. */
+  plotSizes?: ProjectPlotSize[]
+  budgetMin: string | null
+  budgetMax: string | null
+  budgetIsManual: boolean
+  paymentTerms: PaymentTerms | null
+  remarks: string | null
+  sourceAgentName: string | null
+  rateListDate: string | null
   activePlatforms: LeadSource[] | null
   isActive: boolean
   createdAt: string
@@ -580,6 +673,8 @@ export interface EmployeeProfile {
   isTemporaryPassword: boolean
   managerId: string | null
   managerName: string | null
+  /** Set once the account has been deleted — its history stays viewable to Admins. */
+  deletedAt: string | null
 }
 
 /** GET /employees/:id/overview — everything shown on the Admin's user detail page. */

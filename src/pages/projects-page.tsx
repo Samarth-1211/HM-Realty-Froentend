@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { FolderKanban, Pencil, Plus, Trash2, Users } from 'lucide-react'
+import { Eye, FolderKanban, Pencil, Plus, Trash2, Users } from 'lucide-react'
 import { PageHeader } from '@/components/ui/page-header'
 import { Card } from '@/components/ui/card'
 import { DataTable, type Column } from '@/components/ui/data-table'
@@ -8,13 +8,16 @@ import { DropdownMenu } from '@/components/ui/dropdown-menu'
 import { Badge } from '@/components/ui/badge'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { ProjectFormModal } from '@/components/projects/project-form-modal'
+import { ProjectDetailModal } from '@/components/projects/project-detail-modal'
 import { AssignManagersModal } from '@/components/projects/assign-managers-modal'
 import { useDeleteProject, useProjects } from '@/hooks/queries/use-projects'
-import { formatCurrency } from '@/lib/utils'
+import { formatEnumLabel } from '@/lib/utils'
+import { formatProjectBudget, formatProjectPlotSizes, formatRate } from '@/lib/project-pricing'
 import type { Project } from '@/types'
 
 type DialogState =
   | { type: 'none' }
+  | { type: 'view'; project: Project }
   | { type: 'create' }
   | { type: 'edit'; project: Project }
   | { type: 'assign'; project: Project }
@@ -34,20 +37,43 @@ export function ProjectsPage() {
       render: (p) => (
         <div>
           <p className="font-medium text-slate-800">{p.name}</p>
-          <p className="text-xs text-slate-400">{p.location ?? '—'}</p>
+          <p className="text-xs text-slate-400">{formatEnumLabel(p.propertyType)}</p>
         </div>
       ),
     },
-    { key: 'price', header: 'Price', render: (p) => <span className="text-slate-600">{formatCurrency(p.price)}</span> },
+    { key: 'zone', header: 'Zone', render: (p) => <span className="text-slate-600">{p.zone ?? '—'}</span> },
     {
-      key: 'size',
-      header: 'Plot size',
-      render: (p) => <span className="text-slate-500">{p.plotSize ? `${p.plotSize} ${p.plotSizeUnit ?? ''}` : '—'}</span>,
+      key: 'location',
+      header: 'Location',
+      render: (p) => (
+        <div>
+          <p className="text-slate-600">{p.location ?? '—'}</p>
+          {p.landmark && <p className="text-xs text-slate-400">{p.landmark}</p>}
+        </div>
+      ),
     },
     {
-      key: 'platforms',
-      header: 'Platforms',
-      render: (p) => <span className="text-slate-500">{p.activePlatforms?.length ?? 0} active</span>,
+      key: 'rate',
+      header: 'Basic rate',
+      render: (p) => <span className="whitespace-nowrap text-slate-600">{formatRate(p.basicRateMin, p.basicRateMax)}</span>,
+    },
+    {
+      key: 'sizes',
+      header: 'Plot sizes',
+      className: 'max-w-56',
+      render: (p) => {
+        const sizes = formatProjectPlotSizes(p)
+        return (
+          <p className="truncate text-slate-500" title={sizes}>
+            {sizes}
+          </p>
+        )
+      },
+    },
+    {
+      key: 'budget',
+      header: 'Budget',
+      render: (p) => <span className="whitespace-nowrap font-medium text-slate-700">{formatProjectBudget(p)}</span>,
     },
     {
       key: 'status',
@@ -62,6 +88,7 @@ export function ProjectsPage() {
       render: (p) => (
         <DropdownMenu
           actions={[
+            { label: 'View details', icon: <Eye className="size-4" />, onClick: () => setDialog({ type: 'view', project: p }) },
             { label: 'Edit', icon: <Pencil className="size-4" />, onClick: () => setDialog({ type: 'edit', project: p }) },
             { label: 'Assign managers', icon: <Users className="size-4" />, onClick: () => setDialog({ type: 'assign', project: p }) },
             { label: 'Delete', icon: <Trash2 className="size-4" />, danger: true, onClick: () => setDialog({ type: 'delete', project: p }) },
@@ -90,11 +117,18 @@ export function ProjectsPage() {
           data={projects ?? []}
           isLoading={isLoading}
           rowKey={(p) => p.id}
+          onRowClick={(p) => setDialog({ type: 'view', project: p })}
           emptyIcon={FolderKanban}
           emptyTitle="No projects yet"
           emptyDescription="Add your first property project to start assigning teams and leads."
         />
       </Card>
+
+      <ProjectDetailModal
+        project={dialog.type === 'view' ? dialog.project : null}
+        onClose={close}
+        onEdit={(project) => setDialog({ type: 'edit', project })}
+      />
 
       <ProjectFormModal
         open={dialog.type === 'create' || dialog.type === 'edit'}

@@ -1,5 +1,5 @@
 import { apiClient } from '@/lib/api-client'
-import type { User, UserRole } from '@/types'
+import type { DeleteUserPayload, DeletionImpact, User, UserRole } from '@/types'
 
 export interface CreateUserPayload {
   email: string
@@ -12,7 +12,9 @@ export interface CreateUserPayload {
 }
 
 export const usersApi = {
-  list: () => apiClient.get<User[]>('/users').then((r) => r.data),
+  /** `deleted` lists the archive of deleted accounts instead (Admins only). */
+  list: (deleted = false) =>
+    apiClient.get<User[]>('/users', { params: deleted ? { deleted: true } : undefined }).then((r) => r.data),
 
   get: (id: string) => apiClient.get<User>(`/users/${id}`).then((r) => r.data),
 
@@ -22,10 +24,16 @@ export const usersApi = {
   deactivate: (id: string) =>
     apiClient.patch<User>(`/users/${id}/deactivate`).then((r) => r.data),
 
-  remove: (id: string, reason?: string) =>
+  reactivate: (id: string) =>
+    apiClient.patch<User>(`/users/${id}/reactivate`).then((r) => r.data),
+
+  deletionImpact: (id: string) =>
+    apiClient.get<DeletionImpact>(`/users/${id}/deletion-impact`).then((r) => r.data),
+
+  remove: (id: string, payload: DeleteUserPayload) =>
     apiClient
       .delete<{ message: string; id: string }>(`/users/${id}`, {
-        data: { confirmation: 'delete', ...(reason ? { reason } : {}) },
+        data: { confirmation: 'delete', ...payload },
       })
       .then((r) => r.data),
 }

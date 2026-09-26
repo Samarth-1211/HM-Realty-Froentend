@@ -71,7 +71,17 @@ export function useChangeMyEmail() {
   return useMutation({
     mutationFn: (payload: ChangeEmailPayload) => employeesApi.changeMyEmail(payload),
     onSuccess: (data) => {
-      toast.success('Email updated')
+      if (data.emailDelivery.sent) {
+        toast.success('Email updated — check your new inbox', {
+          description: `We sent a verification link to ${data.email}. Verify it before your next sign-in.`,
+          duration: 10000,
+        })
+      } else {
+        toast.warning('Email updated, but the verification email was not sent', {
+          description: `${data.emailDelivery.error ?? 'Email delivery failed.'} Submit the same email again later to resend the link, or ask your administrator.`,
+          duration: 12000,
+        })
+      }
       qc.invalidateQueries({ queryKey: queryKeys.employees.profile(data.userId) })
     },
     onError: (error) => toast.error('Could not update email', { description: extractErrorMessage(error) }),

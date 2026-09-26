@@ -10,7 +10,8 @@ import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/spinner'
 import { useAssignTeamMemberProject, useTeamMember, useUpdateTeamMember } from '@/hooks/queries/use-team'
 import { useSetEmployeeCode } from '@/hooks/queries/use-employees'
-import { formatCurrency, formatDate } from '@/lib/utils'
+import { formatDate } from '@/lib/utils'
+import { formatProjectBudget } from '@/lib/project-pricing'
 
 const schema = z.object({
   firstName: z.string().min(1, 'Required'),
@@ -141,7 +142,7 @@ export function TeamMemberDetailModal({
                     <p className="truncate text-sm font-medium text-slate-800">{pa.project.name}</p>
                     <p className="flex items-center gap-1 truncate text-xs text-slate-400">
                       <MapPin className="size-3" />
-                      {pa.project.location ?? '—'} · {formatCurrency(pa.project.price)}
+                      {[pa.project.zone, pa.project.location].filter(Boolean).join(', ') || '—'} · {formatProjectBudget(pa.project)}
                     </p>
                   </div>
                 </div>

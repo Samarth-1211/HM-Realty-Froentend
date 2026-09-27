@@ -1,4 +1,4 @@
-import axios, { AxiosError, type InternalAxiosRequestConfig } from 'axios'
+import axios, { AxiosError, type AxiosProgressEvent, type InternalAxiosRequestConfig } from 'axios'
 import { API_BASE_URL } from '@/lib/constants'
 import { useAuthStore } from '@/store/auth-store'
 import type { ApiErrorShape, RefreshResponse } from '@/types'
@@ -88,6 +88,24 @@ apiClient.interceptors.response.use(
     return Promise.reject(error)
   },
 )
+
+/**
+ * POSTs one file as multipart/form-data (field `file`), reporting upload
+ * progress as a whole percentage for progress bars.
+ */
+export function postFile<T>(url: string, file: File, onProgress?: (percent: number) => void): Promise<T> {
+  const form = new FormData()
+  form.append('file', file)
+  return apiClient
+    .post<T>(url, form, {
+      // Overrides the JSON default; the browser fills in the multipart boundary.
+      headers: { 'Content-Type': 'multipart/form-data' },
+      onUploadProgress: onProgress
+        ? (e: AxiosProgressEvent) => onProgress(e.total ? Math.min(100, Math.round((e.loaded / e.total) * 100)) : 0)
+        : undefined,
+    })
+    .then((r) => r.data)
+}
 
 export function extractErrorMessage(error: unknown): string {
   if (axios.isAxiosError(error)) {

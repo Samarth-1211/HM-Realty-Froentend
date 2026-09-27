@@ -51,6 +51,15 @@ export const STAFF_ROLES: UserRole[] = [UserRole.PRESALES, UserRole.POSTSALES, U
 
 export const ASSIGNER_ROLES: UserRole[] = [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER]
 
+/** Everyone who works inside an organization (all roles but the platform-level Super Admin). */
+export const ORG_MEMBER_ROLES: UserRole[] = [
+  UserRole.ADMIN,
+  UserRole.MANAGER,
+  UserRole.PRESALES,
+  UserRole.POSTSALES,
+  UserRole.AGENT,
+]
+
 /** Admin/Super Admin org-wide oversight (attendance + leave applications across the whole org). */
 export const ORG_OVERSIGHT_ROLES: UserRole[] = [UserRole.SUPER_ADMIN, UserRole.ADMIN]
 

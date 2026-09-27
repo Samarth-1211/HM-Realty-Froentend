@@ -1,4 +1,4 @@
-import { apiClient } from '@/lib/api-client'
+import { apiClient, postFile } from '@/lib/api-client'
 import type {
   EmChargesStatus,
   LeadSource,
@@ -66,6 +66,12 @@ export const projectsApi = {
     apiClient
       .delete<{ message: string; id: string }>(`/projects/${id}`)
       .then((r) => r.data),
+
+  /** Adds or replaces the brochure (PDF/JPG/PNG/WEBP, up to 25 MB). */
+  uploadBrochure: (id: string, file: File, onProgress?: (percent: number) => void) =>
+    postFile<Project>(`/projects/${id}/brochure`, file, onProgress),
+
+  removeBrochure: (id: string) => apiClient.delete<Project>(`/projects/${id}/brochure`).then((r) => r.data),
 
   assignManager: (id: string, managerId: string) =>
     apiClient

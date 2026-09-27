@@ -16,3 +16,12 @@ export function WhatsAppMark({ size = 'md', className }: { size?: keyof typeof s
     </div>
   )
 }
+
+/** Bare WhatsApp logo that takes the surrounding text colour — for buttons. */
+export function WhatsAppGlyph({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={cn('size-4', className)} aria-hidden="true">
+      <path d={BRAND_ICONS.whatsapp.path} />
+    </svg>
+  )
+}

@@ -1,3 +1,15 @@
+/** Saves a Blob to the user's downloads under `filename`. */
+export function downloadBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(url)
+}
+
 /**
  * Dependency-free CSV export — opens directly in Excel/Google Sheets.
  * (Deliberately not using a .xlsx library: the maintained options either ship
@@ -18,12 +30,5 @@ export function exportToCsv(filename: string, headers: string[], rows: (string |
   const csvContent = '﻿' + lines.join('\r\n')
 
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-  const url = URL.createObjectURL(blob)
-  const link = document.createElement('a')
-  link.href = url
-  link.download = filename.endsWith('.csv') ? filename : `${filename}.csv`
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
-  URL.revokeObjectURL(url)
+  downloadBlob(blob, filename.endsWith('.csv') ? filename : `${filename}.csv`)
 }

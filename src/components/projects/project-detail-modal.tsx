@@ -1,10 +1,13 @@
 import type { ReactNode } from 'react'
-import { Pencil } from 'lucide-react'
+import { Download, ExternalLink, FileText, Pencil } from 'lucide-react'
 import { Modal } from '@/components/ui/modal'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { ButtonAnchor } from '@/components/ui/button-link'
+import { WhatsAppGlyph } from '@/components/integrations/whatsapp-mark'
 import { PlotSizeMode, type Project } from '@/types'
-import { formatDate, formatEnumLabel } from '@/lib/utils'
+import { formatDate, formatEnumLabel, formatFileSize } from '@/lib/utils'
+import { brochureUrl } from '@/lib/project-share'
 import {
   formatEmCharges,
   formatGuidelineRate,
@@ -37,10 +40,13 @@ export function ProjectDetailModal({
   project,
   onClose,
   onEdit,
+  onShare,
 }: {
   project: Project | null
   onClose: () => void
-  onEdit: (project: Project) => void
+  /** Admins only — omitted for everyone else, who can view but not change projects. */
+  onEdit?: (project: Project) => void
+  onShare: (project: Project) => void
 }) {
   return (
     <Modal
@@ -52,6 +58,8 @@ export function ProjectDetailModal({
     >
       {project && (
         <div className="flex flex-col gap-5">
+          <BrochureCard project={project} />
+
           <Section title="Basic info">
             <Item label="Zone / Area">{project.zone}</Item>
             <Item label="Location">{project.location}</Item>
@@ -104,17 +112,58 @@ export function ProjectDetailModal({
             </Item>
           </Section>
 
-          <div className="flex justify-end gap-2 pt-1">
+          <div className="flex flex-col-reverse gap-2 pt-1 sm:flex-row sm:justify-end">
             <Button type="button" variant="ghost" onClick={onClose}>
               Close
             </Button>
-            <Button type="button" onClick={() => onEdit(project)}>
-              <Pencil className="size-4" />
-              Edit
+            {onEdit && (
+              <Button type="button" variant="secondary" onClick={() => onEdit(project)}>
+                <Pencil className="size-4" />
+                Edit
+              </Button>
+            )}
+            <Button type="button" onClick={() => onShare(project)}>
+              <WhatsAppGlyph />
+              Send on WhatsApp
             </Button>
           </div>
         </div>
       )}
     </Modal>
+  )
+}
+
+function BrochureCard({ project }: { project: Project }) {
+  const url = brochureUrl(project)
+
+  return (
+    <div className="flex flex-col gap-3 rounded-xl border border-slate-100 bg-slate-50 p-3 sm:flex-row sm:items-center">
+      <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-white text-slate-500 ring-1 ring-slate-200">
+        <FileText className="size-5" />
+      </span>
+      {url ? (
+        <>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-medium text-slate-800">{project.brochureFileName ?? 'Brochure'}</p>
+            <p className="text-xs text-slate-400">
+              {formatFileSize(project.brochureSizeBytes)}
+              {project.brochureUploadedAt && ` · added ${formatDate(project.brochureUploadedAt)}`}
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <ButtonAnchor href={url} variant="secondary" size="sm">
+              <ExternalLink className="size-3.5" />
+              View
+            </ButtonAnchor>
+            <ButtonAnchor href={brochureUrl(project, true)!} variant="ghost" size="sm">
+              <Download className="size-3.5" />
+              Download
+            </ButtonAnchor>
+          </div>
+        </>
+      ) : (
+        <p className="text-sm text-slate-500">No brochure uploaded yet.</p>
+      )}
+    </div>
   )
 }

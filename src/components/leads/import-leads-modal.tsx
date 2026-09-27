@@ -1,0 +1,299 @@
+import { useEffect, useState } from 'react'
+import { CheckCircle2, Download, FileSpreadsheet, TriangleAlert, XCircle } from 'lucide-react'
+import { toast } from 'sonner'
+import { Modal } from '@/components/ui/modal'
+import { Button } from '@/components/ui/button'
+import { FileDropZone } from '@/components/ui/file-drop-zone'
+import { ProgressBar } from '@/components/ui/progress-bar'
+import { leadsApi } from '@/api/leads.api'
+import { useImportLeads, useLeadImport } from '@/hooks/queries/use-leads'
+import { extractErrorMessage } from '@/lib/api-client'
+import { downloadBlob } from '@/lib/export-csv'
+import { cn } from '@/lib/utils'
+import { LeadImportStatus, type LeadImportAllocation, type LeadImportBatch, type LeadImportIssue } from '@/types'
+
+const MAX_FILE_BYTES = 10 * 1024 * 1024
+const ROWS_LISTED = 8
+
+const count = (n: number) => n.toLocaleString('en-IN')
+
+/**
+ * Admin "Upload Excel" for leads: pick a sheet → upload it (progress by
+ * bytes) → the server imports its rows (progress by rows, polled) → summary
+ * of what was imported, who got it, and which rows were skipped and why.
+ */
+export function ImportLeadsModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const [file, setFile] = useState<File | null>(null)
+  const [uploadPercent, setUploadPercent] = useState(0)
+  const [batchId, setBatchId] = useState<string | null>(null)
+  const [downloading, setDownloading] = useState(false)
+  const upload = useImportLeads()
+  const { data: batch } = useLeadImport(batchId)
+
+  const processing = !!batchId && (!batch || batch.status === LeadImportStatus.PROCESSING)
+  const finished = !!batch && batch.status !== LeadImportStatus.PROCESSING
+
+  const reset = () => {
+    setFile(null)
+    setUploadPercent(0)
+    setBatchId(null)
+    upload.reset()
+  }
+
+  // Reopening shows an import that's still running; otherwise it starts fresh.
+  useEffect(() => {
+    if (open && !processing && !upload.isPending) reset()
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only on opening
+  }, [open])
+
+  const start = () => {
+    if (!file) return
+    setUploadPercent(0)
+    upload.mutate({ file, onProgress: setUploadPercent }, { onSuccess: (created) => setBatchId(created.id) })
+  }
+
+  const downloadTemplate = async () => {
+    setDownloading(true)
+    try {
+      downloadBlob(await leadsApi.importTemplate(), 'lead-upload-template.xlsx')
+    } catch (error) {
+      toast.error('Could not download the template', { description: extractErrorMessage(error) })
+    } finally {
+      setDownloading(false)
+    }
+  }
+
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      title="Upload leads from Excel"
+      subtitle="Shared equally across the managers’ presales teams"
+      size="lg"
+    >
+      <div className="flex flex-col gap-5">
+        {!batchId && (
+          <>
+            <div className="flex flex-col gap-3 rounded-xl bg-slate-50 p-4 text-sm text-slate-600 sm:flex-row sm:items-center sm:justify-between">
+              <p>
+                Use the same columns as the Lead Sheet — <span className="font-medium text-slate-800">Customer Name</span> and{' '}
+                <span className="font-medium text-slate-800">Mobile No.</span> are required. An exported Lead Sheet works as it is.
+              </p>
+              <Button variant="secondary" size="sm" className="shrink-0" onClick={downloadTemplate} loading={downloading}>
+                {!downloading && <Download className="size-4" />}
+                Template
+              </Button>
+            </div>
+
+            <FileDropZone
+              accept=".xlsx,.csv"
+              maxBytes={MAX_FILE_BYTES}
+              file={file}
+              onFile={setFile}
+              onClear={() => setFile(null)}
+              disabled={upload.isPending}
+              icon={<FileSpreadsheet className="size-5" />}
+              title="Choose or drop an Excel sheet"
+              hint=".xlsx or .csv · up to 5,000 leads · 10 MB"
+            />
+
+            <ul className="list-disc space-y-1 pl-5 text-xs text-slate-500">
+              <li>Every uploaded lead is marked as provided by you, and each manager’s team gets an equal share.</li>
+              <li>Numbers already in the CRM are skipped, not duplicated.</li>
+              <li>Presales members who are absent or on leave today aren’t given any.</li>
+            </ul>
+
+            {upload.isPending && (
+              <ProgressBar
+                value={uploadPercent < 100 ? uploadPercent : null}
+                label={uploadPercent < 100 ? `Uploading ${file?.name ?? 'file'}` : 'Checking the sheet…'}
+              />
+            )}
+
+            <div className="flex justify-end gap-2">
+              <Button variant="ghost" onClick={onClose}>
+                Cancel
+              </Button>
+              <Button onClick={start} disabled={!file} loading={upload.isPending}>
+                Upload
+              </Button>
+            </div>
+          </>
+        )}
+
+        {processing && (
+          <div className="flex flex-col gap-4">
+            <ProgressBar
+              value={batch && batch.totalRows > 0 ? (batch.processedRows / batch.totalRows) * 100 : null}
+              label={batch ? `Importing leads from ${batch.fileName}` : 'Starting the import…'}
+              detail={batch ? `${count(batch.processedRows)} of ${count(batch.totalRows)} rows` : ''}
+            />
+            {batch && (
+              <p className="text-xs text-slate-500">
+                {count(batch.createdCount)} imported · {count(batch.duplicateCount)} already in the CRM ·{' '}
+                {count(batch.failedCount)} not imported
+              </p>
+            )}
+            <p className="text-xs text-slate-400">You can close this window — the import keeps running.</p>
+            <div className="flex justify-end">
+              <Button variant="ghost" onClick={onClose}>
+                Close
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {finished && batch && (
+          <>
+            <ImportSummary batch={batch} />
+            <div className="flex justify-end gap-2">
+              <Button variant="ghost" onClick={reset}>
+                Upload another
+              </Button>
+              <Button onClick={onClose}>Done</Button>
+            </div>
+          </>
+        )}
+      </div>
+    </Modal>
+  )
+}
+
+function Stat({ label, value, tone }: { label: string; value: number; tone: 'success' | 'warning' | 'danger' }) {
+  const tones = {
+    success: 'bg-emerald-50 text-emerald-700',
+    warning: 'bg-amber-50 text-amber-700',
+    danger: 'bg-rose-50 text-rose-700',
+  }
+  return (
+    <div className={cn('rounded-xl px-3 py-2.5', tones[tone])}>
+      <p className="text-xl font-semibold tabular-nums">{count(value)}</p>
+      <p className="text-xs">{label}</p>
+    </div>
+  )
+}
+
+function groupByTeam(allocation: LeadImportAllocation[]) {
+  const teams = new Map<string, { managerName: string; total: number; members: LeadImportAllocation[] }>()
+  for (const row of allocation) {
+    const key = row.managerId ?? ''
+    const team = teams.get(key) ?? { managerName: row.managerName ?? 'No manager', total: 0, members: [] }
+    team.total += row.count
+    team.members.push(row)
+    teams.set(key, team)
+  }
+  return [...teams.values()]
+}
+
+const ISSUE_STYLES: Record<LeadImportIssue['level'], { dot: string; label: string; order: number }> = {
+  error: { dot: 'bg-rose-500', label: 'Not imported', order: 0 },
+  duplicate: { dot: 'bg-amber-500', label: 'Skipped', order: 1 },
+  warning: { dot: 'bg-slate-400', label: 'Imported', order: 2 },
+}
+
+/** Same message on many rows (e.g. one unknown project name) shows once, with its rows. */
+function groupIssues(issues: LeadImportIssue[]) {
+  const groups = new Map<string, { level: LeadImportIssue['level']; message: string; rows: number[] }>()
+  for (const issue of issues) {
+    const key = `${issue.level}|${issue.message}`
+    const group = groups.get(key) ?? { level: issue.level, message: issue.message, rows: [] }
+    group.rows.push(issue.row)
+    groups.set(key, group)
+  }
+  return [...groups.values()].sort(
+    (a, b) => ISSUE_STYLES[a.level].order - ISSUE_STYLES[b.level].order || a.rows[0] - b.rows[0],
+  )
+}
+
+function rowsLabel(rows: number[]) {
+  if (rows.length === 1) return `Row ${rows[0]}`
+  const extra = rows.length - ROWS_LISTED
+  return `Rows ${rows.slice(0, ROWS_LISTED).join(', ')}${extra > 0 ? ` +${count(extra)} more` : ''}`
+}
+
+function ImportSummary({ batch }: { batch: LeadImportBatch }) {
+  const failed = batch.status === LeadImportStatus.FAILED
+  const allocation = batch.allocation ?? []
+  const teams = groupByTeam(allocation)
+  const assigned = allocation.reduce((sum, r) => sum + r.count, 0)
+  const unassigned = batch.createdCount - assigned
+  const issueGroups = groupIssues(batch.issues ?? [])
+
+  return (
+    <div className="flex flex-col gap-4">
+      {failed ? (
+        <div className="flex items-start gap-2 rounded-xl bg-rose-50 p-3 text-sm text-rose-700">
+          <XCircle className="mt-0.5 size-4 shrink-0" />
+          <p>{batch.error ?? 'The upload stopped before it finished.'}</p>
+        </div>
+      ) : (
+        <div className="flex items-center gap-2 text-sm font-medium text-emerald-700">
+          <CheckCircle2 className="size-4" />
+          {batch.fileName} — upload finished
+        </div>
+      )}
+
+      <div className="grid grid-cols-3 gap-2">
+        <Stat label="Imported" value={batch.createdCount} tone="success" />
+        <Stat label="Already in the CRM" value={batch.duplicateCount} tone="warning" />
+        <Stat label="Not imported" value={batch.failedCount} tone="danger" />
+      </div>
+
+      {teams.length > 0 && (
+        <section className="flex flex-col gap-2">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Shared across presales teams</p>
+          <ul className="flex flex-col gap-2">
+            {teams.map((team) => (
+              <li key={team.managerName} className="rounded-xl border border-slate-100 px-3 py-2.5">
+                <p className="text-sm font-medium text-slate-800">
+                  {team.managerName === 'No manager' ? 'Presales without a manager' : `${team.managerName}’s team`}
+                  <span className="ml-1.5 font-normal text-slate-400">· {count(team.total)} leads</span>
+                </p>
+                <p className="mt-0.5 text-xs text-slate-500">
+                  {team.members.map((m) => `${m.name} (${m.count})`).join(', ')}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {unassigned > 0 && (
+        <div className="flex items-start gap-2 rounded-xl bg-amber-50 p-3 text-sm text-amber-800">
+          <TriangleAlert className="mt-0.5 size-4 shrink-0" />
+          <p>
+            {count(unassigned)} lead{unassigned === 1 ? '' : 's'} couldn’t be assigned — no presales team member was
+            available. Assign {unassigned === 1 ? 'it' : 'them'} from the Leads list.
+          </p>
+        </div>
+      )}
+
+      {batch.ignoredColumns.length > 0 && (
+        <p className="text-xs text-slate-500">
+          <span className="font-medium text-slate-600">Columns not imported:</span> {batch.ignoredColumns.join(', ')}. The
+          CRM sets lead IDs, stages and assignees itself.
+        </p>
+      )}
+
+      {issueGroups.length > 0 && (
+        <section className="flex flex-col gap-2">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Row details</p>
+          <ul className="scrollbar-thin max-h-56 divide-y divide-slate-100 overflow-y-auto rounded-xl border border-slate-100">
+            {issueGroups.map((group) => (
+              <li key={`${group.level}|${group.message}`} className="flex items-start gap-2.5 px-3 py-2 text-xs">
+                <span className={cn('mt-1.5 size-1.5 shrink-0 rounded-full', ISSUE_STYLES[group.level].dot)} />
+                <div className="min-w-0">
+                  <p className="text-slate-700">
+                    <span className="text-slate-400">{ISSUE_STYLES[group.level].label} · </span>
+                    {group.message}
+                  </p>
+                  <p className="mt-0.5 tabular-nums text-slate-400">{rowsLabel(group.rows)}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+    </div>
+  )
+}

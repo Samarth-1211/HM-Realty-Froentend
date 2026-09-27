@@ -11,6 +11,8 @@ import { SpreadsheetTable, rowsForExport, type SheetColumn } from '@/components/
 import { useLeads } from '@/hooks/queries/use-leads'
 import { useUsers } from '@/hooks/queries/use-users'
 import { exportToCsv } from '@/lib/export-csv'
+import { providedByLabel, uploadedByLabel } from '@/lib/lead-channel'
+import { LeadChannelBadge } from '@/components/leads/lead-channel-badge'
 import {
   BOOKING_STATUS_COLORS,
   BOOKING_STATUS_LABELS,
@@ -76,6 +78,18 @@ export function LeadSheetPage() {
     { id: 'customerName', header: 'Customer Name', accessor: (l) => l.fullName, minWidth: '160px' },
     { id: 'mobile', header: 'Mobile No.', accessor: (l) => l.phone, minWidth: '120px' },
     { id: 'source', header: 'Lead Source', accessor: (l) => l.source, cell: (l) => formatEnumLabel(l.source), minWidth: '140px' },
+    {
+      id: 'providedBy',
+      header: 'Provided By',
+      accessor: providedByLabel,
+      cell: (l) => (
+        <span className="flex flex-col items-start gap-0.5">
+          <LeadChannelBadge lead={l} />
+          {uploadedByLabel(l) && <span className="text-xs text-slate-500">{uploadedByLabel(l)}</span>}
+        </span>
+      ),
+      minWidth: '190px',
+    },
     { id: 'executive', header: 'Assigned Executive', accessor: assigneeLabel, minWidth: '160px' },
     { id: 'location', header: 'Interested Location', accessor: (l) => l.city ?? '', minWidth: '150px' },
     { id: 'project', header: 'Project', accessor: (l) => l.project?.name ?? '', minWidth: '140px' },

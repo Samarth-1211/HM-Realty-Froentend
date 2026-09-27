@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Eye, FolderKanban, Pencil, Plus, Trash2, Users } from 'lucide-react'
+import { Eye, FileText, FolderKanban, Pencil, Plus, Trash2, Users } from 'lucide-react'
 import { PageHeader } from '@/components/ui/page-header'
 import { Card } from '@/components/ui/card'
 import { DataTable, type Column } from '@/components/ui/data-table'
@@ -10,10 +10,13 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { ProjectFormModal } from '@/components/projects/project-form-modal'
 import { ProjectDetailModal } from '@/components/projects/project-detail-modal'
 import { AssignManagersModal } from '@/components/projects/assign-managers-modal'
+import { ShareProjectModal } from '@/components/projects/share-project-modal'
+import { WhatsAppGlyph } from '@/components/integrations/whatsapp-mark'
 import { useDeleteProject, useProjects } from '@/hooks/queries/use-projects'
+import { useAuthStore } from '@/store/auth-store'
 import { formatEnumLabel } from '@/lib/utils'
 import { formatProjectBudget, formatProjectPlotSizes, formatRate } from '@/lib/project-pricing'
-import type { Project } from '@/types'
+import { UserRole, type Project } from '@/types'
 
 type DialogState =
   | { type: 'none' }
@@ -22,11 +25,14 @@ type DialogState =
   | { type: 'edit'; project: Project }
   | { type: 'assign'; project: Project }
   | { type: 'delete'; project: Project }
+  | { type: 'share'; project: Project }
 
 export function ProjectsPage() {
   const [dialog, setDialog] = useState<DialogState>({ type: 'none' })
   const { data: projects, isLoading } = useProjects()
   const remove = useDeleteProject()
+  // Everyone in the organization can look projects up and share them; only Admins change them.
+  const isAdmin = useAuthStore((s) => s.user?.role === UserRole.ADMIN)
 
   const close = () => setDialog({ type: 'none' })
 
@@ -37,7 +43,15 @@ export function ProjectsPage() {
       render: (p) => (
         <div>
           <p className="font-medium text-slate-800">{p.name}</p>
-          <p className="text-xs text-slate-400">{formatEnumLabel(p.propertyType)}</p>
+          <p className="flex items-center gap-1.5 text-xs text-slate-400">
+            {formatEnumLabel(p.propertyType)}
+            {p.brochureToken && (
+              <span className="inline-flex items-center gap-0.5 text-slate-500">
+                <FileText className="size-3" />
+                Brochure
+              </span>
+            )}
+          </p>
         </div>
       ),
     },
@@ -89,9 +103,14 @@ export function ProjectsPage() {
         <DropdownMenu
           actions={[
             { label: 'View details', icon: <Eye className="size-4" />, onClick: () => setDialog({ type: 'view', project: p }) },
-            { label: 'Edit', icon: <Pencil className="size-4" />, onClick: () => setDialog({ type: 'edit', project: p }) },
-            { label: 'Assign managers', icon: <Users className="size-4" />, onClick: () => setDialog({ type: 'assign', project: p }) },
-            { label: 'Delete', icon: <Trash2 className="size-4" />, danger: true, onClick: () => setDialog({ type: 'delete', project: p }) },
+            { label: 'Send on WhatsApp', icon: <WhatsAppGlyph />, onClick: () => setDialog({ type: 'share', project: p }) },
+            ...(isAdmin
+              ? [
+                  { label: 'Edit', icon: <Pencil className="size-4" />, onClick: () => setDialog({ type: 'edit', project: p }) },
+                  { label: 'Assign managers', icon: <Users className="size-4" />, onClick: () => setDialog({ type: 'assign', project: p }) },
+                  { label: 'Delete', icon: <Trash2 className="size-4" />, danger: true, onClick: () => setDialog({ type: 'delete', project: p }) },
+                ]
+              : []),
           ]}
         />
       ),
@@ -102,12 +121,14 @@ export function ProjectsPage() {
     <div>
       <PageHeader
         title="Projects"
-        description="Property listings your teams sell and market."
+        description="Property listings your teams sell and market — open one for its details and brochure, or send it to a customer on WhatsApp."
         actions={
-          <Button onClick={() => setDialog({ type: 'create' })}>
-            <Plus className="size-4" />
-            New project
-          </Button>
+          isAdmin && (
+            <Button onClick={() => setDialog({ type: 'create' })}>
+              <Plus className="size-4" />
+              New project
+            </Button>
+          )
         }
       />
 
@@ -120,14 +141,25 @@ export function ProjectsPage() {
           onRowClick={(p) => setDialog({ type: 'view', project: p })}
           emptyIcon={FolderKanban}
           emptyTitle="No projects yet"
-          emptyDescription="Add your first property project to start assigning teams and leads."
+          emptyDescription={
+            isAdmin
+              ? 'Add your first property project to start assigning teams and leads.'
+              : 'Your Admin hasn’t added any projects yet.'
+          }
         />
       </Card>
 
       <ProjectDetailModal
         project={dialog.type === 'view' ? dialog.project : null}
         onClose={close}
-        onEdit={(project) => setDialog({ type: 'edit', project })}
+        onEdit={isAdmin ? (project) => setDialog({ type: 'edit', project }) : undefined}
+        onShare={(project) => setDialog({ type: 'share', project })}
+      />
+
+      <ShareProjectModal
+        open={dialog.type === 'share'}
+        project={dialog.type === 'share' ? dialog.project : null}
+        onClose={close}
       />
 
       <ProjectFormModal

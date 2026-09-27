@@ -72,6 +72,33 @@ export function useDeleteProject() {
   })
 }
 
+export function useUploadBrochure() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, file, onProgress }: { id: string; file: File; onProgress?: (percent: number) => void }) =>
+      projectsApi.uploadBrochure(id, file, onProgress),
+    onSuccess: (_d, vars) => {
+      toast.success('Brochure uploaded')
+      qc.invalidateQueries({ queryKey: queryKeys.projects.all })
+      qc.invalidateQueries({ queryKey: queryKeys.projects.detail(vars.id) })
+    },
+    onError: (error) => toast.error('Could not upload the brochure', { description: extractErrorMessage(error) }),
+  })
+}
+
+export function useRemoveBrochure() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => projectsApi.removeBrochure(id),
+    onSuccess: (_d, id) => {
+      toast.success('Brochure removed')
+      qc.invalidateQueries({ queryKey: queryKeys.projects.all })
+      qc.invalidateQueries({ queryKey: queryKeys.projects.detail(id) })
+    },
+    onError: (error) => toast.error('Could not remove the brochure', { description: extractErrorMessage(error) }),
+  })
+}
+
 export function useAssignProjectManager() {
   const qc = useQueryClient()
   return useMutation({

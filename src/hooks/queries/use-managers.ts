@@ -10,11 +10,12 @@ import { toastWithEmailDelivery } from '@/lib/email-delivery'
 import { REFRESH_INTERVAL_MS } from '@/lib/constants'
 import { queryKeys } from './query-keys'
 
-export function useManagers() {
+export function useManagers(enabled = true) {
   return useQuery({
     queryKey: queryKeys.managers.all,
     queryFn: managersApi.list,
     refetchInterval: REFRESH_INTERVAL_MS,
+    enabled,
   })
 }
 

@@ -11,13 +11,17 @@ import {
 import { extractErrorMessage } from '@/lib/api-client'
 import { formatLeadNumber } from '@/lib/utils'
 import { REFRESH_INTERVAL_MS } from '@/lib/constants'
+import { LeadImportStatus } from '@/types'
 import { queryKeys } from './query-keys'
 
-export function useLeads(query: LeadQuery = {}) {
+const IMPORT_POLL_MS = 1000
+
+export function useLeads(query: LeadQuery = {}, enabled = true) {
   return useQuery({
     queryKey: queryKeys.leads.list(query),
     queryFn: () => leadsApi.list(query),
     refetchInterval: REFRESH_INTERVAL_MS,
+    enabled,
   })
 }
 
@@ -125,6 +129,36 @@ export function useDeleteLead() {
     },
     onError: (error) => toast.error('Could not delete lead', { description: extractErrorMessage(error) }),
   })
+}
+
+/** Sends an Admin's lead sheet; resolves once the file is accepted, before its rows are imported. */
+export function useImportLeads() {
+  return useMutation({
+    mutationFn: ({ file, onProgress }: { file: File; onProgress?: (percent: number) => void }) =>
+      leadsApi.importSheet(file, onProgress),
+    onError: (error) => toast.error('Could not upload the sheet', { description: extractErrorMessage(error) }),
+  })
+}
+
+/**
+ * Follows an upload while its rows are imported (polling every second),
+ * then refreshes the lead lists once it has finished.
+ */
+export function useLeadImport(id: string | null) {
+  const qc = useQueryClient()
+  const query = useQuery({
+    queryKey: queryKeys.leads.import(id ?? ''),
+    queryFn: () => leadsApi.getImport(id!),
+    enabled: !!id,
+    refetchInterval: (q) => (q.state.data?.status === LeadImportStatus.PROCESSING ? IMPORT_POLL_MS : false),
+  })
+
+  const finished = !!query.data && query.data.status !== LeadImportStatus.PROCESSING
+  useEffect(() => {
+    if (finished) qc.invalidateQueries({ queryKey: ['leads'] })
+  }, [finished, qc])
+
+  return query
 }
 
 export function useTeamPerformance(enabled = true) {

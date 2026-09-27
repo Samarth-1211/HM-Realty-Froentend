@@ -1,8 +1,9 @@
-import { apiClient } from '@/lib/api-client'
+import { apiClient, postFile } from '@/lib/api-client'
 import type {
   BookingStatus,
   CreateLeadManualResult,
   Lead,
+  LeadImportBatch,
   LeadProgressStage,
   LeadPurpose,
   LeadStatus,
@@ -85,4 +86,14 @@ export const leadsApi = {
     apiClient
       .delete<{ message: string; id: string }>(`/leads/${id}`, { data: { confirmation: 'delete' } })
       .then((r) => r.data),
+
+  /** Admin Excel/CSV upload. Returns as soon as the file is checked; rows import in the background. */
+  importSheet: (file: File, onProgress?: (percent: number) => void) =>
+    postFile<LeadImportBatch>('/leads/import', file, onProgress),
+
+  /** Polled for the upload's progress and, once done, its per-row outcome. */
+  getImport: (id: string) => apiClient.get<LeadImportBatch>(`/leads/imports/${id}`).then((r) => r.data),
+
+  importTemplate: () =>
+    apiClient.get<Blob>('/leads/import/template', { responseType: 'blob' }).then((r) => r.data),
 }

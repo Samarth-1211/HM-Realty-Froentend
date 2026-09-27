@@ -29,6 +29,8 @@ export const queryKeys = {
     // Under the 'leads' prefix on purpose: every lead mutation's
     // invalidateQueries(['leads']) refreshes the nav dot too.
     unseenCount: ['leads', 'unseen-count'] as const,
+    // Outside the 'leads' prefix: finishing an upload refreshes every lead list without refetching itself.
+    import: (id: string) => ['lead-imports', id] as const,
   },
   employees: {
     teamSummary: ['employees', 'team-summary'] as const,

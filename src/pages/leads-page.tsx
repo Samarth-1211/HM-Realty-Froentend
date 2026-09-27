@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
-import { Contact, Plus, Trash2, UserPlus } from 'lucide-react'
+import { Contact, FileSpreadsheet, Plus, Trash2, UserPlus } from 'lucide-react'
 import { PageHeader } from '@/components/ui/page-header'
 import { Card } from '@/components/ui/card'
 import { DataTable, type Column } from '@/components/ui/data-table'
@@ -11,10 +11,13 @@ import { LeadStatusBadge } from '@/components/leads/lead-status-badge'
 import { LeadFormModal } from '@/components/leads/lead-form-modal'
 import { AssignLeadModal } from '@/components/leads/assign-lead-modal'
 import { DeleteLeadDialog } from '@/components/leads/delete-lead-dialog'
+import { ImportLeadsModal } from '@/components/leads/import-leads-modal'
+import { LeadChannelBadge } from '@/components/leads/lead-channel-badge'
 import { useLeads, useMarkLeadsSeenWhileOpen } from '@/hooks/queries/use-leads'
 import { useAuthStore } from '@/store/auth-store'
 import { ASSIGNER_ROLES, ORG_OVERSIGHT_ROLES } from '@/lib/constants'
-import { LeadSource, LeadStatus, type Lead } from '@/types'
+import { LEAD_CHANNEL_LABELS } from '@/lib/lead-channel'
+import { LeadIntakeChannel, LeadSource, LeadStatus, UserRole, type Lead } from '@/types'
 import { formatDateTime, formatEnumLabel } from '@/lib/utils'
 
 export function LeadsPage() {
@@ -22,8 +25,11 @@ export function LeadsPage() {
   const currentUser = useAuthStore((s) => s.user)
   const [status, setStatus] = useState('')
   const [source, setSource] = useState('')
+  const [channel, setChannel] = useState('')
+  const [onlyMine, setOnlyMine] = useState(false)
   const [page, setPage] = useState(1)
   const [createOpen, setCreateOpen] = useState(false)
+  const [importOpen, setImportOpen] = useState(false)
   const [assignLead, setAssignLead] = useState<Lead | null>(null)
   const [deleteLead, setDeleteLead] = useState<Lead | null>(null)
   const pageSize = 10
@@ -33,16 +39,25 @@ export function LeadsPage() {
 
   const canAssign = currentUser && ASSIGNER_ROLES.includes(currentUser.role)
   const canDelete = currentUser && ORG_OVERSIGHT_ROLES.includes(currentUser.role)
+  const canImport = currentUser?.role === UserRole.ADMIN
+  // Managers see the whole org's leads, but hot leads are assigned to them personally.
+  const isManager = currentUser?.role === UserRole.MANAGER
 
-  // The backend only filters by status server-side; source filtering and
+  // The backend only filters by status server-side; the other filters and
   // pagination happen client-side since GET /leads returns a plain array.
   const { data: allLeads = [], isLoading } = useLeads({
     status: (status || undefined) as LeadStatus | undefined,
   })
 
   const filtered = useMemo(
-    () => (source ? allLeads.filter((l) => l.source === source) : allLeads),
-    [allLeads, source],
+    () =>
+      allLeads.filter(
+        (l) =>
+          (!source || l.source === source) &&
+          (!channel || l.intakeChannel === channel) &&
+          (!onlyMine || l.assignedToId === currentUser?.id),
+      ),
+    [allLeads, source, channel, onlyMine, currentUser?.id],
   )
   const paged = filtered.slice((page - 1) * pageSize, page * pageSize)
 
@@ -62,7 +77,16 @@ export function LeadsPage() {
       header: 'Interest',
       render: (l) => <span className="text-slate-500">{l.propertyInterest ?? '—'}</span>,
     },
-    { key: 'source', header: 'Source', render: (l) => <span className="text-slate-500">{formatEnumLabel(l.source)}</span> },
+    {
+      key: 'source',
+      header: 'Source',
+      render: (l) => (
+        <div className="flex flex-col items-start gap-1">
+          <span className="text-slate-500">{formatEnumLabel(l.source)}</span>
+          <LeadChannelBadge lead={l} />
+        </div>
+      ),
+    },
     { key: 'status', header: 'Status', render: (l) => <LeadStatusBadge status={l.status} /> },
     {
       key: 'assignedTo',
@@ -122,12 +146,20 @@ export function LeadsPage() {
     <div>
       <PageHeader
         title="Leads"
-        description="Every inbound lead, from portals, ads and walk-ins."
+        description="Every inbound lead, from portals, ads and walk-ins. Hot leads from platforms go straight to a manager."
         actions={
-          <Button onClick={() => setCreateOpen(true)}>
-            <Plus className="size-4" />
-            Add lead
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            {canImport && (
+              <Button variant="secondary" onClick={() => setImportOpen(true)}>
+                <FileSpreadsheet className="size-4" />
+                Upload Excel
+              </Button>
+            )}
+            <Button onClick={() => setCreateOpen(true)}>
+              <Plus className="size-4" />
+              Add lead
+            </Button>
+          </div>
         }
       />
 
@@ -163,6 +195,34 @@ export function LeadsPage() {
               </option>
             ))}
           </Select>
+          <Select
+            value={channel}
+            onChange={(e) => {
+              setChannel(e.target.value)
+              setPage(1)
+            }}
+            className="sm:max-w-[200px]"
+          >
+            <option value="">All channels</option>
+            {Object.values(LeadIntakeChannel).map((c) => (
+              <option key={c} value={c}>
+                {LEAD_CHANNEL_LABELS[c]}
+              </option>
+            ))}
+          </Select>
+          {isManager && (
+            <Select
+              value={onlyMine ? 'mine' : ''}
+              onChange={(e) => {
+                setOnlyMine(e.target.value === 'mine')
+                setPage(1)
+              }}
+              className="sm:max-w-[190px]"
+            >
+              <option value="">Everyone’s leads</option>
+              <option value="mine">Assigned to me</option>
+            </Select>
+          )}
         </div>
 
         <DataTable
@@ -181,6 +241,7 @@ export function LeadsPage() {
       </Card>
 
       <LeadFormModal open={createOpen} onClose={() => setCreateOpen(false)} />
+      {canImport && <ImportLeadsModal open={importOpen} onClose={() => setImportOpen(false)} />}
       <AssignLeadModal open={!!assignLead} onClose={() => setAssignLead(null)} lead={assignLead} />
       {deleteLead && <DeleteLeadDialog lead={deleteLead} onClose={() => setDeleteLead(null)} />}
     </div>

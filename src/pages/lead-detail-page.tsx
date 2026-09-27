@@ -6,7 +6,9 @@ import {
   CheckSquare,
   Clock,
   Contact,
+  FileSpreadsheet,
   Flame,
+  FolderKanban,
   Mail,
   MapPin,
   NotebookPen,
@@ -30,8 +32,12 @@ import { AssignLeadModal } from '@/components/leads/assign-lead-modal'
 import { WhatsAppChatPanel } from '@/components/leads/whatsapp-chat-panel'
 import { FollowUpModal } from '@/components/leads/follow-up-modal'
 import { DeleteLeadDialog } from '@/components/leads/delete-lead-dialog'
+import { LeadChannelBadge } from '@/components/leads/lead-channel-badge'
 import { TaskFormModal } from '@/components/tasks/task-form-modal'
+import { ShareProjectModal } from '@/components/projects/share-project-modal'
+import { WhatsAppGlyph } from '@/components/integrations/whatsapp-mark'
 import { useLead } from '@/hooks/queries/use-leads'
+import { useProject } from '@/hooks/queries/use-projects'
 import { useAuthStore } from '@/store/auth-store'
 import {
   ASSIGNER_ROLES,
@@ -45,7 +51,7 @@ import {
   VISIT_STATUS_COLORS,
   VISIT_STATUS_LABELS,
 } from '@/lib/constants'
-import { LeadStatus, UserRole } from '@/types'
+import { LeadIntakeChannel, LeadStatus, UserRole } from '@/types'
 import { formatCurrency, formatDate, formatDateTime, formatEnumLabel } from '@/lib/utils'
 
 const ACTIVITY_LABELS: Record<string, string> = {
@@ -66,6 +72,9 @@ export function LeadDetailPage() {
   const [taskOpen, setTaskOpen] = useState(false)
   const [followUpOpen, setFollowUpOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
+  const [shareOpen, setShareOpen] = useState(false)
+  // The lead's project, for sending its details to this customer on WhatsApp.
+  const { data: project } = useProject(lead?.projectId ?? undefined)
 
   const canAssign = currentUser && ASSIGNER_ROLES.includes(currentUser.role)
   const canDelete = currentUser && ORG_OVERSIGHT_ROLES.includes(currentUser.role)
@@ -87,6 +96,7 @@ export function LeadDetailPage() {
     },
     { icon: Phone, label: 'Phone', value: lead.phone },
     { icon: Mail, label: 'Email', value: lead.email ?? '—' },
+    { icon: FolderKanban, label: 'Project', value: lead.project?.name ?? '—' },
     { icon: Tag, label: 'Property interest', value: lead.propertyInterest ?? '—' },
     { icon: MapPin, label: 'City', value: lead.city ?? '—' },
     { icon: Wallet, label: 'Budget', value: lead.budgetMin || lead.budgetMax
@@ -97,19 +107,23 @@ export function LeadDetailPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={() => navigate({ to: '/leads' })}>
-          <ArrowLeft className="size-4" />
-        </Button>
-        <div className="min-w-0 flex-1">
-          <h2 className="truncate text-xl font-bold text-slate-900">{lead.fullName}</h2>
-          <div className="flex flex-wrap items-center gap-2">
-            <p className="text-sm text-slate-500">{formatEnumLabel(lead.source)} lead</p>
-            {lead.status === LeadStatus.IN_PROGRESS && lead.progressStage && (
-              <Badge variant="brand">
-                {lead.progressStage === 'OTHER' ? lead.progressStageNote : LEAD_PROGRESS_STAGE_LABELS[lead.progressStage]}
-              </Badge>
-            )}
+      {/* Title on its own line on phones; the actions wrap underneath instead of running off-screen. */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex min-w-0 basis-full items-center gap-3 lg:basis-0 lg:flex-1">
+          <Button variant="ghost" size="icon" className="shrink-0" onClick={() => navigate({ to: '/leads' })}>
+            <ArrowLeft className="size-4" />
+          </Button>
+          <div className="min-w-0 flex-1">
+            <h2 className="truncate text-xl font-bold text-slate-900">{lead.fullName}</h2>
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-sm text-slate-500">{formatEnumLabel(lead.source)} lead</p>
+              <LeadChannelBadge lead={lead} />
+              {lead.status === LeadStatus.IN_PROGRESS && lead.progressStage && (
+                <Badge variant="brand">
+                  {lead.progressStage === 'OTHER' ? lead.progressStageNote : LEAD_PROGRESS_STAGE_LABELS[lead.progressStage]}
+                </Badge>
+              )}
+            </div>
           </div>
         </div>
         {canChangeStatus ? <LeadStatusControl lead={lead} /> : <LeadStatusBadge status={lead.status} />}
@@ -123,6 +137,12 @@ export function LeadDetailPage() {
           <CheckSquare className="size-4" />
           Add Task
         </Button>
+        {project && (
+          <Button size="sm" variant="outline" onClick={() => setShareOpen(true)} title={`Send ${project.name} on WhatsApp`}>
+            <WhatsAppGlyph />
+            Share project
+          </Button>
+        )}
         {canChangeStatus && (
           <Button size="sm" variant="outline" onClick={() => setFollowUpOpen(true)}>
             <NotebookPen className="size-4" />
@@ -141,6 +161,34 @@ export function LeadDetailPage() {
         <Card className="lg:col-span-2">
           <CardHeader title="Lead details" />
           <CardBody className="flex flex-col gap-3">
+            {lead.intakeChannel === LeadIntakeChannel.PLATFORM && (
+              <div className="flex items-start gap-3 rounded-xl bg-orange-50 p-3">
+                <Flame className="mt-0.5 size-4 shrink-0 text-orange-500" />
+                <p className="text-sm text-orange-800">
+                  Hot lead from {formatEnumLabel(lead.source)} — followed up by the assigned manager, not presales.
+                </p>
+              </div>
+            )}
+            {lead.intakeChannel === LeadIntakeChannel.BULK_UPLOAD && (
+              <div className="flex items-start gap-3 rounded-xl bg-violet-50 p-3">
+                <FileSpreadsheet className="mt-0.5 size-4 shrink-0 text-violet-500" />
+                <div>
+                  <p className="text-xs font-medium text-violet-500">Provided by Admin</p>
+                  {lead.importBatch ? (
+                    <>
+                      <p className="mt-0.5 text-sm font-medium text-slate-700">
+                        {lead.importBatch.uploadedBy.firstName} {lead.importBatch.uploadedBy.lastName}
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        Excel upload · {lead.importBatch.fileName} · {formatDate(lead.importBatch.createdAt)}
+                      </p>
+                    </>
+                  ) : (
+                    <p className="mt-0.5 text-sm text-slate-700">Excel upload</p>
+                  )}
+                </div>
+              </div>
+            )}
             {infoRows.map((row) => (
               <div key={row.label} className="flex items-start gap-3">
                 <row.icon className="mt-0.5 size-4 shrink-0 text-slate-400" />
@@ -277,6 +325,12 @@ export function LeadDetailPage() {
 
       <AssignLeadModal open={assignOpen} onClose={() => setAssignOpen(false)} lead={lead} />
       <TaskFormModal open={taskOpen} onClose={() => setTaskOpen(false)} lead={{ id: lead.id, fullName: lead.fullName }} />
+      <ShareProjectModal
+        open={shareOpen}
+        onClose={() => setShareOpen(false)}
+        project={project ?? null}
+        defaultPhone={lead.phone}
+      />
       {canChangeStatus && <FollowUpModal open={followUpOpen} onClose={() => setFollowUpOpen(false)} lead={lead} />}
       {deleteOpen && (
         <DeleteLeadDialog lead={lead} onClose={() => setDeleteOpen(false)} onDeleted={() => navigate({ to: '/leads' })} />

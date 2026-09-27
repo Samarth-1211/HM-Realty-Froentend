@@ -232,6 +232,26 @@ export type LeadSource = (typeof LeadSource)[keyof typeof LeadSource]
 
 export const LEAD_SOURCE_OPTIONS = Object.values(LeadSource)
 
+/**
+ * How a lead first entered the CRM — decides who handles it. PLATFORM
+ * (portal/ad webhooks) are hot leads followed up by a Manager; BULK_UPLOAD
+ * came from an Admin's Excel upload; the rest go to presales.
+ */
+export const LeadIntakeChannel = {
+  MANUAL: 'MANUAL',
+  PLATFORM: 'PLATFORM',
+  WHATSAPP: 'WHATSAPP',
+  BULK_UPLOAD: 'BULK_UPLOAD',
+} as const
+export type LeadIntakeChannel = (typeof LeadIntakeChannel)[keyof typeof LeadIntakeChannel]
+
+export const LeadImportStatus = {
+  PROCESSING: 'PROCESSING',
+  COMPLETED: 'COMPLETED',
+  FAILED: 'FAILED',
+} as const
+export type LeadImportStatus = (typeof LeadImportStatus)[keyof typeof LeadImportStatus]
+
 export const AttendanceStatus = {
   PRESENT: 'PRESENT',
   HALF_DAY: 'HALF_DAY',
@@ -426,6 +446,12 @@ export interface Project {
   sourceAgentName: string | null
   rateListDate: string | null
   activePlatforms: LeadSource[] | null
+  /** Public-link id of the brochure (see lib/project-share.ts); null when there's no brochure. */
+  brochureToken: string | null
+  brochureFileName: string | null
+  brochureMimeType: string | null
+  brochureSizeBytes: number | null
+  brochureUploadedAt: string | null
   isActive: boolean
   createdAt: string
   updatedAt: string
@@ -508,6 +534,11 @@ export interface Lead {
   referredByName: string | null
   referredByEmail: string | null
   referredByPhone: string | null
+  /** Null for leads created before channels were tracked. */
+  intakeChannel: LeadIntakeChannel | null
+  importBatchId: string | null
+  /** Who provided the lead, when it came from an Admin's Excel upload. */
+  importBatch?: LeadImportBatchSummary | null
   progressStage: LeadProgressStage | null
   progressStageNote: string | null
   leadNumber: number
@@ -526,6 +557,52 @@ export interface Lead {
   remarks: string | null
   createdAt: string
   updatedAt: string
+}
+
+export interface LeadImportBatchSummary {
+  id: string
+  fileName: string
+  createdAt: string
+  uploadedBy: { id: string; firstName: string; lastName: string; role: UserRole }
+}
+
+/** One row of an Excel upload worth reporting back to the Admin. */
+export interface LeadImportIssue {
+  /** Row number as Excel shows it. */
+  row: number
+  /** error: not imported · duplicate: already in the CRM, skipped · warning: imported, a value left blank */
+  level: 'error' | 'duplicate' | 'warning'
+  message: string
+}
+
+/** How many of an upload's leads one presales member received. */
+export interface LeadImportAllocation {
+  userId: string
+  name: string
+  managerId: string | null
+  managerName: string | null
+  count: number
+}
+
+/** GET /leads/imports/:id — polled while an upload is processed. */
+export interface LeadImportBatch {
+  id: string
+  fileName: string
+  status: LeadImportStatus
+  totalRows: number
+  processedRows: number
+  createdCount: number
+  duplicateCount: number
+  failedCount: number
+  /** Set once the upload finishes: skipped rows first, then warnings (up to 500 of each; the counts stay exact). */
+  issues: LeadImportIssue[] | null
+  allocation: LeadImportAllocation[] | null
+  /** Sheet columns that don't map to a lead field and were skipped. */
+  ignoredColumns: string[]
+  error: string | null
+  createdAt: string
+  completedAt: string | null
+  uploadedBy: { id: string; firstName: string; lastName: string }
 }
 
 export interface LeadActivityLog {

@@ -1,7 +1,7 @@
-import { type ComponentProps, type ReactNode, useEffect } from 'react'
+import { type ComponentProps, type ReactNode, useEffect, useState } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm, Controller, useFieldArray, useWatch, type Control } from 'react-hook-form'
-import { Plus, Trash2 } from 'lucide-react'
+import { ExternalLink, FileText, Plus, Trash2 } from 'lucide-react'
 import { z } from 'zod'
 import { Modal } from '@/components/ui/modal'
 import { Field, Input } from '@/components/ui/input'
@@ -9,7 +9,16 @@ import { Select, Textarea } from '@/components/ui/select'
 import { MultiSelect } from '@/components/ui/multi-select'
 import { Toggle } from '@/components/ui/toggle'
 import { Button } from '@/components/ui/button'
-import { useCreateProject, useUpdateProject } from '@/hooks/queries/use-projects'
+import { ButtonAnchor } from '@/components/ui/button-link'
+import { FileDropZone } from '@/components/ui/file-drop-zone'
+import { ProgressBar } from '@/components/ui/progress-bar'
+import {
+  useCreateProject,
+  useRemoveBrochure,
+  useUpdateProject,
+  useUploadBrochure,
+} from '@/hooks/queries/use-projects'
+import { brochureUrl } from '@/lib/project-share'
 import type { CreateProjectPayload } from '@/api/projects.api'
 import {
   EmChargesStatus,
@@ -20,13 +29,15 @@ import {
   type LeadSource,
   type Project,
 } from '@/types'
-import { cn, formatEnumLabel } from '@/lib/utils'
+import { cn, formatDate, formatEnumLabel, formatFileSize } from '@/lib/utils'
 import {
   EM_CHARGES_STATUS_LABELS,
   computeBudgetRange,
   formatBudgetRange,
   formatPlotSize,
 } from '@/lib/project-pricing'
+
+const MAX_BROCHURE_BYTES = 25 * 1024 * 1024
 
 const PLC_PRESETS = [
   { min: 5, max: 10 },
@@ -300,6 +311,14 @@ export function ProjectFormModal({
   const isEdit = !!project
   const create = useCreateProject()
   const update = useUpdateProject()
+  const uploadBrochure = useUploadBrochure()
+  const removeBrochure = useRemoveBrochure()
+  const [brochureFile, setBrochureFile] = useState<File | null>(null)
+  const [removeExistingBrochure, setRemoveExistingBrochure] = useState(false)
+  /** Upload progress while the brochure is being sent; null otherwise. */
+  const [uploadPercent, setUploadPercent] = useState<number | null>(null)
+  const saving = create.isPending || update.isPending || uploadPercent !== null || removeBrochure.isPending
+  const existingBrochureUrl = project ? brochureUrl(project) : null
 
   const {
     register,
@@ -313,7 +332,12 @@ export function ProjectFormModal({
   const plotSizes = useFieldArray({ control, name: 'plotSizes' })
 
   useEffect(() => {
-    if (open) reset(toFormValues(project))
+    if (open) {
+      reset(toFormValues(project))
+      setBrochureFile(null)
+      setRemoveExistingBrochure(false)
+      setUploadPercent(null)
+    }
   }, [open, project, reset])
 
   const [basicRateIsRange, emChargesStatus, plcNa, plcMin, plcMax, guidelineRateNa, plotSizeMode, budgetIsManual, budgetMin, budgetMax] =
@@ -341,13 +365,36 @@ export function ProjectFormModal({
     }
   }
 
-  const onSubmit = (values: FormValues) => {
+  /**
+   * Saves the project, then its brochure change. The hooks report failures;
+   * if the brochure step fails the project is still saved, so the modal
+   * closes rather than risk creating the project twice on a retry.
+   */
+  const onSubmit = async (values: FormValues) => {
     const payload = toPayload(values)
-    if (isEdit && project) {
-      update.mutate({ id: project.id, payload }, { onSuccess: onClose })
-    } else {
-      create.mutate(payload, { onSuccess: onClose })
+    let saved: Project
+    try {
+      saved = isEdit && project ? await update.mutateAsync({ id: project.id, payload }) : await create.mutateAsync(payload)
+    } catch {
+      return
     }
+
+    if (brochureFile) {
+      setUploadPercent(0)
+      try {
+        await uploadBrochure.mutateAsync({ id: saved.id, file: brochureFile, onProgress: setUploadPercent })
+      } catch {
+        // Reported by the hook.
+      }
+      setUploadPercent(null)
+    } else if (removeExistingBrochure && existingBrochureUrl) {
+      try {
+        await removeBrochure.mutateAsync(saved.id)
+      } catch {
+        // Reported by the hook.
+      }
+    }
+    onClose()
   }
 
   const manualMin = positiveNum(budgetMin)
@@ -681,12 +728,71 @@ export function ProjectFormModal({
           />
         </FormSection>
 
+        <FormSection title="Brochure">
+          <div className="flex flex-col gap-3 sm:col-span-2">
+            {existingBrochureUrl && !brochureFile && !removeExistingBrochure && project && (
+              <div className="flex items-center gap-3 rounded-xl border border-slate-200 px-3 py-2.5">
+                <FileText className="size-5 shrink-0 text-slate-400" />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium text-slate-800">{project.brochureFileName ?? 'Brochure'}</p>
+                  <p className="text-xs text-slate-400">
+                    {formatFileSize(project.brochureSizeBytes)}
+                    {project.brochureUploadedAt && ` · added ${formatDate(project.brochureUploadedAt)}`}
+                  </p>
+                </div>
+                <ButtonAnchor href={existingBrochureUrl} variant="ghost" size="sm">
+                  <ExternalLink className="size-3.5" />
+                  View
+                </ButtonAnchor>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="text-rose-600 hover:bg-rose-50"
+                  onClick={() => setRemoveExistingBrochure(true)}
+                  disabled={saving}
+                >
+                  Remove
+                </Button>
+              </div>
+            )}
+            {removeExistingBrochure && (
+              <p className="text-xs text-rose-600">
+                The brochure will be removed when you save — links already sent to customers will stop working.{' '}
+                <button type="button" className="font-semibold underline" onClick={() => setRemoveExistingBrochure(false)}>
+                  Undo
+                </button>
+              </p>
+            )}
+            <FileDropZone
+              accept=".pdf,.jpg,.jpeg,.png,.webp"
+              maxBytes={MAX_BROCHURE_BYTES}
+              file={brochureFile}
+              onFile={(file) => {
+                setBrochureFile(file)
+                setRemoveExistingBrochure(false)
+              }}
+              onClear={() => setBrochureFile(null)}
+              disabled={saving}
+              icon={<FileText className="size-5" />}
+              title={existingBrochureUrl ? 'Replace the brochure' : 'Upload a brochure'}
+              hint="PDF or image (JPG, PNG, WEBP) · up to 25 MB · everyone in your team can send it to customers"
+            />
+            {uploadPercent !== null && (
+              <ProgressBar
+                value={uploadPercent < 100 ? uploadPercent : null}
+                label={uploadPercent < 100 ? `Uploading ${brochureFile?.name ?? 'brochure'}` : 'Saving the brochure…'}
+              />
+            )}
+          </div>
+        </FormSection>
+
         <div className="flex justify-end gap-2 pt-2">
           <Button type="button" variant="ghost" onClick={onClose}>
             Cancel
           </Button>
-          <Button type="submit" loading={create.isPending || update.isPending}>
-            {isEdit ? 'Save changes' : 'Create project'}
+          <Button type="submit" loading={saving}>
+            {uploadPercent !== null ? 'Uploading brochure…' : isEdit ? 'Save changes' : 'Create project'}
           </Button>
         </div>
       </form>

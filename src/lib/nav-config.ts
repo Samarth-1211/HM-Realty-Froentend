@@ -17,7 +17,7 @@ import {
   Shuffle,
 } from 'lucide-react'
 import { UserRole } from '@/types'
-import { ASSIGNER_ROLES, EMPLOYEE_MODULE_ROLES, ORG_OVERSIGHT_ROLES } from '@/lib/constants'
+import { ASSIGNER_ROLES, EMPLOYEE_MODULE_ROLES, ORG_MEMBER_ROLES, ORG_OVERSIGHT_ROLES } from '@/lib/constants'
 
 export interface NavItem {
   to: string
@@ -56,6 +56,14 @@ export const NAV_ITEMS: NavItem[] = [
     icon: FolderKanban,
     roles: [UserRole.ADMIN],
     mobilePrimary: true,
+  },
+  {
+    // Read-only (plus WhatsApp sharing) for everyone else — kept out of their
+    // mobile bottom bar so it doesn't push out the items they use daily.
+    to: '/projects',
+    label: 'Projects',
+    icon: FolderKanban,
+    roles: ORG_MEMBER_ROLES.filter((r) => r !== UserRole.ADMIN),
   },
   {
     to: '/team',

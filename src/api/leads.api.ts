@@ -9,6 +9,7 @@ import type {
   LeadStatus,
   LeadTemperature,
   LeadWithActivity,
+  Paginated,
   TeamPerformanceRow,
   VisitStatus,
 } from '@/types'
@@ -87,12 +88,25 @@ export const leadsApi = {
       .delete<{ message: string; id: string }>(`/leads/${id}`, { data: { confirmation: 'delete' } })
       .then((r) => r.data),
 
-  /** Admin Excel/CSV upload. Returns as soon as the file is checked; rows import in the background. */
-  importSheet: (file: File, onProgress?: (percent: number) => void) =>
-    postFile<LeadImportBatch>('/leads/import', file, onProgress),
+  /**
+   * Admin/Manager Excel/CSV upload. Returns as soon as the file is checked; rows import in the background.
+   * `collaboratorIds` (Managers only): other Managers whose teams share the sheet.
+   */
+  importSheet: (file: File, collaboratorIds: string[] = [], onProgress?: (percent: number) => void) =>
+    postFile<LeadImportBatch>('/leads/import', file, onProgress, { collaboratorIds }),
 
   /** Polled for the upload's progress and, once done, its per-row outcome. */
   getImport: (id: string) => apiClient.get<LeadImportBatch>(`/leads/imports/${id}`).then((r) => r.data),
+
+  /** Admin's upload history, newest first. */
+  listImports: (page: number, pageSize: number) =>
+    apiClient
+      .get<Paginated<LeadImportBatch>>('/leads/imports', { params: { page, pageSize } })
+      .then((r) => r.data),
+
+  /** The sheet exactly as it was uploaded (Admin only). */
+  importFile: (id: string) =>
+    apiClient.get<Blob>(`/leads/imports/${id}/file`, { responseType: 'blob' }).then((r) => r.data),
 
   importTemplate: () =>
     apiClient.get<Blob>('/leads/import/template', { responseType: 'blob' }).then((r) => r.data),

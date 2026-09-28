@@ -93,9 +93,18 @@ apiClient.interceptors.response.use(
  * POSTs one file as multipart/form-data (field `file`), reporting upload
  * progress as a whole percentage for progress bars.
  */
-export function postFile<T>(url: string, file: File, onProgress?: (percent: number) => void): Promise<T> {
+export function postFile<T>(
+  url: string,
+  file: File,
+  onProgress?: (percent: number) => void,
+  /** Extra form fields; an array is sent as the same field repeated. */
+  fields: Record<string, string | string[]> = {},
+): Promise<T> {
   const form = new FormData()
   form.append('file', file)
+  for (const [name, value] of Object.entries(fields)) {
+    for (const v of Array.isArray(value) ? value : [value]) form.append(name, v)
+  }
   return apiClient
     .post<T>(url, form, {
       // Overrides the JSON default; the browser fills in the multipart boundary.

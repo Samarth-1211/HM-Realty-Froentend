@@ -4,13 +4,23 @@ import { toast } from 'sonner'
 import { Modal } from '@/components/ui/modal'
 import { Button } from '@/components/ui/button'
 import { FileDropZone } from '@/components/ui/file-drop-zone'
+import { Field } from '@/components/ui/input'
+import { MultiSelect } from '@/components/ui/multi-select'
 import { ProgressBar } from '@/components/ui/progress-bar'
 import { leadsApi } from '@/api/leads.api'
 import { useImportLeads, useLeadImport } from '@/hooks/queries/use-leads'
+import { usePeerManagers } from '@/hooks/queries/use-team'
+import { useAuthStore } from '@/store/auth-store'
 import { extractErrorMessage } from '@/lib/api-client'
 import { downloadBlob } from '@/lib/export-csv'
 import { cn } from '@/lib/utils'
-import { LeadImportStatus, type LeadImportAllocation, type LeadImportBatch, type LeadImportIssue } from '@/types'
+import {
+  LeadImportStatus,
+  UserRole,
+  type LeadImportAllocation,
+  type LeadImportBatch,
+  type LeadImportIssue,
+} from '@/types'
 
 const MAX_FILE_BYTES = 10 * 1024 * 1024
 const ROWS_LISTED = 8
@@ -18,23 +28,32 @@ const ROWS_LISTED = 8
 const count = (n: number) => n.toLocaleString('en-IN')
 
 /**
- * Admin "Upload Excel" for leads: pick a sheet → upload it (progress by
+ * "Upload Excel" for leads, for Admins and Managers: pick a sheet (a Manager
+ * can also pick other managers to share it with) → upload it (progress by
  * bytes) → the server imports its rows (progress by rows, polled) → summary
  * of what was imported, who got it, and which rows were skipped and why.
  */
 export function ImportLeadsModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [file, setFile] = useState<File | null>(null)
+  const [collaboratorIds, setCollaboratorIds] = useState<string[]>([])
   const [uploadPercent, setUploadPercent] = useState(0)
   const [batchId, setBatchId] = useState<string | null>(null)
   const [downloading, setDownloading] = useState(false)
+  const isManager = useAuthStore((s) => s.user?.role === UserRole.MANAGER)
+  const { data: peers = [] } = usePeerManagers(open && isManager)
   const upload = useImportLeads()
   const { data: batch } = useLeadImport(batchId)
+  const peerName = (id: string) => {
+    const m = peers.find((p) => p.id === id)
+    return m ? `${m.firstName} ${m.lastName}` : 'Manager'
+  }
 
   const processing = !!batchId && (!batch || batch.status === LeadImportStatus.PROCESSING)
   const finished = !!batch && batch.status !== LeadImportStatus.PROCESSING
 
   const reset = () => {
     setFile(null)
+    setCollaboratorIds([])
     setUploadPercent(0)
     setBatchId(null)
     upload.reset()
@@ -49,7 +68,10 @@ export function ImportLeadsModal({ open, onClose }: { open: boolean; onClose: ()
   const start = () => {
     if (!file) return
     setUploadPercent(0)
-    upload.mutate({ file, onProgress: setUploadPercent }, { onSuccess: (created) => setBatchId(created.id) })
+    upload.mutate(
+      { file, collaboratorIds: isManager ? collaboratorIds : [], onProgress: setUploadPercent },
+      { onSuccess: (created) => setBatchId(created.id) },
+    )
   }
 
   const downloadTemplate = async () => {
@@ -68,7 +90,11 @@ export function ImportLeadsModal({ open, onClose }: { open: boolean; onClose: ()
       open={open}
       onClose={onClose}
       title="Upload leads from Excel"
-      subtitle="Shared equally across the managers’ presales teams"
+      subtitle={
+        isManager
+          ? 'Shared across your team — and the teams of any managers you collaborate with'
+          : 'Shared equally across the managers’ presales teams'
+      }
       size="lg"
     >
       <div className="flex flex-col gap-5">
@@ -97,8 +123,31 @@ export function ImportLeadsModal({ open, onClose }: { open: boolean; onClose: ()
               hint=".xlsx or .csv · up to 5,000 leads · 10 MB"
             />
 
+            {isManager && (
+              <Field
+                label="Collaborate with other managers"
+                hint="Optional — each picked manager’s team gets an equal share alongside yours. Leave empty to keep every lead in your own team."
+              >
+                <MultiSelect
+                  options={peers.map((p) => p.id)}
+                  value={collaboratorIds}
+                  onChange={setCollaboratorIds}
+                  formatLabel={peerName}
+                  placeholder="Only my team"
+                  searchable
+                  searchPlaceholder="Search managers…"
+                  emptyLabel="No other managers in your organization"
+                />
+              </Field>
+            )}
+
             <ul className="list-disc space-y-1 pl-5 text-xs text-slate-500">
-              <li>Every uploaded lead is marked as provided by you, and each manager’s team gets an equal share.</li>
+              <li>
+                {isManager
+                  ? 'Every uploaded lead is marked as provided by you, and your team and each collaborator’s team get an equal share. If nobody in those teams is available today, the leads come to you.'
+                  : 'Every uploaded lead is marked as provided by you, and each manager’s team gets an equal share.'}
+              </li>
+              <li>The Admin can see this upload — who uploaded it, when, the collaborators — and download the sheet.</li>
               <li>Numbers already in the CRM are skipped, not duplicated.</li>
               <li>Presales members who are absent or on leave today aren’t given any.</li>
             </ul>
@@ -211,7 +260,7 @@ function rowsLabel(rows: number[]) {
   return `Rows ${rows.slice(0, ROWS_LISTED).join(', ')}${extra > 0 ? ` +${count(extra)} more` : ''}`
 }
 
-function ImportSummary({ batch }: { batch: LeadImportBatch }) {
+export function ImportSummary({ batch }: { batch: LeadImportBatch }) {
   const failed = batch.status === LeadImportStatus.FAILED
   const allocation = batch.allocation ?? []
   const teams = groupByTeam(allocation)
@@ -231,6 +280,13 @@ function ImportSummary({ batch }: { batch: LeadImportBatch }) {
           <CheckCircle2 className="size-4" />
           {batch.fileName} — upload finished
         </div>
+      )}
+
+      {batch.collaborators.length > 0 && (
+        <p className="text-xs text-slate-500">
+          <span className="font-medium text-slate-600">Collaborators:</span>{' '}
+          {batch.collaborators.map((c) => `${c.firstName} ${c.lastName}`).join(', ')}
+        </p>
       )}
 
       <div className="grid grid-cols-3 gap-2">

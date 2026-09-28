@@ -27,7 +27,16 @@ export interface TeamMemberQuery {
   pageSize?: number
 }
 
+export interface PeerManager {
+  id: string
+  firstName: string
+  lastName: string
+}
+
 export const teamApi = {
+  /** The org's other active Managers — who a Manager can hand one of their leads over to. */
+  peers: () => apiClient.get<PeerManager[]>('/manager/peers').then((r) => r.data),
+
   list: (query: TeamMemberQuery = {}) =>
     apiClient
       .get<Paginated<User>>('/manager/team-members', { params: query })

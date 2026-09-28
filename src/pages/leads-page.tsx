@@ -39,8 +39,9 @@ export function LeadsPage() {
 
   const canAssign = currentUser && ASSIGNER_ROLES.includes(currentUser.role)
   const canDelete = currentUser && ORG_OVERSIGHT_ROLES.includes(currentUser.role)
-  const canImport = currentUser?.role === UserRole.ADMIN
-  // Managers see the whole org's leads, but hot leads are assigned to them personally.
+  // Managers upload too — shared with their own team and any managers they pick to collaborate with.
+  const canImport = currentUser?.role === UserRole.ADMIN || currentUser?.role === UserRole.MANAGER
+  // Managers see their own and their team's leads; hot leads are assigned to them personally.
   const isManager = currentUser?.role === UserRole.MANAGER
 
   // The backend only filters by status server-side; the other filters and
@@ -219,7 +220,7 @@ export function LeadsPage() {
               }}
               className="sm:max-w-[190px]"
             >
-              <option value="">Everyone’s leads</option>
+              <option value="">My team’s leads</option>
               <option value="mine">Assigned to me</option>
             </Select>
           )}

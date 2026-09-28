@@ -21,6 +21,7 @@ export const queryKeys = {
   team: {
     list: (query?: unknown) => ['team-members', query] as const,
     detail: (id: string) => ['team-members', id] as const,
+    peers: ['team-members', 'peers'] as const,
   },
   leads: {
     list: (query?: unknown) => ['leads', query] as const,
@@ -31,6 +32,7 @@ export const queryKeys = {
     unseenCount: ['leads', 'unseen-count'] as const,
     // Outside the 'leads' prefix: finishing an upload refreshes every lead list without refetching itself.
     import: (id: string) => ['lead-imports', id] as const,
+    imports: (query?: unknown) => ['lead-imports', 'list', query] as const,
   },
   employees: {
     teamSummary: ['employees', 'team-summary'] as const,

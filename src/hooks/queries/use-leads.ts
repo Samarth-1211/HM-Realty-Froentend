@@ -91,12 +91,18 @@ export function useCreateLead() {
 export function useAssignLead() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({ id, assignedToId }: { id: string; assignedToId: string }) =>
+    /** `handover`: a Manager passing the lead to another Manager — it leaves their view entirely. */
+    mutationFn: ({ id, assignedToId }: { id: string; assignedToId: string; handover?: boolean }) =>
       leadsApi.assign(id, assignedToId),
     onSuccess: (_d, vars) => {
-      toast.success('Lead assigned')
+      toast.success(vars.handover ? 'Lead handed over to the other manager' : 'Lead assigned')
+      if (vars.handover) {
+        // No longer visible to us — drop it instead of refetching it into a 404.
+        qc.removeQueries({ queryKey: queryKeys.leads.detail(vars.id), exact: true })
+      } else {
+        qc.invalidateQueries({ queryKey: queryKeys.leads.detail(vars.id) })
+      }
       qc.invalidateQueries({ queryKey: ['leads'] })
-      qc.invalidateQueries({ queryKey: queryKeys.leads.detail(vars.id) })
     },
     onError: (error) => toast.error('Could not assign lead', { description: extractErrorMessage(error) }),
   })
@@ -131,11 +137,18 @@ export function useDeleteLead() {
   })
 }
 
-/** Sends an Admin's lead sheet; resolves once the file is accepted, before its rows are imported. */
+/** Sends an Admin's or Manager's lead sheet; resolves once the file is accepted, before its rows are imported. */
 export function useImportLeads() {
   return useMutation({
-    mutationFn: ({ file, onProgress }: { file: File; onProgress?: (percent: number) => void }) =>
-      leadsApi.importSheet(file, onProgress),
+    mutationFn: ({
+      file,
+      collaboratorIds,
+      onProgress,
+    }: {
+      file: File
+      collaboratorIds?: string[]
+      onProgress?: (percent: number) => void
+    }) => leadsApi.importSheet(file, collaboratorIds, onProgress),
     onError: (error) => toast.error('Could not upload the sheet', { description: extractErrorMessage(error) }),
   })
 }
@@ -155,10 +168,23 @@ export function useLeadImport(id: string | null) {
 
   const finished = !!query.data && query.data.status !== LeadImportStatus.PROCESSING
   useEffect(() => {
-    if (finished) qc.invalidateQueries({ queryKey: ['leads'] })
+    if (!finished) return
+    qc.invalidateQueries({ queryKey: ['leads'] })
+    qc.invalidateQueries({ queryKey: queryKeys.leads.imports() })
   }, [finished, qc])
 
   return query
+}
+
+/** Admin's history of uploaded lead sheets — refreshed while any on the page is still importing. */
+export function useLeadImports(page: number, pageSize: number) {
+  return useQuery({
+    queryKey: queryKeys.leads.imports({ page, pageSize }),
+    queryFn: () => leadsApi.listImports(page, pageSize),
+    placeholderData: (previous) => previous,
+    refetchInterval: (q) =>
+      q.state.data?.items.some((b) => b.status === LeadImportStatus.PROCESSING) ? IMPORT_POLL_MS * 3 : REFRESH_INTERVAL_MS,
+  })
 }
 
 export function useTeamPerformance(enabled = true) {

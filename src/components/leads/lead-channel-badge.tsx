@@ -1,12 +1,12 @@
 import { FileSpreadsheet, Flame } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
-import { uploadedByLabel } from '@/lib/lead-channel'
+import { uploadedByLabel, uploaderRoleLabel } from '@/lib/lead-channel'
 import { LeadIntakeChannel, type Lead } from '@/types'
 
 /**
  * Flags the two kinds of lead that are handled differently: hot leads from
- * portals/ads (followed up by a Manager) and leads an Admin provided in an
- * Excel upload. Renders nothing for any other lead.
+ * portals/ads (followed up by a Manager) and leads an Admin or Manager
+ * provided in an Excel upload. Renders nothing for any other lead.
  */
 export function LeadChannelBadge({ lead }: { lead: Pick<Lead, 'intakeChannel' | 'importBatch'> }) {
   if (lead.intakeChannel === LeadIntakeChannel.PLATFORM) {
@@ -20,10 +20,10 @@ export function LeadChannelBadge({ lead }: { lead: Pick<Lead, 'intakeChannel' | 
 
   if (lead.intakeChannel === LeadIntakeChannel.BULK_UPLOAD) {
     return (
-      <span title={`Provided by Admin ${uploadedByLabel(lead)}`}>
+      <span title={`Provided by ${uploaderRoleLabel(lead)} ${uploadedByLabel(lead)}`}>
         <Badge className="whitespace-nowrap bg-violet-50 text-violet-700 ring-violet-600/20">
           <FileSpreadsheet className="size-3" />
-          By Admin
+          By {uploaderRoleLabel(lead)}
         </Badge>
       </span>
     )

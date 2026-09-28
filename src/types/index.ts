@@ -584,7 +584,7 @@ export interface LeadImportAllocation {
   count: number
 }
 
-/** GET /leads/imports/:id — polled while an upload is processed. */
+/** GET /leads/imports/:id — polled while an upload is processed. Also a row of GET /leads/imports (issues null there). */
 export interface LeadImportBatch {
   id: string
   fileName: string
@@ -602,7 +602,12 @@ export interface LeadImportBatch {
   error: string | null
   createdAt: string
   completedAt: string | null
-  uploadedBy: { id: string; firstName: string; lastName: string }
+  uploadedBy: { id: string; firstName: string; lastName: string; role: UserRole }
+  /** Managers a Manager shared the sheet with, on top of their own team — empty for an Admin's upload. */
+  collaborators: { id: string; firstName: string; lastName: string }[]
+  /** Whether the original sheet was kept (false for uploads made before sheets were stored). */
+  hasFile: boolean
+  fileSizeBytes: number | null
 }
 
 export interface LeadActivityLog {

@@ -10,6 +10,7 @@ import { Badge, StatusPill } from '@/components/ui/badge'
 import { SpreadsheetTable, rowsForExport, type SheetColumn } from '@/components/ui/spreadsheet-table'
 import { useLeads } from '@/hooks/queries/use-leads'
 import { useUsers } from '@/hooks/queries/use-users'
+import { useAuthStore } from '@/store/auth-store'
 import { exportToCsv } from '@/lib/export-csv'
 import { providedByLabel, uploadedByLabel } from '@/lib/lead-channel'
 import { LeadChannelBadge } from '@/components/leads/lead-channel-badge'
@@ -24,7 +25,7 @@ import {
   VISIT_STATUS_LABELS,
 } from '@/lib/constants'
 import { formatCurrency, formatDate, formatDateTime, formatEnumLabel, formatLeadNumber } from '@/lib/utils'
-import { BookingStatus, LeadSource, LeadStatus, LeadTemperature, type Lead } from '@/types'
+import { BookingStatus, LeadSource, LeadStatus, LeadTemperature, UserRole, type Lead } from '@/types'
 
 function leadIdLabel(lead: Lead): string {
   return formatLeadNumber(lead.leadNumber)
@@ -41,6 +42,7 @@ function budgetLabel(lead: Lead): string {
 
 export function LeadSheetPage() {
   const navigate = useNavigate()
+  const isManager = useAuthStore((s) => s.user?.role === UserRole.MANAGER)
   const { data: leads = [], isLoading } = useLeads()
   const { data: users = [] } = useUsers()
 
@@ -146,7 +148,9 @@ export function LeadSheetPage() {
     <div>
       <PageHeader
         title="Lead Sheet"
-        description="Every lead across the organization, spreadsheet-style — sort any column, filter, and export."
+        description={`${
+          isManager ? 'Every lead held by you and your team' : 'Every lead across the organization'
+        }, spreadsheet-style — sort any column, filter, and export.`}
         actions={
           <Button variant="secondary" onClick={handleExport} disabled={filtered.length === 0}>
             <Download className="size-4" />

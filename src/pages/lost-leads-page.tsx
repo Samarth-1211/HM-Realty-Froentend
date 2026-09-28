@@ -18,6 +18,8 @@ import { UserRole, type Lead } from '@/types'
 export function LostLeadsPage() {
   const authUser = useAuthStore((s) => s.user)
   const isAdmin = authUser?.role === UserRole.ADMIN
+  // A Manager's shuffle never leaves their own team; only an Admin's spans the org.
+  const isManager = authUser?.role === UserRole.MANAGER
 
   const { data: leads = [], isLoading } = useLeads({ status: 'LOST' })
   const { data: settings } = useLeadAllocationSettings()
@@ -105,7 +107,11 @@ export function LostLeadsPage() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Lost Leads"
-        description="Every lead currently marked as lost — reassign by hand, or shuffle them out to a different team member."
+        description={
+          isManager
+            ? 'Your team’s lost leads — reassign by hand, or shuffle them out to a different member of your team.'
+            : 'Every lead currently marked as lost — reassign by hand, or shuffle them out to a different team member.'
+        }
         actions={
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => setConfirmShuffle('selected')} disabled={selected.size === 0}>
@@ -192,7 +198,11 @@ export function LostLeadsPage() {
         onConfirm={runShuffle}
         loading={shuffle.isPending}
         title={confirmShuffle === 'selected' ? `Shuffle ${selected.size} selected lead(s)?` : `Shuffle all ${leads.length} lost lead(s)?`}
-        description="Each lead will be reassigned to a different eligible team member — never back to whoever lost it."
+        description={
+          isManager
+            ? 'Each lead will be reassigned to a different eligible member of your team — never back to whoever lost it. Leads stay within your team.'
+            : 'Each lead will be reassigned to a different eligible team member — never back to whoever lost it.'
+        }
         confirmLabel="Shuffle"
         variant="primary"
       />

@@ -15,6 +15,7 @@ import {
   ListChecks,
   Sheet,
   Shuffle,
+  FileSpreadsheet,
 } from 'lucide-react'
 import { UserRole } from '@/types'
 import { ASSIGNER_ROLES, EMPLOYEE_MODULE_ROLES, ORG_MEMBER_ROLES, ORG_OVERSIGHT_ROLES } from '@/lib/constants'
@@ -90,6 +91,12 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'Lost Leads',
     icon: Shuffle,
     roles: ASSIGNER_ROLES,
+  },
+  {
+    to: '/lead-uploads',
+    label: 'Lead Uploads',
+    icon: FileSpreadsheet,
+    roles: [UserRole.ADMIN],
   },
   {
     to: '/todo',

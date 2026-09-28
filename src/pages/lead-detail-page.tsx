@@ -33,6 +33,7 @@ import { WhatsAppChatPanel } from '@/components/leads/whatsapp-chat-panel'
 import { FollowUpModal } from '@/components/leads/follow-up-modal'
 import { DeleteLeadDialog } from '@/components/leads/delete-lead-dialog'
 import { LeadChannelBadge } from '@/components/leads/lead-channel-badge'
+import { uploaderRoleLabel } from '@/lib/lead-channel'
 import { TaskFormModal } from '@/components/tasks/task-form-modal'
 import { ShareProjectModal } from '@/components/projects/share-project-modal'
 import { WhatsAppGlyph } from '@/components/integrations/whatsapp-mark'
@@ -173,7 +174,7 @@ export function LeadDetailPage() {
               <div className="flex items-start gap-3 rounded-xl bg-violet-50 p-3">
                 <FileSpreadsheet className="mt-0.5 size-4 shrink-0 text-violet-500" />
                 <div>
-                  <p className="text-xs font-medium text-violet-500">Provided by Admin</p>
+                  <p className="text-xs font-medium text-violet-500">Provided by {uploaderRoleLabel(lead)}</p>
                   {lead.importBatch ? (
                     <>
                       <p className="mt-0.5 text-sm font-medium text-slate-700">
@@ -323,7 +324,12 @@ export function LeadDetailPage() {
         </Card>
       )}
 
-      <AssignLeadModal open={assignOpen} onClose={() => setAssignOpen(false)} lead={lead} />
+      <AssignLeadModal
+        open={assignOpen}
+        onClose={() => setAssignOpen(false)}
+        lead={lead}
+        onHandedOver={() => navigate({ to: '/leads' })}
+      />
       <TaskFormModal open={taskOpen} onClose={() => setTaskOpen(false)} lead={{ id: lead.id, fullName: lead.fullName }} />
       <ShareProjectModal
         open={shareOpen}

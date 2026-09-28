@@ -19,6 +19,15 @@ export function useTeamMembers(query: TeamMemberQuery = {}) {
   })
 }
 
+/** The other Managers in the org, for handing a lead over to one of them. */
+export function usePeerManagers(enabled = true) {
+  return useQuery({
+    queryKey: queryKeys.team.peers,
+    queryFn: teamApi.peers,
+    enabled,
+  })
+}
+
 export function useTeamMember(id: string | undefined) {
   return useQuery({
     queryKey: queryKeys.team.detail(id ?? ''),

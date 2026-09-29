@@ -510,6 +510,8 @@ export interface Lead {
   sourceLeadId: string | null
   fullName: string
   phone: string
+  /** The person's other numbers, beside `phone`. */
+  alternatePhones: string[]
   email: string | null
   projectId: string | null
   project: { id: string; name: string } | null

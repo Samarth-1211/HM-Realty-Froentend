@@ -96,6 +96,9 @@ export function LeadDetailPage() {
       value: lead.assignedTo ? `${lead.assignedTo.firstName} ${lead.assignedTo.lastName}` : 'Unassigned',
     },
     { icon: Phone, label: 'Phone', value: lead.phone },
+    ...((lead.alternatePhones ?? []).length
+      ? [{ icon: Phone, label: 'Other numbers', value: lead.alternatePhones.join(', ') }]
+      : []),
     { icon: Mail, label: 'Email', value: lead.email ?? '—' },
     { icon: FolderKanban, label: 'Project', value: lead.project?.name ?? '—' },
     { icon: Tag, label: 'Property interest', value: lead.propertyInterest ?? '—' },

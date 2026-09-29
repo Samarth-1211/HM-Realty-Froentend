@@ -104,6 +104,10 @@ export function ImportLeadsModal({ open, onClose }: { open: boolean; onClose: ()
               <p>
                 Use the same columns as the Lead Sheet — <span className="font-medium text-slate-800">Customer Name</span> and{' '}
                 <span className="font-medium text-slate-800">Mobile No.</span> are required. An exported Lead Sheet works as it is.
+                <span className="mt-1 block text-xs text-slate-500">
+                  Several numbers for one lead? Put them in the same Mobile No. cell separated by commas (9876543210, 9123456789),
+                  with the column formatted as Text.
+                </span>
               </p>
               <Button variant="secondary" size="sm" className="shrink-0" onClick={downloadTemplate} loading={downloading}>
                 {!downloading && <Download className="size-4" />}

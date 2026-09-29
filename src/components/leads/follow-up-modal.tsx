@@ -10,7 +10,7 @@ import {
   LEAD_TEMPERATURE_LABELS,
   VISIT_STATUS_LABELS,
 } from '@/lib/constants'
-import { toDatetimeLocal } from '@/lib/utils'
+import { splitPhoneList, toDatetimeLocal } from '@/lib/utils'
 import { BookingStatus, LeadPurpose, LeadTemperature, VisitStatus, type Lead } from '@/types'
 
 const TEMPERATURE_OPTIONS = Object.values(LeadTemperature)
@@ -21,6 +21,7 @@ const BOOKING_STATUS_OPTIONS = Object.values(BookingStatus)
 export function FollowUpModal({ open, onClose, lead }: { open: boolean; onClose: () => void; lead: Lead }) {
   const update = useUpdateLeadFollowUp()
 
+  const [alternatePhones, setAlternatePhones] = useState('')
   const [leadTemperature, setLeadTemperature] = useState<LeadTemperature | ''>('')
   const [purpose, setPurpose] = useState<LeadPurpose | ''>('')
   const [plotSizeSqFt, setPlotSizeSqFt] = useState('')
@@ -37,6 +38,7 @@ export function FollowUpModal({ open, onClose, lead }: { open: boolean; onClose:
 
   useEffect(() => {
     if (!open) return
+    setAlternatePhones((lead.alternatePhones ?? []).join(', '))
     setLeadTemperature(lead.leadTemperature ?? '')
     setPurpose(lead.purpose ?? '')
     setPlotSizeSqFt(lead.plotSizeSqFt != null ? String(lead.plotSizeSqFt) : '')
@@ -52,13 +54,20 @@ export function FollowUpModal({ open, onClose, lead }: { open: boolean; onClose:
     setRemarks(lead.remarks ?? '')
   }, [open, lead])
 
+  const alternatePhoneList = splitPhoneList(alternatePhones)
+  const alternatePhonesError = alternatePhoneList.some((p) => !/^\+?[0-9]{7,15}$/.test(p))
+    ? 'Enter valid numbers, separated by commas'
+    : undefined
+
   const onSubmit = (e: FormEvent) => {
     e.preventDefault()
+    if (alternatePhonesError) return
 
     update.mutate(
       {
         id: lead.id,
         payload: {
+          alternatePhones: alternatePhoneList,
           leadTemperature: leadTemperature || undefined,
           purpose: purpose || undefined,
           plotSizeSqFt: plotSizeSqFt ? Number(plotSizeSqFt) : undefined,
@@ -81,6 +90,10 @@ export function FollowUpModal({ open, onClose, lead }: { open: boolean; onClose:
   return (
     <Modal open={open} onClose={onClose} title="Follow-up & booking details" subtitle={lead.fullName} size="lg">
       <form onSubmit={onSubmit} className="flex flex-col gap-4">
+        <Field label="Other numbers" error={alternatePhonesError} hint={`Main number: ${lead.phone}. Separate extra numbers with commas.`}>
+          <Input value={alternatePhones} onChange={(e) => setAlternatePhones(e.target.value)} placeholder="9123456789, 9000000001" />
+        </Field>
+
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="Lead temperature">
             <Select value={leadTemperature} onChange={(e) => setLeadTemperature(e.target.value as LeadTemperature)}>

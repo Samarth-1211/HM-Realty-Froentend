@@ -12,7 +12,7 @@ import { AssignLeadModal } from '@/components/leads/assign-lead-modal'
 import { useLeads } from '@/hooks/queries/use-leads'
 import { useLeadAllocationSettings, useShuffleLostLeads, useUpdateLostLeadReallocation } from '@/hooks/queries/use-lead-allocation'
 import { useAuthStore } from '@/store/auth-store'
-import { formatDateTime, formatEnumLabel } from '@/lib/utils'
+import { formatDateTime, formatEnumLabel, formatLeadPhones } from '@/lib/utils'
 import { UserRole, type Lead } from '@/types'
 
 export function LostLeadsPage() {
@@ -74,7 +74,7 @@ export function LostLeadsPage() {
       minWidth: '40px',
     },
     { id: 'customerName', header: 'Customer Name', accessor: (l) => l.fullName, sticky: true, minWidth: '160px' },
-    { id: 'mobile', header: 'Mobile No.', accessor: (l) => l.phone, minWidth: '120px' },
+    { id: 'mobile', header: 'Mobile No.', accessor: formatLeadPhones, minWidth: '120px' },
     { id: 'lostBy', header: 'Lost By', accessor: (l) => (l.assignedTo ? `${l.assignedTo.firstName} ${l.assignedTo.lastName}` : '—'), minWidth: '150px' },
     { id: 'source', header: 'Lead Source', accessor: (l) => l.source, cell: (l) => formatEnumLabel(l.source), minWidth: '140px' },
     { id: 'project', header: 'Project', accessor: (l) => l.project?.name ?? '', minWidth: '140px' },

@@ -8,7 +8,7 @@ import { SpreadsheetTable, rowsForExport, type SheetColumn } from '@/components/
 import { LeadStatusBadge } from '@/components/leads/lead-status-badge'
 import { exportToCsv } from '@/lib/export-csv'
 import { LEAD_PROGRESS_STAGE_LABELS, LEAD_TEMPERATURE_COLORS, LEAD_TEMPERATURE_LABELS } from '@/lib/constants'
-import { formatCurrency, formatDate, formatDateTime, formatEnumLabel, formatLeadNumber } from '@/lib/utils'
+import { formatCurrency, formatDate, formatDateTime, formatEnumLabel, formatLeadNumber, formatLeadPhones } from '@/lib/utils'
 import { LeadStatus, type EmployeeOverview } from '@/types'
 
 type OverviewLead = EmployeeOverview['leads'][number]
@@ -25,7 +25,7 @@ export function UserLeadsTab({ leads, fullName }: { leads: OverviewLead[]; fullN
   const columns: SheetColumn<OverviewLead>[] = [
     { id: 'leadNumber', header: 'Lead ID', accessor: (l) => formatLeadNumber(l.leadNumber), sticky: true, minWidth: '110px' },
     { id: 'name', header: 'Name', accessor: (l) => l.fullName, minWidth: '170px' },
-    { id: 'phone', header: 'Phone', accessor: (l) => l.phone, minWidth: '130px' },
+    { id: 'phone', header: 'Phone', accessor: formatLeadPhones, minWidth: '130px' },
     { id: 'status', header: 'Status', accessor: (l) => l.status, cell: (l) => <LeadStatusBadge status={l.status} />, minWidth: '120px' },
     {
       id: 'stage',

@@ -12,6 +12,7 @@ import { useCreateLead } from '@/hooks/queries/use-leads'
 import { useUsers } from '@/hooks/queries/use-users'
 import { useAuthStore } from '@/store/auth-store'
 import { ASSIGNER_ROLES, STAFF_ROLES } from '@/lib/constants'
+import { splitPhoneList } from '@/lib/utils'
 
 const schema = z.object({
   fullName: z.string().min(1, 'Required'),
@@ -19,6 +20,10 @@ const schema = z.object({
     .string()
     .min(1, 'Required')
     .regex(/^\+?[0-9]{7,15}$/, 'Enter a valid phone number'),
+  alternatePhones: z
+    .string()
+    .optional()
+    .refine((v) => splitPhoneList(v ?? '').every((p) => /^\+?[0-9]{7,15}$/.test(p)), 'Enter valid numbers, separated by commas'),
   email: z.string().email('Enter a valid email').optional().or(z.literal('')),
   propertyInterest: z.string().optional(),
   assignedToId: z.string().optional(),
@@ -52,6 +57,7 @@ export function LeadFormModal({ open, onClose }: { open: boolean; onClose: () =>
       reset({
         fullName: '',
         phone: '',
+        alternatePhones: '',
         email: '',
         propertyInterest: '',
         assignedToId: '',
@@ -68,6 +74,7 @@ export function LeadFormModal({ open, onClose }: { open: boolean; onClose: () =>
       {
         fullName: values.fullName,
         phone: values.phone,
+        alternatePhones: splitPhoneList(values.alternatePhones ?? ''),
         email: values.email || undefined,
         propertyInterest: values.propertyInterest || undefined,
         assignedToId: values.assignedToId || undefined,
@@ -95,6 +102,9 @@ export function LeadFormModal({ open, onClose }: { open: boolean; onClose: () =>
         </Field>
         <Field label="Phone" error={errors.phone?.message} required hint="e.g. +919876543210">
           <Input {...register('phone')} placeholder="+919876543210" />
+        </Field>
+        <Field label="Other numbers" error={errors.alternatePhones?.message} hint="Optional. Separate with commas.">
+          <Input {...register('alternatePhones')} placeholder="9123456789, 9000000001" />
         </Field>
         <Field label="Email" error={errors.email?.message}>
           <Input {...register('email')} placeholder="ravi.kumar@example.com" />

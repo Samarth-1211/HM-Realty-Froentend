@@ -24,7 +24,7 @@ import {
   VISIT_STATUS_COLORS,
   VISIT_STATUS_LABELS,
 } from '@/lib/constants'
-import { formatCurrency, formatDate, formatDateTime, formatEnumLabel, formatLeadNumber } from '@/lib/utils'
+import { formatCurrency, formatDate, formatDateTime, formatEnumLabel, formatLeadNumber, formatLeadPhones } from '@/lib/utils'
 import { BookingStatus, LeadSource, LeadStatus, LeadTemperature, UserRole, type Lead } from '@/types'
 
 function leadIdLabel(lead: Lead): string {
@@ -62,7 +62,7 @@ export function LeadSheetPage() {
       if (executive && l.assignedToId !== executive) return false
       if (bookingStatus && l.bookingStatus !== bookingStatus) return false
       if (q) {
-        const haystack = `${l.fullName} ${l.phone} ${l.project?.name ?? ''} ${leadIdLabel(l)}`.toLowerCase()
+        const haystack = `${l.fullName} ${formatLeadPhones(l)} ${l.project?.name ?? ''} ${leadIdLabel(l)}`.toLowerCase()
         if (!haystack.includes(q)) return false
       }
       return true
@@ -78,7 +78,7 @@ export function LeadSheetPage() {
     { id: 'leadId', header: 'Lead ID', accessor: leadIdLabel, sticky: true, minWidth: '110px' },
     { id: 'leadDate', header: 'Lead Date', accessor: (l) => l.createdAt, cell: (l) => formatDate(l.createdAt), minWidth: '110px' },
     { id: 'customerName', header: 'Customer Name', accessor: (l) => l.fullName, minWidth: '160px' },
-    { id: 'mobile', header: 'Mobile No.', accessor: (l) => l.phone, minWidth: '120px' },
+    { id: 'mobile', header: 'Mobile No.', accessor: formatLeadPhones, minWidth: '120px' },
     { id: 'source', header: 'Lead Source', accessor: (l) => l.source, cell: (l) => formatEnumLabel(l.source), minWidth: '140px' },
     {
       id: 'providedBy',

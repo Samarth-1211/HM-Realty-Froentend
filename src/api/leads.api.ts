@@ -17,6 +17,7 @@ import type {
 export interface CreateLeadManualPayload {
   fullName: string
   phone: string
+  alternatePhones?: string[]
   email?: string
   propertyInterest?: string
   assignedToId?: string
@@ -38,6 +39,8 @@ export interface LeadQuery {
 }
 
 export interface UpdateLeadFollowUpPayload {
+  /** Replaces the lead's alternate numbers; [] clears them. */
+  alternatePhones?: string[]
   lastContactedAt?: string
   nextFollowUpAt?: string
   siteVisitDate?: string

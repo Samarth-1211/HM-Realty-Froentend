@@ -104,3 +104,16 @@ export function cleanPayload<T extends Record<string, unknown>>(obj: T): Partial
   }
   return result
 }
+
+/** Every number of a lead, main one first — "9876543210, 9123456789". */
+export function formatLeadPhones(lead: { phone: string; alternatePhones?: string[] | null }) {
+  return [lead.phone, ...(lead.alternatePhones ?? [])].join(', ')
+}
+
+/** A comma-separated list of phone numbers typed into a form, split into its numbers. */
+export function splitPhoneList(value: string): string[] {
+  return value
+    .split(/[,;\n]+/)
+    .map((p) => p.replace(/[\s\-().]/g, ''))
+    .filter(Boolean)
+}

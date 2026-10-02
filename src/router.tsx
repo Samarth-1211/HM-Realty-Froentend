@@ -29,7 +29,7 @@ import { ProfilePage } from '@/pages/profile-page'
 import { TodoPage } from '@/pages/todo-page'
 import { UnauthorizedPage } from '@/pages/unauthorized-page'
 import { NotFoundPage } from '@/pages/not-found-page'
-import { ASSIGNER_ROLES, EMPLOYEE_MODULE_ROLES, ORG_MEMBER_ROLES, ORG_OVERSIGHT_ROLES } from '@/lib/constants'
+import { ASSIGNER_ROLES, EMPLOYEE_MODULE_ROLES, ORG_MEMBER_ROLES, ORG_OVERSIGHT_ROLES, TARGETS_PAGE_ROLES } from '@/lib/constants'
 
 function requireAuth() {
   if (!useAuthStore.getState().isAuthenticated()) {
@@ -229,7 +229,7 @@ const targetsRoute = createRoute({
   getParentRoute: () => appLayoutRoute,
   path: '/targets',
   component: TargetsPage,
-  beforeLoad: requireRole(EMPLOYEE_MODULE_ROLES),
+  beforeLoad: requireRole(TARGETS_PAGE_ROLES),
 })
 
 const profileRoute = createRoute({

@@ -5,7 +5,8 @@ import { formatEnumLabel, formatLeadNumber } from '@/lib/utils'
 import type { Lead } from '@/types'
 
 /**
- * Two-step confirmation before an Admin permanently deletes a lead: a
+ * Two-step confirmation before an Admin (or a Manager, for a lead they may
+ * delete) permanently deletes a lead: a
  * warning spelling out what will be lost, then a second dialog that only
  * unlocks once "delete" is typed (the word the backend also requires).
  * Mount it only while a lead is selected so each opening starts at step one.

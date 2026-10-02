@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
-import { Contact, FileSpreadsheet, Plus, Trash2, UserPlus } from 'lucide-react'
+import { Contact, FileSpreadsheet, Pencil, Plus, Trash2, UserPlus } from 'lucide-react'
 import { PageHeader } from '@/components/ui/page-header'
 import { Card } from '@/components/ui/card'
 import { DataTable, type Column } from '@/components/ui/data-table'
@@ -11,12 +11,13 @@ import { LeadStatusBadge } from '@/components/leads/lead-status-badge'
 import { LeadFormModal } from '@/components/leads/lead-form-modal'
 import { AssignLeadModal } from '@/components/leads/assign-lead-modal'
 import { DeleteLeadDialog } from '@/components/leads/delete-lead-dialog'
+import { LeadEditModal } from '@/components/leads/lead-edit-modal'
 import { ImportLeadsModal } from '@/components/leads/import-leads-modal'
 import { LeadChannelBadge } from '@/components/leads/lead-channel-badge'
 import { useLeads, useMarkLeadsSeenWhileOpen } from '@/hooks/queries/use-leads'
 import { useAuthStore } from '@/store/auth-store'
-import { ASSIGNER_ROLES, ORG_OVERSIGHT_ROLES } from '@/lib/constants'
-import { LEAD_CHANNEL_LABELS } from '@/lib/lead-channel'
+import { ASSIGNER_ROLES } from '@/lib/constants'
+import { canManageLeadRecord, LEAD_CHANNEL_LABELS, lostLeadsLast } from '@/lib/lead-channel'
 import { LeadIntakeChannel, LeadSource, LeadStatus, UserRole, type Lead } from '@/types'
 import { formatDateTime, formatEnumLabel } from '@/lib/utils'
 
@@ -32,13 +33,13 @@ export function LeadsPage() {
   const [importOpen, setImportOpen] = useState(false)
   const [assignLead, setAssignLead] = useState<Lead | null>(null)
   const [deleteLead, setDeleteLead] = useState<Lead | null>(null)
+  const [editLead, setEditLead] = useState<Lead | null>(null)
   const pageSize = 10
 
   // Viewing the list is what "seeing" new leads means — clears the nav dot.
   useMarkLeadsSeenWhileOpen()
 
   const canAssign = currentUser && ASSIGNER_ROLES.includes(currentUser.role)
-  const canDelete = currentUser && ORG_OVERSIGHT_ROLES.includes(currentUser.role)
   // Managers upload too — shared with their own team and any managers they pick to collaborate with.
   const canImport = currentUser?.role === UserRole.ADMIN || currentUser?.role === UserRole.MANAGER
   // Managers see their own and their team's leads; hot leads are assigned to them personally.
@@ -50,16 +51,15 @@ export function LeadsPage() {
     status: (status || undefined) as LeadStatus | undefined,
   })
 
-  const filtered = useMemo(
-    () =>
-      allLeads.filter(
-        (l) =>
-          (!source || l.source === source) &&
-          (!channel || l.intakeChannel === channel) &&
-          (!onlyMine || l.assignedToId === currentUser?.id),
-      ),
-    [allLeads, source, channel, onlyMine, currentUser?.id],
-  )
+  const filtered = useMemo(() => {
+    const matching = allLeads.filter(
+      (l) =>
+        (!source || l.source === source) &&
+        (!channel || l.intakeChannel === channel) &&
+        (!onlyMine || l.assignedToId === currentUser?.id),
+    )
+    return status ? matching : lostLeadsLast(matching)
+  }, [allLeads, status, source, channel, onlyMine, currentUser?.id])
   const paged = filtered.slice((page - 1) * pageSize, page * pageSize)
 
   const columns: Column<Lead>[] = [
@@ -107,37 +107,53 @@ export function LeadsPage() {
           {
             key: 'actions',
             header: '',
-            headerClassName: canDelete ? 'w-20' : 'w-10',
-            className: canDelete ? 'w-20' : 'w-10',
-            render: (l: Lead) => (
-              <div className="flex items-center gap-1">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setAssignLead(l)
-                  }}
-                  title="Assign"
-                >
-                  <UserPlus className="size-4" />
-                </Button>
-                {canDelete && (
+            headerClassName: 'w-28',
+            className: 'w-28',
+            render: (l: Lead) => {
+              const canManage = canManageLeadRecord(currentUser, l)
+              return (
+                <div className="flex items-center gap-1">
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={(e) => {
                       e.stopPropagation()
-                      setDeleteLead(l)
+                      setAssignLead(l)
                     }}
-                    title="Delete"
-                    className="text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+                    title="Assign"
                   >
-                    <Trash2 className="size-4" />
+                    <UserPlus className="size-4" />
                   </Button>
-                )}
-              </div>
-            ),
+                  {canManage && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setEditLead(l)
+                      }}
+                      title="Edit"
+                    >
+                      <Pencil className="size-4" />
+                    </Button>
+                  )}
+                  {canManage && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setDeleteLead(l)
+                      }}
+                      title="Delete"
+                      className="text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+                    >
+                      <Trash2 className="size-4" />
+                    </Button>
+                  )}
+                </div>
+              )
+            },
           },
         ]
       : []),
@@ -245,6 +261,7 @@ export function LeadsPage() {
       {canImport && <ImportLeadsModal open={importOpen} onClose={() => setImportOpen(false)} />}
       <AssignLeadModal open={!!assignLead} onClose={() => setAssignLead(null)} lead={assignLead} />
       {deleteLead && <DeleteLeadDialog lead={deleteLead} onClose={() => setDeleteLead(null)} />}
+      <LeadEditModal lead={editLead} onClose={() => setEditLead(null)} />
     </div>
   )
 }

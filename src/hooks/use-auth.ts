@@ -3,6 +3,7 @@ import { useNavigate } from '@tanstack/react-router'
 import { toast } from 'sonner'
 import { authApi, type LoginPayload } from '@/api/auth.api'
 import { extractErrorMessage } from '@/lib/api-client'
+import { detachDevice } from '@/lib/push'
 import { useAuthStore } from '@/store/auth-store'
 import { ROLE_LABELS } from '@/lib/constants'
 
@@ -74,6 +75,8 @@ export function useLogout() {
 
   return useMutation({
     mutationFn: async () => {
+      // While the session is still valid: stop this device getting this user's notifications.
+      await detachDevice().catch(() => undefined)
       const refreshToken = useAuthStore.getState().refreshToken
       if (refreshToken) {
         await authApi.logout(refreshToken).catch(() => undefined)

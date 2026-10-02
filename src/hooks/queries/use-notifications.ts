@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { notificationsApi } from '@/api/notifications.api'
 import { queryKeys } from './query-keys'
 
-/** Notifications aren't pushed (no websocket infra) — poll at a modest cadence. */
+/** Polled as a fallback — with device notifications on, a push also refreshes these at once (see usePushBridge). */
 const NOTIFICATION_POLL_MS = 30_000
 
 export function useNotifications(unreadOnly?: boolean) {

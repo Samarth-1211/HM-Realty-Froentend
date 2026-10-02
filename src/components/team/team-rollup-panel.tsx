@@ -63,13 +63,9 @@ export function TeamRollupPanel() {
                     <td className="px-5 py-3 text-slate-600">{r.leadSnapshot.converted}</td>
                     <td className="px-5 py-3">
                       {r.target?.metric ? (
-                        r.target.callTrackingComingSoon ? (
-                          <Badge variant="warning">Calls — coming soon</Badge>
-                        ) : (
-                          <span className="text-slate-600">
-                            {formatEnumLabel(r.target.metric)}: {r.target.actualValue} / {r.target.targetValue}
-                          </span>
-                        )
+                        <span className="text-slate-600">
+                          {formatEnumLabel(r.target.metric)}: {r.target.actualValue ?? 0} / {r.target.targetValue}
+                        </span>
                       ) : (
                         <span className="text-slate-400">No target set</span>
                       )}

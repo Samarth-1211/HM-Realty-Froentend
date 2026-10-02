@@ -29,6 +29,8 @@ export const LeadActivityType = {
   NOTE_ADDED: 'NOTE_ADDED',
   /** Same phone number enquired again — logged on the existing lead instead of a duplicate. */
   RE_ENQUIRED: 'RE_ENQUIRED',
+  /** The lead's own details (name, phone, email, project…) were edited. */
+  DETAILS_UPDATED: 'DETAILS_UPDATED',
 } as const
 export type LeadActivityType = (typeof LeadActivityType)[keyof typeof LeadActivityType]
 
@@ -125,6 +127,10 @@ export const NotificationType = {
   LEAD_CAPTURED: 'LEAD_CAPTURED',
   /** A lead was allocated to this user. */
   LEAD_ASSIGNED: 'LEAD_ASSIGNED',
+  /** A lead's details were edited — sent to the Admins (and the lead's assignee). */
+  LEAD_UPDATED: 'LEAD_UPDATED',
+  /** A lead was deleted — sent to the Admins (and its assignee) with what was removed. */
+  LEAD_DELETED: 'LEAD_DELETED',
 } as const
 export type NotificationType = (typeof NotificationType)[keyof typeof NotificationType]
 
@@ -524,6 +530,8 @@ export interface Lead {
   receivedAt: string | null
   rawPayload: unknown
   status: LeadStatus
+  /** When the lead was converted; null while it isn't. */
+  convertedAt?: string | null
   assignedToId: string | null
   assignedTo: {
     id: string
@@ -735,12 +743,13 @@ export interface Target {
 export interface TargetProgress {
   userId: string
   fullName: string
+  role: UserRole
   periodYear: number
   periodMonth: number
   metric: TargetMetric | null
   targetValue: number | null
+  /** Calls logged as daily activities, or leads converted, that month. */
   actualValue: number | null
-  callTrackingComingSoon: boolean
 }
 
 export interface EmployeeProfile {

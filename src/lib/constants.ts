@@ -87,6 +87,9 @@ export const EMPLOYEE_MODULE_ROLES: UserRole[] = [
   UserRole.AGENT,
 ]
 
+/** Targets page: everyone who carries a target, plus the Admins who set them. */
+export const TARGETS_PAGE_ROLES: UserRole[] = [UserRole.ADMIN, ...EMPLOYEE_MODULE_ROLES]
+
 export const ATTENDANCE_STATUS_LABELS: Record<string, string> = {
   PRESENT: 'Present',
   HALF_DAY: 'Half-day',

@@ -12,7 +12,7 @@ import { useLeads } from '@/hooks/queries/use-leads'
 import { useUsers } from '@/hooks/queries/use-users'
 import { useAuthStore } from '@/store/auth-store'
 import { exportToCsv } from '@/lib/export-csv'
-import { providedByLabel, uploadedByLabel } from '@/lib/lead-channel'
+import { lostLeadsLast, providedByLabel, uploadedByLabel } from '@/lib/lead-channel'
 import { LeadChannelBadge } from '@/components/leads/lead-channel-badge'
 import {
   BOOKING_STATUS_COLORS,
@@ -55,7 +55,7 @@ export function LeadSheetPage() {
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
-    return leads.filter((l) => {
+    const matching = leads.filter((l) => {
       if (status && l.status !== status) return false
       if (temperature && l.leadTemperature !== temperature) return false
       if (source && l.source !== source) return false
@@ -67,6 +67,7 @@ export function LeadSheetPage() {
       }
       return true
     })
+    return status ? matching : lostLeadsLast(matching)
   }, [leads, search, status, temperature, source, executive, bookingStatus])
 
   const executiveOptions = useMemo(

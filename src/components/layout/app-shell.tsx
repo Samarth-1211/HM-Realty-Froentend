@@ -2,8 +2,11 @@ import { Outlet } from '@tanstack/react-router'
 import { Sidebar } from './sidebar'
 import { Topbar } from './topbar'
 import { MobileBottomNav } from './mobile-bottom-nav'
+import { usePushBridge } from '@/hooks/use-push-notifications'
 
 export function AppShell() {
+  usePushBridge()
+
   return (
     <div className="flex min-h-dvh bg-slate-50">
       <Sidebar />

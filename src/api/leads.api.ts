@@ -26,6 +26,24 @@ export interface CreateLeadManualPayload {
   referredByPhone?: string
 }
 
+/** A lead's own details. Omit a field to leave it; `null` clears an optional one. */
+export interface UpdateLeadDetailsPayload {
+  fullName?: string
+  phone?: string
+  /** Replaces the lead's other numbers; [] clears them. */
+  alternatePhones?: string[]
+  email?: string | null
+  projectId?: string | null
+  propertyInterest?: string | null
+  unitType?: string | null
+  city?: string | null
+  budgetMin?: number | null
+  budgetMax?: number | null
+  referredByName?: string | null
+  referredByEmail?: string | null
+  referredByPhone?: string | null
+}
+
 export interface UpdateLeadStatusPayload {
   id: string
   status: LeadStatus
@@ -68,6 +86,10 @@ export const leadsApi = {
 
   createManual: (payload: CreateLeadManualPayload) =>
     apiClient.post<CreateLeadManualResult>('/leads/manual', payload).then((r) => r.data),
+
+  /** Admins: any lead. Managers: manually added / Excel-uploaded leads in their team. */
+  update: (id: string, payload: UpdateLeadDetailsPayload) =>
+    apiClient.patch<LeadWithActivity>(`/leads/${id}`, payload).then((r) => r.data),
 
   assign: (id: string, assignedToId: string) =>
     apiClient.patch<Lead>(`/leads/${id}/assign`, { assignedToId }).then((r) => r.data),

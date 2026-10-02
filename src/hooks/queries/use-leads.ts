@@ -5,6 +5,7 @@ import {
   leadsApi,
   type CreateLeadManualPayload,
   type LeadQuery,
+  type UpdateLeadDetailsPayload,
   type UpdateLeadFollowUpPayload,
   type UpdateLeadStatusPayload,
 } from '@/api/leads.api'
@@ -85,6 +86,19 @@ export function useCreateLead() {
       qc.invalidateQueries({ queryKey: ['leads'] })
     },
     onError: (error) => toast.error('Could not add lead', { description: extractErrorMessage(error) }),
+  })
+}
+
+export function useUpdateLead() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: UpdateLeadDetailsPayload }) => leadsApi.update(id, payload),
+    onSuccess: (lead, vars) => {
+      toast.success('Lead updated')
+      qc.setQueryData(queryKeys.leads.detail(vars.id), lead)
+      qc.invalidateQueries({ queryKey: ['leads'] })
+    },
+    onError: (error) => toast.error('Could not update lead', { description: extractErrorMessage(error) }),
   })
 }
 

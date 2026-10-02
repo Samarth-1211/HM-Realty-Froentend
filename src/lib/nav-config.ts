@@ -18,7 +18,7 @@ import {
   FileSpreadsheet,
 } from 'lucide-react'
 import { UserRole } from '@/types'
-import { ASSIGNER_ROLES, EMPLOYEE_MODULE_ROLES, ORG_MEMBER_ROLES, ORG_OVERSIGHT_ROLES } from '@/lib/constants'
+import { ASSIGNER_ROLES, EMPLOYEE_MODULE_ROLES, ORG_MEMBER_ROLES, ORG_OVERSIGHT_ROLES, TARGETS_PAGE_ROLES } from '@/lib/constants'
 
 export interface NavItem {
   to: string
@@ -129,7 +129,7 @@ export const NAV_ITEMS: NavItem[] = [
     to: '/targets',
     label: 'Targets',
     icon: Target,
-    roles: EMPLOYEE_MODULE_ROLES,
+    roles: TARGETS_PAGE_ROLES,
   },
   {
     to: '/profile',

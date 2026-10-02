@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
-import { Bell, CheckCheck } from 'lucide-react'
+import { Bell, BellOff, BellRing, CheckCheck, Smartphone } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { formatDateTime } from '@/lib/utils'
 import {
@@ -9,7 +9,74 @@ import {
   useNotifications,
   useUnreadNotificationCount,
 } from '@/hooks/queries/use-notifications'
+import { usePushNotifications } from '@/hooks/use-push-notifications'
+import { needsHomeScreenInstall } from '@/lib/push'
 import { NotificationType, type Notification } from '@/types'
+
+const LEAD_NOTIFICATION_TYPES: NotificationType[] = [
+  NotificationType.LEAD_CAPTURED,
+  NotificationType.LEAD_ASSIGNED,
+  NotificationType.LEAD_UPDATED,
+  NotificationType.LEAD_DELETED,
+]
+
+/** Turns this device's notification-bar alerts on/off — shown at the top of the bell's panel. */
+function DeviceAlertsBar() {
+  const { state, enable, disable, test } = usePushNotifications()
+  if (!state || state === 'unavailable') return null
+
+  if (state === 'unsupported') {
+    if (!needsHomeScreenInstall()) return null
+    return (
+      <div className="flex items-start gap-2 border-b border-slate-100 bg-slate-50 px-3.5 py-2.5 text-xs text-slate-500">
+        <Smartphone className="mt-0.5 size-3.5 shrink-0" />
+        <span>
+          To get alerts on this iPhone, tap <strong>Share → Add to Home Screen</strong>, open the CRM from there and turn
+          notifications on.
+        </span>
+      </div>
+    )
+  }
+
+  if (state === 'denied') {
+    return (
+      <div className="flex items-start gap-2 border-b border-slate-100 bg-amber-50 px-3.5 py-2.5 text-xs text-amber-800">
+        <BellOff className="mt-0.5 size-3.5 shrink-0" />
+        <span>Notifications are blocked for this site. Allow them in your browser’s site settings to get device alerts.</span>
+      </div>
+    )
+  }
+
+  if (state === 'off') {
+    return (
+      <div className="flex items-center gap-3 border-b border-slate-100 bg-brand-50/60 px-3.5 py-2.5">
+        <BellRing className="size-4 shrink-0 text-brand-600" />
+        <p className="flex-1 text-xs text-slate-600">Get new leads and reminders in this device’s notification bar.</p>
+        <button
+          onClick={() => enable.mutate()}
+          disabled={enable.isPending}
+          className="shrink-0 rounded-md bg-brand-600 px-2.5 py-1 text-xs font-semibold text-white hover:bg-brand-700 disabled:opacity-60"
+        >
+          {enable.isPending ? 'Turning on…' : 'Turn on'}
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex items-center gap-2 border-b border-slate-100 px-3.5 py-2 text-xs text-slate-500">
+      <BellRing className="size-3.5 shrink-0 text-emerald-600" />
+      <span className="flex-1">Device alerts are on</span>
+      <button onClick={() => test.mutate()} disabled={test.isPending} className="font-medium text-brand-600 hover:underline">
+        Send test
+      </button>
+      <span className="text-slate-300">·</span>
+      <button onClick={() => disable.mutate()} disabled={disable.isPending} className="font-medium text-slate-500 hover:underline">
+        Turn off
+      </button>
+    </div>
+  )
+}
 
 export function NotificationBell() {
   const [open, setOpen] = useState(false)
@@ -36,8 +103,8 @@ export function NotificationBell() {
     const leadId = n.leadId ?? n.task?.leadId
     if (leadId) {
       navigate({ to: '/leads/$leadId', params: { leadId } })
-    } else if (n.type === NotificationType.LEAD_CAPTURED || n.type === NotificationType.LEAD_ASSIGNED) {
-      // The lead has since been deleted.
+    } else if (LEAD_NOTIFICATION_TYPES.includes(n.type)) {
+      // A deleted lead (or one that has since been deleted).
       navigate({ to: '/leads' })
     } else {
       navigate({ to: '/todo' })
@@ -72,6 +139,7 @@ export function NotificationBell() {
               </button>
             )}
           </div>
+          <DeviceAlertsBar />
           <div className="max-h-96 overflow-y-auto">
             {isLoading ? (
               <p className="px-3.5 py-6 text-center text-sm text-slate-400">Loading…</p>

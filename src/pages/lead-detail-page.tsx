@@ -12,6 +12,7 @@ import {
   Mail,
   MapPin,
   NotebookPen,
+  Pencil,
   Phone,
   Tag,
   Target,
@@ -32,8 +33,9 @@ import { AssignLeadModal } from '@/components/leads/assign-lead-modal'
 import { WhatsAppChatPanel } from '@/components/leads/whatsapp-chat-panel'
 import { FollowUpModal } from '@/components/leads/follow-up-modal'
 import { DeleteLeadDialog } from '@/components/leads/delete-lead-dialog'
+import { LeadEditModal } from '@/components/leads/lead-edit-modal'
 import { LeadChannelBadge } from '@/components/leads/lead-channel-badge'
-import { uploaderRoleLabel } from '@/lib/lead-channel'
+import { canManageLeadRecord, uploaderRoleLabel } from '@/lib/lead-channel'
 import { TaskFormModal } from '@/components/tasks/task-form-modal'
 import { ShareProjectModal } from '@/components/projects/share-project-modal'
 import { WhatsAppGlyph } from '@/components/integrations/whatsapp-mark'
@@ -48,7 +50,6 @@ import {
   LEAD_PURPOSE_LABELS,
   LEAD_TEMPERATURE_COLORS,
   LEAD_TEMPERATURE_LABELS,
-  ORG_OVERSIGHT_ROLES,
   VISIT_STATUS_COLORS,
   VISIT_STATUS_LABELS,
 } from '@/lib/constants'
@@ -62,6 +63,7 @@ const ACTIVITY_LABELS: Record<string, string> = {
   REASSIGNED: 'Reassigned',
   NOTE_ADDED: 'Note added',
   RE_ENQUIRED: 'Enquired again',
+  DETAILS_UPDATED: 'Details edited',
 }
 
 export function LeadDetailPage() {
@@ -73,14 +75,17 @@ export function LeadDetailPage() {
   const [taskOpen, setTaskOpen] = useState(false)
   const [followUpOpen, setFollowUpOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
+  const [editOpen, setEditOpen] = useState(false)
   const [shareOpen, setShareOpen] = useState(false)
   // The lead's project, for sending its details to this customer on WhatsApp.
   const { data: project } = useProject(lead?.projectId ?? undefined)
 
   const canAssign = currentUser && ASSIGNER_ROLES.includes(currentUser.role)
-  const canDelete = currentUser && ORG_OVERSIGHT_ROLES.includes(currentUser.role)
 
   if (isLoading || !lead) return <PageLoader label="Loading lead…" />
+
+  // Admins: any lead. Managers: manually added / Excel-uploaded leads in their team.
+  const canManage = canManageLeadRecord(currentUser, lead)
 
   const canChangeStatus =
     !!currentUser &&
@@ -153,7 +158,13 @@ export function LeadDetailPage() {
             Follow-up
           </Button>
         )}
-        {canDelete && (
+        {canManage && (
+          <Button size="sm" variant="outline" onClick={() => setEditOpen(true)}>
+            <Pencil className="size-4" />
+            Edit
+          </Button>
+        )}
+        {canManage && (
           <Button size="sm" variant="danger" onClick={() => setDeleteOpen(true)}>
             <Trash2 className="size-4" />
             Delete
@@ -341,6 +352,7 @@ export function LeadDetailPage() {
         defaultPhone={lead.phone}
       />
       {canChangeStatus && <FollowUpModal open={followUpOpen} onClose={() => setFollowUpOpen(false)} lead={lead} />}
+      {editOpen && <LeadEditModal lead={lead} onClose={() => setEditOpen(false)} />}
       {deleteOpen && (
         <DeleteLeadDialog lead={lead} onClose={() => setDeleteOpen(false)} onDeleted={() => navigate({ to: '/leads' })} />
       )}

@@ -28,6 +28,7 @@ import { TargetsPage } from '@/pages/targets-page'
 import { ProfilePage } from '@/pages/profile-page'
 import { TodoPage } from '@/pages/todo-page'
 import { UnauthorizedPage } from '@/pages/unauthorized-page'
+import { PrivacyPolicyPage } from '@/pages/privacy-policy-page'
 import { NotFoundPage } from '@/pages/not-found-page'
 import { ASSIGNER_ROLES, EMPLOYEE_MODULE_ROLES, ORG_MEMBER_ROLES, ORG_OVERSIGHT_ROLES, TARGETS_PAGE_ROLES } from '@/lib/constants'
 
@@ -82,6 +83,13 @@ const verifyEmailRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/verify-email',
   component: VerifyEmailPage,
+})
+
+// Public: must be reachable without login (e.g. for Meta/WhatsApp app review).
+const privacyPolicyRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/privacy-policy',
+  component: PrivacyPolicyPage,
 })
 
 // Undocumented, unlinked entry point for the super admin portal. The path segment
@@ -250,6 +258,7 @@ const routeTree = rootRoute.addChildren([
   loginRoute,
   forgotPasswordRoute,
   verifyEmailRoute,
+  privacyPolicyRoute,
   superAdminLoginRoute,
   appLayoutRoute.addChildren([
     dashboardRoute,

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Download, FileSpreadsheet } from 'lucide-react'
+import { Download, FileSpreadsheet, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { PageHeader } from '@/components/ui/page-header'
 import { Card } from '@/components/ui/card'
@@ -10,6 +10,7 @@ import { Spinner } from '@/components/ui/spinner'
 import { DataTable, type Column } from '@/components/ui/data-table'
 import { Pagination } from '@/components/ui/pagination'
 import { ImportSummary } from '@/components/leads/import-leads-modal'
+import { BulkDeleteLeadsDialog, type SheetToDelete } from '@/components/leads/bulk-delete-leads-dialog'
 import { leadsApi } from '@/api/leads.api'
 import { useLeadImport, useLeadImports } from '@/hooks/queries/use-leads'
 import { extractErrorMessage } from '@/lib/api-client'
@@ -43,7 +44,11 @@ export function LeadUploadsPage() {
   const [page, setPage] = useState(1)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [downloadingId, setDownloadingId] = useState<string | null>(null)
+  const [sheetToDelete, setSheetToDelete] = useState<SheetToDelete | null>(null)
   const { data, isLoading } = useLeadImports(page, PAGE_SIZE)
+
+  const askDelete = (batch: LeadImportBatch) =>
+    setSheetToDelete({ id: batch.id, fileName: batch.fileName, count: batch.leadCount })
 
   const download = async (batch: LeadImportBatch) => {
     setDownloadingId(batch.id)
@@ -107,6 +112,36 @@ export function LeadUploadsPage() {
       ),
     },
     {
+      key: 'inCrm',
+      header: 'Leads in CRM',
+      render: (b) => (
+        <span className={b.leadCount > 0 ? 'text-slate-700' : 'text-slate-400'}>
+          {b.leadCount > 0 ? b.leadCount.toLocaleString('en-IN') : b.createdCount > 0 ? 'All deleted' : '—'}
+        </span>
+      ),
+    },
+    {
+      key: 'delete',
+      header: '',
+      headerClassName: 'w-10',
+      className: 'w-10',
+      render: (b) =>
+        b.leadCount > 0 && b.status !== LeadImportStatus.PROCESSING ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            title="Delete every lead from this sheet"
+            className="text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+            onClick={(e) => {
+              e.stopPropagation()
+              askDelete(b)
+            }}
+          >
+            <Trash2 className="size-4" />
+          </Button>
+        ) : null,
+    },
+    {
       key: 'download',
       header: '',
       headerClassName: 'w-10',
@@ -163,7 +198,12 @@ export function LeadUploadsPage() {
         onClose={() => setSelectedId(null)}
         onDownload={download}
         downloading={!!selected && downloadingId === selected.id}
+        onDeleteLeads={(b) => {
+          setSelectedId(null)
+          askDelete(b)
+        }}
       />
+      {sheetToDelete && <BulkDeleteLeadsDialog sheet={sheetToDelete} onClose={() => setSheetToDelete(null)} />}
     </div>
   )
 }
@@ -173,11 +213,13 @@ function UploadDetailModal({
   onClose,
   onDownload,
   downloading,
+  onDeleteLeads,
 }: {
   batch: LeadImportBatch | null
   onClose: () => void
   onDownload: (batch: LeadImportBatch) => void
   downloading: boolean
+  onDeleteLeads: (batch: LeadImportBatch) => void
 }) {
   // The list leaves out row-level issues; the single upload has them.
   const { data: full } = useLeadImport(batch?.id ?? null)
@@ -197,9 +239,13 @@ function UploadDetailModal({
                 {fullName(batch.uploadedBy)} ({batch.uploadedBy.role === UserRole.MANAGER ? 'Manager' : 'Admin'})
               </dd>
             </div>
-            <div className="sm:col-span-2">
+            <div>
               <dt className="text-xs text-slate-400">Collaborators</dt>
               <dd className="text-slate-700">{collaboratorsLabel(batch)}</dd>
+            </div>
+            <div>
+              <dt className="text-xs text-slate-400">Leads still in the CRM</dt>
+              <dd className="text-slate-700">{batch.leadCount.toLocaleString('en-IN')}</dd>
             </div>
           </dl>
 
@@ -216,6 +262,12 @@ function UploadDetailModal({
             <Button variant="ghost" onClick={onClose}>
               Close
             </Button>
+            {batch.leadCount > 0 && batch.status !== LeadImportStatus.PROCESSING && (
+              <Button variant="danger" onClick={() => onDeleteLeads(batch)}>
+                <Trash2 className="size-4" />
+                Delete its leads
+              </Button>
+            )}
             {batch.hasFile && (
               <Button onClick={() => onDownload(batch)} loading={downloading}>
                 {!downloading && <Download className="size-4" />}

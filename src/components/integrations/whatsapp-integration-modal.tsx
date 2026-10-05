@@ -2,11 +2,12 @@ import { useEffect, useState } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
-import { AlertTriangle, CheckCircle2, Eye, KeyRound, Link2, Lock, PauseCircle, PlayCircle, ShieldAlert, Save } from 'lucide-react'
+import { AlertTriangle, Bug, CheckCircle2, Eye, KeyRound, Link2, Lock, PauseCircle, PlayCircle, ShieldAlert, ShieldCheck, Save } from 'lucide-react'
 import { Modal } from '@/components/ui/modal'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Field, Input, Label } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { ButtonLink } from '@/components/ui/button-link'
 import { Badge } from '@/components/ui/badge'
 import { CopyButton } from '@/components/ui/copy-button'
 import { WhatsAppMark } from './whatsapp-mark'
@@ -21,11 +22,18 @@ import {
 import { WhatsAppIntegrationStatus, type WhatsAppIntegration } from '@/types'
 
 const phoneRegex = /^\+?[0-9]{7,15}$/
+const appSecretRegex = /^[0-9a-f]{32}$/i
+const appSecretField = z
+  .string()
+  .regex(appSecretRegex, 'The App Secret is 32 hex characters (Meta App Dashboard → App settings → Basic)')
+  .optional()
+  .or(z.literal(''))
 
 const connectSchema = z.object({
   wabaId: z.string().min(1, 'Required'),
   phoneNumberId: z.string().min(1, 'Required'),
   accessToken: z.string().min(1, 'Required'),
+  appSecret: appSecretField,
   displayPhoneNumber: z.string().regex(phoneRegex, 'Enter a valid phone number, e.g. +919812345678').optional().or(z.literal('')),
   businessManagerId: z.string().optional(),
   businessName: z.string().optional(),
@@ -33,7 +41,10 @@ const connectSchema = z.object({
 type ConnectFormValues = z.infer<typeof connectSchema>
 
 const manageSchema = z.object({
+  wabaId: z.string().regex(/^[0-9]+$/, 'Digits only').optional().or(z.literal('')),
+  phoneNumberId: z.string().regex(/^[0-9]+$/, 'Digits only').optional().or(z.literal('')),
   accessToken: z.string().optional(),
+  appSecret: appSecretField,
   displayPhoneNumber: z.string().regex(phoneRegex, 'Enter a valid phone number').optional().or(z.literal('')),
   businessManagerId: z.string().optional(),
   businessName: z.string().optional(),
@@ -80,12 +91,15 @@ export function WhatsAppIntegrationModal({
       setEditing(false)
       setRevealedToken(undefined)
       setConfirmToggle(false)
-      connectForm.reset({ wabaId: '', phoneNumberId: '', accessToken: '', displayPhoneNumber: '', businessManagerId: '', businessName: '' })
+      connectForm.reset({ wabaId: '', phoneNumberId: '', accessToken: '', appSecret: '', displayPhoneNumber: '', businessManagerId: '', businessName: '' })
       return
     }
     if (integration) {
       manageForm.reset({
+        wabaId: integration.wabaId ?? '',
+        phoneNumberId: integration.phoneNumberId ?? '',
         accessToken: '',
+        appSecret: '',
         displayPhoneNumber: integration.displayPhoneNumber ?? '',
         businessManagerId: integration.businessManagerId ?? '',
         businessName: integration.businessName ?? '',
@@ -102,6 +116,7 @@ export function WhatsAppIntegrationModal({
         wabaId: values.wabaId,
         phoneNumberId: values.phoneNumberId,
         accessToken: values.accessToken,
+        appSecret: values.appSecret || undefined,
         displayPhoneNumber: values.displayPhoneNumber || undefined,
         businessManagerId: values.businessManagerId || undefined,
         businessName: values.businessName || undefined,
@@ -113,7 +128,10 @@ export function WhatsAppIntegrationModal({
   const onSaveEdit = (values: ManageFormValues) => {
     update.mutate(
       {
+        wabaId: values.wabaId && values.wabaId !== integration?.wabaId ? values.wabaId : undefined,
+        phoneNumberId: values.phoneNumberId && values.phoneNumberId !== integration?.phoneNumberId ? values.phoneNumberId : undefined,
         accessToken: values.accessToken || undefined,
+        appSecret: values.appSecret || undefined,
         displayPhoneNumber: values.displayPhoneNumber || undefined,
         businessManagerId: values.businessManagerId || undefined,
         businessName: values.businessName || undefined,
@@ -196,6 +214,14 @@ export function WhatsAppIntegrationModal({
               <Field label="Permanent access token (System User)" required error={connectForm.formState.errors.accessToken?.message} className="sm:col-span-2">
                 <Input type="password" {...connectForm.register('accessToken')} placeholder="EAAxxxxxxxxxxxxxxxxxxxxxxxxxx" />
               </Field>
+              <Field
+                label="App Secret"
+                hint="Meta App Dashboard → App settings → Basic. Used to verify that webhooks really come from Meta."
+                error={connectForm.formState.errors.appSecret?.message}
+                className="sm:col-span-2"
+              >
+                <Input type="password" autoComplete="off" {...connectForm.register('appSecret')} placeholder="32-character App Secret" />
+              </Field>
               <Field label="Business Manager ID" hint="Optional — helps with support/debugging">
                 <Input {...connectForm.register('businessManagerId')} placeholder="Optional" />
               </Field>
@@ -216,6 +242,16 @@ export function WhatsAppIntegrationModal({
           <form onSubmit={manageForm.handleSubmit(onSaveEdit)} className="flex flex-col gap-3 rounded-xl border border-slate-100 bg-slate-50/60 p-4">
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Update details</p>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <Field label="WhatsApp Business Account ID (WABA)" error={manageForm.formState.errors.wabaId?.message}>
+                <Input {...manageForm.register('wabaId')} />
+              </Field>
+              <Field
+                label="Phone Number ID"
+                hint="Changing an ID re-validates it with Meta before saving."
+                error={manageForm.formState.errors.phoneNumberId?.message}
+              >
+                <Input {...manageForm.register('phoneNumberId')} />
+              </Field>
               <Field label="Registered phone number" error={manageForm.formState.errors.displayPhoneNumber?.message}>
                 <Input {...manageForm.register('displayPhoneNumber')} placeholder="+919812345678" />
               </Field>
@@ -231,6 +267,19 @@ export function WhatsAppIntegrationModal({
                 className="sm:col-span-2"
               >
                 <Input type="password" {...manageForm.register('accessToken')} placeholder="Leave blank to keep the current token" />
+              </Field>
+              <Field
+                label={integration?.hasAppSecret ? 'Replace App Secret' : 'App Secret'}
+                hint="Meta App Dashboard → App settings → Basic. Used to verify webhook signatures."
+                error={manageForm.formState.errors.appSecret?.message}
+                className="sm:col-span-2"
+              >
+                <Input
+                  type="password"
+                  autoComplete="off"
+                  {...manageForm.register('appSecret')}
+                  placeholder={integration?.hasAppSecret ? 'Leave blank to keep the current secret' : '32-character App Secret'}
+                />
               </Field>
             </div>
             <div className="flex justify-end gap-2">
@@ -252,10 +301,27 @@ export function WhatsAppIntegrationModal({
             {canEdit && <InfoStat label="Business Manager ID" value={integration.businessManagerId || '—'} />}
             <InfoStat label="Verified" value={integration.verifiedAt ? formatDateTime(integration.verifiedAt) : 'Not yet'} />
             {canEdit && (
-              <div className="col-span-2 flex items-end sm:col-span-4">
-                <Button variant="secondary" size="sm" onClick={() => setEditing(true)}>
-                  Edit details / rotate token
-                </Button>
+              <div className="col-span-2 flex flex-col gap-3 sm:col-span-4">
+                {integration.hasAppSecret ? (
+                  <p className="flex items-center gap-1.5 text-xs text-emerald-700">
+                    <ShieldCheck className="size-3.5 shrink-0" />
+                    Webhook signatures are verified with your App Secret.
+                  </p>
+                ) : (
+                  <p className="flex items-start gap-1.5 text-xs text-amber-700">
+                    <ShieldAlert className="mt-0.5 size-3.5 shrink-0" />
+                    No App Secret on file — webhook signatures aren't being checked. Add it via "Edit details".
+                  </p>
+                )}
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="secondary" size="sm" onClick={() => setEditing(true)}>
+                    Edit details / rotate token
+                  </Button>
+                  <ButtonLink to="/admin/whatsapp-debug" variant="outline" size="sm" onClick={onClose}>
+                    <Bug className="size-3.5" />
+                    Debug console
+                  </ButtonLink>
+                </div>
               </div>
             )}
           </div>

@@ -180,7 +180,8 @@ export function LeadDetailPage() {
               <div className="flex items-start gap-3 rounded-xl bg-orange-50 p-3">
                 <Flame className="mt-0.5 size-4 shrink-0 text-orange-500" />
                 <p className="text-sm text-orange-800">
-                  Hot lead from {formatEnumLabel(lead.source)} — followed up by the assigned manager, not presales.
+                  Hot lead from {formatEnumLabel(lead.source)} — first assigned to a manager, and can be reassigned
+                  from there like any other lead.
                 </p>
               </div>
             )}

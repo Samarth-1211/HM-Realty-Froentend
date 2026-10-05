@@ -618,6 +618,35 @@ export interface LeadImportBatch {
   /** Whether the original sheet was kept (false for uploads made before sheets were stored). */
   hasFile: boolean
   fileSizeBytes: number | null
+  /** How many of the sheet's leads are still in the CRM (some may have been deleted since). */
+  leadCount: number
+}
+
+/** POST /leads/bulk-assign */
+export interface BulkAssignLeadsResult {
+  attempted: number
+  assigned: number
+  /** Leads that weren't moved, and why. */
+  skipped: { leadId: string; reason: string }[]
+}
+
+/** POST /leads/bulk-delete */
+export interface BulkDeleteLeadsResult {
+  attempted: number
+  deleted: number
+  /** Leads the caller isn't allowed to delete (or that were already gone). */
+  skipped: number
+  deletedIds: string[]
+}
+
+/** DELETE /leads/imports/:id/leads */
+export interface DeleteImportLeadsResult {
+  batchId: string
+  fileName: string
+  deleted: number
+  /** Leads from the sheet still in the CRM — other teams' leads, after a Manager cleared their share. */
+  remaining: number
+  deletedIds: string[]
 }
 
 export interface LeadActivityLog {
@@ -943,6 +972,8 @@ export interface WhatsAppIntegration {
   businessManagerId?: string | null
   webhookUrl?: string
   verifyToken?: string
+  /** Admin view only: whether webhook signatures can be checked (an App Secret is on file). */
+  hasAppSecret?: boolean
   status: WhatsAppIntegrationStatus
   verifiedAt: string | null
   lastError?: string | null
@@ -966,6 +997,12 @@ export interface WhatsAppMessage {
   textBody: string | null
   mediaId: string | null
   mediaMimeType: string | null
+  mediaFileName: string | null
+  mediaSize: number | null
+  /** Set once the attachment has been copied into our storage — fetch it from the media endpoint. */
+  mediaStorageKey: string | null
+  /** Why the attachment could not be stored, if it could not. */
+  mediaError: string | null
   status: WhatsAppMessageStatus
   errorCode: string | null
   errorMessage: string | null

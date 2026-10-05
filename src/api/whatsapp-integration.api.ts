@@ -5,13 +5,17 @@ export interface ConnectWhatsAppIntegrationPayload {
   wabaId: string
   phoneNumberId: string
   accessToken: string
+  appSecret?: string
   displayPhoneNumber?: string
   businessManagerId?: string
   businessName?: string
 }
 
 export interface UpdateWhatsAppIntegrationPayload {
+  wabaId?: string
+  phoneNumberId?: string
   accessToken?: string
+  appSecret?: string
   displayPhoneNumber?: string
   businessManagerId?: string
   businessName?: string

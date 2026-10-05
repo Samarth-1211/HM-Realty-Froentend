@@ -70,6 +70,14 @@ export const queryKeys = {
   whatsappChat: {
     inbox: ['whatsapp-chat', 'inbox'] as const,
     thread: (leadId: string) => ['whatsapp-chat', leadId] as const,
+    media: (messageId: string) => ['whatsapp-chat', 'media', messageId] as const,
+    templates: ['whatsapp-chat', 'templates'] as const,
+  },
+  whatsappDebug: {
+    health: ['whatsapp-debug', 'health'] as const,
+    events: (filter: string) => ['whatsapp-debug', 'events', filter] as const,
+    event: (id: string) => ['whatsapp-debug', 'event', id] as const,
+    trace: ['whatsapp-debug', 'trace'] as const,
   },
   activities: {
     mine: (date?: string) => ['activities', 'me', date] as const,

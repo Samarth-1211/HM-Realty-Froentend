@@ -22,6 +22,7 @@ import { LeadUploadsPage } from '@/pages/lead-uploads-page'
 import { ReportsPage } from '@/pages/reports-page'
 import { IntegrationsPage } from '@/pages/integrations-page'
 import { WhatsAppInboxPage } from '@/pages/whatsapp-inbox-page'
+import { WhatsAppDebugPage } from '@/pages/whatsapp-debug-page'
 import { AttendancePage } from '@/pages/attendance-page'
 import { OrgAttendancePage } from '@/pages/org-attendance-page'
 import { TargetsPage } from '@/pages/targets-page'
@@ -206,6 +207,14 @@ const whatsappInboxRoute = createRoute({
   component: WhatsAppInboxPage,
 })
 
+// Linked from the WhatsApp Inbox header and the WhatsApp integration card.
+const whatsappDebugRoute = createRoute({
+  getParentRoute: () => appLayoutRoute,
+  path: '/admin/whatsapp-debug',
+  component: WhatsAppDebugPage,
+  beforeLoad: requireRole([UserRole.ADMIN, UserRole.SUPER_ADMIN]),
+})
+
 const reportsRoute = createRoute({
   getParentRoute: () => appLayoutRoute,
   path: '/reports',
@@ -274,6 +283,7 @@ const routeTree = rootRoute.addChildren([
     lostLeadsRoute,
     leadUploadsRoute,
     whatsappInboxRoute,
+    whatsappDebugRoute,
     reportsRoute,
     integrationsRoute,
     attendanceRoute,

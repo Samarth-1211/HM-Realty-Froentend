@@ -6,7 +6,7 @@ import { Spinner } from './spinner'
 
 export interface Column<T> {
   key: string
-  header: string
+  header: ReactNode
   render: (row: T) => ReactNode
   className?: string
   headerClassName?: string
@@ -21,6 +21,7 @@ export function DataTable<T>({
   emptyDescription,
   rowKey,
   onRowClick,
+  rowClassName,
 }: {
   columns: Column<T>[]
   data: T[]
@@ -30,6 +31,8 @@ export function DataTable<T>({
   emptyDescription?: string
   rowKey: (row: T) => string
   onRowClick?: (row: T) => void
+  /** Extra classes for a row, e.g. to highlight selected rows. */
+  rowClassName?: (row: T) => string | false | undefined
 }) {
   if (isLoading) {
     return (
@@ -73,6 +76,7 @@ export function DataTable<T>({
               className={cn(
                 'border-b border-slate-50 last:border-0 hover:bg-brand-50/40',
                 onRowClick && 'cursor-pointer',
+                rowClassName?.(row),
               )}
             >
               {columns.map((col) => (

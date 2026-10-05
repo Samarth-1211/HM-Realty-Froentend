@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react'
-import { MessageCircle } from 'lucide-react'
+import { AlertTriangle, Bug, MessageCircle, RotateCw } from 'lucide-react'
 import { PageHeader } from '@/components/ui/page-header'
 import { PageLoader } from '@/components/ui/spinner'
+import { Button } from '@/components/ui/button'
+import { ButtonLink } from '@/components/ui/button-link'
 import { LeadStatusBadge } from '@/components/leads/lead-status-badge'
 import { WhatsAppChatPanel } from '@/components/leads/whatsapp-chat-panel'
 import { WhatsAppDemoPreview } from '@/components/leads/whatsapp-demo-preview'
-import { WhatsAppMark } from '@/components/integrations/whatsapp-mark'
 import { useWhatsAppInbox } from '@/hooks/queries/use-whatsapp-chat'
+import type { WhatsAppInboxItem } from '@/api/whatsapp-chat.api'
 import { useWhatsAppIntegration } from '@/hooks/queries/use-whatsapp-integration'
 import { useAuthStore } from '@/store/auth-store'
 import { UserRole } from '@/types'
@@ -27,7 +29,7 @@ export function WhatsAppInboxPage() {
   const canEdit = user?.role === UserRole.ADMIN || user?.role === UserRole.SUPER_ADMIN
 
   const { data: integration, isLoading: integrationLoading } = useWhatsAppIntegration()
-  const { data: inbox, isLoading: inboxLoading } = useWhatsAppInbox()
+  const { data: inbox, isLoading: inboxLoading, isError: inboxError, refetch, isFetching } = useWhatsAppInbox()
   const [selectedLeadId, setSelectedLeadId] = useState<string | undefined>()
 
   useEffect(() => {
@@ -45,9 +47,29 @@ export function WhatsAppInboxPage() {
 
   return (
     <div>
-      <PageHeader title="WhatsApp Inbox" description="Every lead conversation that came in over WhatsApp, in one place." />
+      <PageHeader
+        title="WhatsApp Inbox"
+        description="Every lead conversation that came in over WhatsApp, in one place."
+        actions={
+          canEdit && (
+            <ButtonLink to="/admin/whatsapp-debug" variant="outline" size="sm">
+              <Bug className="size-3.5" />
+              Debug console
+            </ButtonLink>
+          )
+        }
+      />
 
-      {!hasConversations && !isConnected ? (
+      {inboxError ? (
+        <div className="flex flex-col items-center gap-3 rounded-2xl border border-slate-100 bg-white py-16 text-center">
+          <AlertTriangle className="size-8 text-rose-300" />
+          <p className="text-sm font-medium text-slate-600">Couldn't load WhatsApp conversations</p>
+          <Button variant="secondary" size="sm" onClick={() => refetch()} loading={isFetching}>
+            <RotateCw className="size-3.5" />
+            Retry
+          </Button>
+        </div>
+      ) : !hasConversations && !isConnected ? (
         <WhatsAppDemoPreview canEdit={canEdit} />
       ) : !hasConversations ? (
         <div className="flex flex-col items-center gap-2 rounded-2xl border border-slate-100 bg-white py-16 text-center">
@@ -71,18 +93,27 @@ export function WhatsAppInboxPage() {
                     isActive && 'bg-brand-50 hover:bg-brand-50',
                   )}
                 >
-                  <WhatsAppMark size="sm" />
+                  <ContactAvatar name={item.fullName} />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between gap-2">
-                      <p className="truncate text-sm font-medium text-slate-700">{item.fullName}</p>
-                      <span className="shrink-0 text-[10px] text-slate-400">
+                      <p className={cn('truncate text-sm text-slate-700', item.unreadCount > 0 ? 'font-semibold' : 'font-medium')}>
+                        {item.fullName}
+                      </p>
+                      <span className={cn('shrink-0 text-[10px]', item.unreadCount > 0 ? 'font-semibold text-emerald-600' : 'text-slate-400')}>
                         {relativeSnippetTime(item.lastMessage?.createdAt)}
                       </span>
                     </div>
-                    <p className="truncate text-xs text-slate-400">
-                      {item.lastMessage?.direction === 'OUTBOUND' ? 'You: ' : ''}
-                      {item.lastMessage?.textBody || '—'}
-                    </p>
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="truncate text-xs text-slate-400">
+                        {item.lastMessage?.direction === 'OUTBOUND' ? 'You: ' : ''}
+                        {snippet(item.lastMessage)}
+                      </p>
+                      {item.unreadCount > 0 && (
+                        <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-emerald-500 px-1.5 text-[10px] font-semibold text-white">
+                          {item.unreadCount > 99 ? '99+' : item.unreadCount}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </button>
               )
@@ -104,6 +135,28 @@ export function WhatsAppInboxPage() {
         </div>
       )}
     </div>
+  )
+}
+
+function snippet(message: WhatsAppInboxItem['lastMessage']) {
+  if (!message) return '—'
+  if (message.textBody) return message.textBody
+  return message.messageType === 'text' ? '—' : `[${message.messageType}]`
+}
+
+/** WhatsApp doesn't give businesses customers' profile photos — initials stand in, as WhatsApp itself does. */
+function ContactAvatar({ name }: { name: string }) {
+  const letters = name
+    .replace(/^WhatsApp\s+/, '')
+    .split(/\s+/)
+    .filter((w) => /^[\p{L}]/u.test(w))
+    .slice(0, 2)
+    .map((w) => w[0].toUpperCase())
+    .join('')
+  return (
+    <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-sm font-semibold text-emerald-700">
+      {letters || '#'}
+    </span>
   )
 }
 

@@ -122,6 +122,25 @@ export function useAssignLead() {
   })
 }
 
+/** Assigns a selection of leads to one person; reports any that were skipped. */
+export function useBulkAssignLeads() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ leadIds, assignedToId }: { leadIds: string[]; assignedToId: string }) =>
+      leadsApi.bulkAssign(leadIds, assignedToId),
+    onSuccess: (result) => {
+      if (result.assigned > 0) toast.success(`${plural(result.assigned, 'lead')} assigned`)
+      if (result.skipped.length > 0) {
+        toast.warning(`${plural(result.skipped.length, 'lead')} not assigned`, {
+          description: [...new Set(result.skipped.map((s) => s.reason))].join(' · '),
+        })
+      }
+      qc.invalidateQueries({ queryKey: ['leads'] })
+    },
+    onError: (error) => toast.error('Could not assign the leads', { description: extractErrorMessage(error) }),
+  })
+}
+
 export function useUpdateLeadStatus() {
   const qc = useQueryClient()
   return useMutation({
@@ -148,6 +167,49 @@ export function useDeleteLead() {
       qc.invalidateQueries({ queryKey: ['tasks'] })
     },
     onError: (error) => toast.error('Could not delete lead', { description: extractErrorMessage(error) }),
+  })
+}
+
+function plural(count: number, noun: string) {
+  return `${count.toLocaleString('en-IN')} ${noun}${count === 1 ? '' : 's'}`
+}
+
+/** After a bulk delete: drop the deleted leads' detail queries and refresh the lists. */
+function afterLeadsDeleted(qc: ReturnType<typeof useQueryClient>, deletedIds: string[]) {
+  for (const id of deletedIds) qc.removeQueries({ queryKey: queryKeys.leads.detail(id), exact: true })
+  qc.invalidateQueries({ queryKey: ['leads'] })
+  qc.invalidateQueries({ queryKey: ['lead-imports'] })
+  qc.invalidateQueries({ queryKey: ['tasks'] })
+}
+
+/** Permanently deletes a selection of leads. */
+export function useBulkDeleteLeads() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (leadIds: string[]) => leadsApi.bulkDelete(leadIds),
+    onSuccess: (result) => {
+      toast.success(`${plural(result.deleted, 'lead')} deleted`, {
+        description: result.skipped > 0 ? `${plural(result.skipped, 'lead')} skipped — you can’t delete those.` : undefined,
+      })
+      afterLeadsDeleted(qc, result.deletedIds)
+    },
+    onError: (error) => toast.error('Could not delete the leads', { description: extractErrorMessage(error) }),
+  })
+}
+
+/** Permanently deletes every lead that came from one uploaded sheet. */
+export function useDeleteImportLeads() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (batchId: string) => leadsApi.removeImportLeads(batchId),
+    onSuccess: (result) => {
+      toast.success(`${plural(result.deleted, 'lead')} from ${result.fileName} deleted`, {
+        description:
+          result.remaining > 0 ? `${plural(result.remaining, 'lead')} from this sheet sit in other teams and were kept.` : undefined,
+      })
+      afterLeadsDeleted(qc, result.deletedIds)
+    },
+    onError: (error) => toast.error('Could not delete the sheet’s leads', { description: extractErrorMessage(error) }),
   })
 }
 

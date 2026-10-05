@@ -1,6 +1,9 @@
 import { apiClient, postFile } from '@/lib/api-client'
 import type {
   BookingStatus,
+  BulkAssignLeadsResult,
+  BulkDeleteLeadsResult,
+  DeleteImportLeadsResult,
   CreateLeadManualResult,
   Lead,
   LeadImportBatch,
@@ -94,6 +97,10 @@ export const leadsApi = {
   assign: (id: string, assignedToId: string) =>
     apiClient.patch<Lead>(`/leads/${id}/assign`, { assignedToId }).then((r) => r.data),
 
+  /** Hands every given lead to one person; leads that can't be moved come back in `skipped`. */
+  bulkAssign: (leadIds: string[], assignedToId: string) =>
+    apiClient.post<BulkAssignLeadsResult>('/leads/bulk-assign', { leadIds, assignedToId }).then((r) => r.data),
+
   updateStatus: ({ id, status, progressStage, progressStageNote }: UpdateLeadStatusPayload) =>
     apiClient.patch<Lead>(`/leads/${id}/status`, { status, progressStage, progressStageNote }).then((r) => r.data),
 
@@ -111,6 +118,18 @@ export const leadsApi = {
   remove: (id: string) =>
     apiClient
       .delete<{ message: string; id: string }>(`/leads/${id}`, { data: { confirmation: 'delete' } })
+      .then((r) => r.data),
+
+  /** Permanently deletes every given lead the caller may delete; the rest are skipped. */
+  bulkDelete: (leadIds: string[]) =>
+    apiClient
+      .post<BulkDeleteLeadsResult>('/leads/bulk-delete', { leadIds, confirmation: 'delete' })
+      .then((r) => r.data),
+
+  /** Permanently deletes every lead from one uploaded sheet (a Manager: the ones in their team). */
+  removeImportLeads: (batchId: string) =>
+    apiClient
+      .delete<DeleteImportLeadsResult>(`/leads/imports/${batchId}/leads`, { data: { confirmation: 'delete' } })
       .then((r) => r.data),
 
   /**

@@ -52,6 +52,14 @@ export function LeadSheetPage() {
   const [source, setSource] = useState('')
   const [executive, setExecutive] = useState('')
   const [bookingStatus, setBookingStatus] = useState('')
+  const [sheet, setSheet] = useState('')
+
+  // Every uploaded Excel sheet these leads came from, newest first.
+  const sheets = useMemo(() => {
+    const byId = new Map<string, NonNullable<Lead['importBatch']>>()
+    for (const l of leads) if (l.importBatch) byId.set(l.importBatch.id, l.importBatch)
+    return [...byId.values()].sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+  }, [leads])
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -61,6 +69,7 @@ export function LeadSheetPage() {
       if (source && l.source !== source) return false
       if (executive && l.assignedToId !== executive) return false
       if (bookingStatus && l.bookingStatus !== bookingStatus) return false
+      if (sheet && l.importBatchId !== sheet) return false
       if (q) {
         const haystack = `${l.fullName} ${formatLeadPhones(l)} ${l.project?.name ?? ''} ${leadIdLabel(l)}`.toLowerCase()
         if (!haystack.includes(q)) return false
@@ -68,7 +77,7 @@ export function LeadSheetPage() {
       return true
     })
     return status ? matching : lostLeadsLast(matching)
-  }, [leads, search, status, temperature, source, executive, bookingStatus])
+  }, [leads, search, status, temperature, source, executive, bookingStatus, sheet])
 
   const executiveOptions = useMemo(
     () => users.filter((u) => u.role === 'PRESALES' || u.role === 'POSTSALES' || u.role === 'AGENT'),
@@ -208,6 +217,16 @@ export function LeadSheetPage() {
               </option>
             ))}
           </Select>
+          {sheets.length > 0 && (
+            <Select value={sheet} onChange={(e) => setSheet(e.target.value)} className="lg:max-w-[220px]">
+              <option value="">All Excel sheets</option>
+              {sheets.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.fileName} · {formatDate(b.createdAt)}
+                </option>
+              ))}
+            </Select>
+          )}
         </div>
 
         <div className="p-4">

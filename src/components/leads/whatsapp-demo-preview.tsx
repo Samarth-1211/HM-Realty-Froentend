@@ -1,7 +1,7 @@
 import { useNavigate } from '@tanstack/react-router'
 import { Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { WhatsAppMark } from '@/components/integrations/whatsapp-mark'
+import { WhatsAppAvatar } from '@/components/leads/whatsapp-avatar'
 import { cn } from '@/lib/utils'
 
 const SAMPLE_INBOX = [
@@ -58,7 +58,7 @@ export function WhatsAppDemoPreview({ canEdit }: { canEdit: boolean }) {
               key={item.name}
               className={cn('flex items-center gap-3 border-b border-slate-50 px-4 py-3', item.active && 'bg-brand-50/60')}
             >
-              <WhatsAppMark size="sm" />
+              <WhatsAppAvatar className="size-10" />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center justify-between gap-2">
                   <p className="truncate text-sm font-medium text-slate-700">{item.name}</p>
@@ -70,18 +70,18 @@ export function WhatsAppDemoPreview({ canEdit }: { canEdit: boolean }) {
           ))}
         </div>
 
-        <div className="flex flex-col bg-[#e5ded8]">
+        <div className="wa-wallpaper flex flex-col">
           <div className="space-y-2.5 p-4">
             {SAMPLE_THREAD.map((m, i) => (
               <div key={i} className={cn('flex', m.dir === 'out' ? 'justify-end' : 'justify-start')}>
                 <div
                   className={cn(
-                    'max-w-[75%] rounded-2xl px-3.5 py-2 text-sm shadow-sm',
-                    m.dir === 'out' ? 'rounded-br-sm bg-emerald-600 text-white' : 'rounded-bl-sm bg-white text-slate-700 ring-1 ring-slate-100',
+                    'max-w-[75%] rounded-lg px-2.5 py-1.5 text-sm text-wa-ink shadow-sm',
+                    m.dir === 'out' ? 'rounded-tr-none bg-wa-out' : 'rounded-tl-none bg-white',
                   )}
                 >
                   <p>{m.text}</p>
-                  <p className={cn('mt-1 text-right text-[10px]', m.dir === 'out' ? 'text-emerald-100' : 'text-slate-400')}>{m.time}</p>
+                  <p className="mt-0.5 text-right text-[11px] text-wa-muted">{m.time}</p>
                 </div>
               </div>
             ))}

@@ -37,4 +37,7 @@ export const whatsappIntegrationApi = {
   enable: () => apiClient.post<WhatsAppIntegration>('/integrations/whatsapp/enable').then((r) => r.data),
 
   disable: () => apiClient.delete<WhatsAppIntegration>('/integrations/whatsapp').then((r) => r.data),
+
+  // Permanent: removes the integration, its chat history and webhook log.
+  remove: () => apiClient.delete<{ success: boolean }>('/integrations/whatsapp/permanent').then((r) => r.data),
 }

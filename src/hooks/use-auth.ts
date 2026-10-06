@@ -4,6 +4,7 @@ import { toast } from 'sonner'
 import { authApi, type LoginPayload } from '@/api/auth.api'
 import { extractErrorMessage } from '@/lib/api-client'
 import { detachDevice } from '@/lib/push'
+import { queryClient } from '@/lib/query-client'
 import { useAuthStore } from '@/store/auth-store'
 import { ROLE_LABELS } from '@/lib/constants'
 
@@ -84,6 +85,8 @@ export function useLogout() {
     },
     onSettled: () => {
       clearSession()
+      // So the next account to sign in on this tab never sees this one's data.
+      queryClient.clear()
       navigate({ to: '/login' })
     },
   })

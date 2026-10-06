@@ -33,7 +33,8 @@ export function IntegrationsPage() {
   const user = useAuthStore((s) => s.user)
   const canEdit = user?.role === UserRole.ADMIN || user?.role === UserRole.SUPER_ADMIN
   const { data: integrations, isLoading } = usePlatformIntegrations()
-  const { data: whatsapp, isLoading: whatsappLoading } = useWhatsAppIntegration()
+  const { data: whatsappData, isLoading: whatsappLoading } = useWhatsAppIntegration()
+  const whatsapp = whatsappData ?? undefined
   const [dialog, setDialog] = useState<DialogState>({ type: 'none' })
 
   const byPlatform = useMemo(() => {

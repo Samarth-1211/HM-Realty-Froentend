@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
-import { AlertTriangle, Bug, CheckCircle2, Eye, KeyRound, Link2, Lock, PauseCircle, PlayCircle, ShieldAlert, ShieldCheck, Save } from 'lucide-react'
+import { AlertTriangle, Bug, CheckCircle2, Eye, KeyRound, Link2, Lock, PauseCircle, PlayCircle, ShieldAlert, ShieldCheck, Save, Trash2 } from 'lucide-react'
 import { Modal } from '@/components/ui/modal'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Field, Input, Label } from '@/components/ui/input'
@@ -14,6 +14,7 @@ import { WhatsAppMark } from './whatsapp-mark'
 import { formatDateTime } from '@/lib/utils'
 import {
   useConnectWhatsAppIntegration,
+  useDeleteWhatsAppIntegration,
   useDisableWhatsAppIntegration,
   useEnableWhatsAppIntegration,
   useRevealWhatsAppVerifyToken,
@@ -76,11 +77,13 @@ export function WhatsAppIntegrationModal({
   const reveal = useRevealWhatsAppVerifyToken()
   const disable = useDisableWhatsAppIntegration()
   const enable = useEnableWhatsAppIntegration()
+  const remove = useDeleteWhatsAppIntegration()
 
   const [created, setCreated] = useState<WhatsAppIntegration | null>(null)
   const [editing, setEditing] = useState(false)
   const [revealedToken, setRevealedToken] = useState<string | undefined>()
   const [confirmToggle, setConfirmToggle] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
 
   const connectForm = useForm<ConnectFormValues>({ resolver: zodResolver(connectSchema) })
   const manageForm = useForm<ManageFormValues>({ resolver: zodResolver(manageSchema) })
@@ -91,6 +94,7 @@ export function WhatsAppIntegrationModal({
       setEditing(false)
       setRevealedToken(undefined)
       setConfirmToggle(false)
+      setConfirmDelete(false)
       connectForm.reset({ wabaId: '', phoneNumberId: '', accessToken: '', appSecret: '', displayPhoneNumber: '', businessManagerId: '', businessName: '' })
       return
     }
@@ -396,23 +400,29 @@ export function WhatsAppIntegrationModal({
 
         <div className="flex items-center justify-between">
           {isManage && integration && canEdit ? (
-            <Button
-              variant={integration.isActive ? 'outline' : 'secondary'}
-              size="sm"
-              onClick={() => setConfirmToggle(true)}
-            >
-              {integration.isActive ? (
-                <>
-                  <PauseCircle className="size-3.5" />
-                  Disable
-                </>
-              ) : (
-                <>
-                  <PlayCircle className="size-3.5" />
-                  Re-enable
-                </>
-              )}
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant={integration.isActive ? 'outline' : 'secondary'}
+                size="sm"
+                onClick={() => setConfirmToggle(true)}
+              >
+                {integration.isActive ? (
+                  <>
+                    <PauseCircle className="size-3.5" />
+                    Disable
+                  </>
+                ) : (
+                  <>
+                    <PlayCircle className="size-3.5" />
+                    Re-enable
+                  </>
+                )}
+              </Button>
+              <Button variant="danger" size="sm" onClick={() => setConfirmDelete(true)}>
+                <Trash2 className="size-3.5" />
+                Delete integration
+              </Button>
+            </div>
           ) : (
             <span />
           )}
@@ -436,6 +446,20 @@ export function WhatsAppIntegrationModal({
           variant={integration.isActive ? 'danger' : 'primary'}
           loading={disable.isPending || enable.isPending}
           onConfirm={toggleActive}
+        />
+      )}
+
+      {isManage && integration && canEdit && confirmDelete && (
+        <ConfirmDialog
+          open
+          onClose={() => setConfirmDelete(false)}
+          title="Delete WhatsApp integration?"
+          description={`This permanently removes ${integration.displayPhoneNumber || 'this number'} from your organization, along with all WhatsApp chat history, received media and the webhook log. Leads captured from WhatsApp are kept. This cannot be undone — afterwards you can connect a new number from scratch.`}
+          confirmLabel="Delete permanently"
+          variant="danger"
+          requireTypedConfirmation="delete"
+          loading={remove.isPending}
+          onConfirm={() => remove.mutate(undefined, { onSuccess: () => setConfirmDelete(false) })}
         />
       )}
     </Modal>

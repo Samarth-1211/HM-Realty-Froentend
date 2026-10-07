@@ -14,11 +14,14 @@ export function SimulatePanel({ enabled }: { enabled: boolean | undefined }) {
   const [from, setFrom] = useState('+919000000001')
   const [name, setName] = useState('Simulated Customer')
   const [text, setText] = useState('Hi, is the 2BHK still available?')
+  // Optional: makes it the first message after a Click-to-WhatsApp ad was tapped.
+  const [adId, setAdId] = useState('')
+  const [adHeadline, setAdHeadline] = useState('')
   const simulate = useSimulateInbound()
 
   const run = () =>
     simulate.mutate(
-      { from, name, text },
+      { from, name, text, ...(adId.trim() ? { adId: adId.trim(), adHeadline: adHeadline.trim() || undefined } : {}) },
       {
         onSuccess: (data) =>
           waDebug.info('simulated inbound webhook sent', { status: data.response.status, saved: !!data.savedMessageId }),
@@ -49,6 +52,17 @@ export function SimulatePanel({ enabled }: { enabled: boolean | undefined }) {
           </Field>
           <Field label="Message text" className="sm:col-span-2">
             <Input value={text} onChange={(e) => setText(e.target.value)} />
+          </Field>
+          <Field label="Ad ID (optional)" hint="Fill in to simulate a tap on a Click-to-WhatsApp ad">
+            <Input value={adId} onChange={(e) => setAdId(e.target.value)} placeholder="120210987654321" />
+          </Field>
+          <Field label="Ad headline (optional)">
+            <Input
+              value={adHeadline}
+              onChange={(e) => setAdHeadline(e.target.value)}
+              placeholder="Green Valley Plots – Starting ₹15 Lakh"
+              disabled={!adId.trim()}
+            />
           </Field>
         </div>
         <div className="flex justify-end">

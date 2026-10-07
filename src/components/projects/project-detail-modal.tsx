@@ -110,6 +110,9 @@ export function ProjectDetailModal({
             <Item label="Active platforms" wide>
               {project.activePlatforms?.map(formatEnumLabel).join(', ')}
             </Item>
+            <Item label="Lead keywords" wide>
+              {project.whatsappKeywords?.join(', ')}
+            </Item>
           </Section>
 
           <div className="flex flex-col-reverse gap-2 pt-1 sm:flex-row sm:justify-end">

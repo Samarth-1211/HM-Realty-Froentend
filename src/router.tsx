@@ -23,6 +23,7 @@ import { ReportsPage } from '@/pages/reports-page'
 import { IntegrationsPage } from '@/pages/integrations-page'
 import { WhatsAppInboxPage } from '@/pages/whatsapp-inbox-page'
 import { WhatsAppDebugPage } from '@/pages/whatsapp-debug-page'
+import { WhatsAppAdsPage } from '@/pages/whatsapp-ads-page'
 import { AttendancePage } from '@/pages/attendance-page'
 import { OrgAttendancePage } from '@/pages/org-attendance-page'
 import { TargetsPage } from '@/pages/targets-page'
@@ -215,6 +216,14 @@ const whatsappDebugRoute = createRoute({
   beforeLoad: requireRole([UserRole.ADMIN, UserRole.SUPER_ADMIN]),
 })
 
+// Which project each Click-to-WhatsApp ad advertises — decides where its leads go.
+const whatsappAdsRoute = createRoute({
+  getParentRoute: () => appLayoutRoute,
+  path: '/whatsapp-ads',
+  component: WhatsAppAdsPage,
+  beforeLoad: requireRole([UserRole.ADMIN]),
+})
+
 const reportsRoute = createRoute({
   getParentRoute: () => appLayoutRoute,
   path: '/reports',
@@ -284,6 +293,7 @@ const routeTree = rootRoute.addChildren([
     leadUploadsRoute,
     whatsappInboxRoute,
     whatsappDebugRoute,
+    whatsappAdsRoute,
     reportsRoute,
     integrationsRoute,
     attendanceRoute,

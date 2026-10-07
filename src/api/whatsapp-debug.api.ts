@@ -81,7 +81,7 @@ export const whatsappDebugApi = {
       apiClient.post<GraphCallResult>('/whatsapp/debug/send-test', payload).then((r) => r.data),
     ),
 
-  simulateInbound: (payload: { from?: string; text?: string; name?: string }) =>
+  simulateInbound: (payload: { from?: string; text?: string; name?: string; adId?: string; adHeadline?: string }) =>
     waDebug.track('POST /whatsapp/debug/simulate-inbound', () =>
       apiClient.post<SimulateResult>('/whatsapp/debug/simulate-inbound', payload).then((r) => r.data),
     ),

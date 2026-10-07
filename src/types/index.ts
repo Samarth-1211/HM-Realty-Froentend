@@ -452,6 +452,8 @@ export interface Project {
   sourceAgentName: string | null
   rateListDate: string | null
   activePlatforms: LeadSource[] | null
+  /** Words that mark a WhatsApp enquiry as being about this project, on top of its name. */
+  whatsappKeywords: string[]
   /** Public-link id of the brochure (see lib/project-share.ts); null when there's no brochure. */
   brochureToken: string | null
   brochureFileName: string | null
@@ -663,6 +665,40 @@ export interface LeadWithActivity extends Lead {
   activityLogs: LeadActivityLog[]
   /** A non-zero count means there's a WhatsApp chat to show, whatever the lead's source. */
   _count: { whatsappMessages: number }
+  /** The Click-to-WhatsApp ad the lead's first message came from, if any. `projectId` null = the ad isn't linked yet. */
+  adSource: { id: string; adId: string; headline: string | null; sourceUrl: string | null; projectId: string | null } | null
+}
+
+/** GET /whatsapp/ad-sources — one Click-to-WhatsApp ad that has sent the organization a lead. */
+export interface WhatsAppAdSource {
+  id: string
+  /** Meta's ad id. */
+  adId: string
+  sourceType: string
+  headline: string | null
+  body: string | null
+  sourceUrl: string | null
+  /** Null = not linked to a project yet. */
+  projectId: string | null
+  project: { id: string; name: string } | null
+  /** Null on a linked ad = linked automatically, because the ad's own wording names the project. */
+  mappedBy: { id: string; firstName: string; lastName: string } | null
+  mappedAt: string | null
+  firstSeenAt: string
+  lastSeenAt: string
+  leadCount: number
+  /** Leads from this ad still sitting unassigned. */
+  waitingLeadCount: number
+}
+
+/** PATCH /whatsapp/ad-sources/:id — what linking an ad did to the leads it had already sent. */
+export interface MapAdSourceResult {
+  project: { id: string; name: string } | null
+  taggedLeads: number
+  assignedLeads: number
+  unassignedLeads: number
+  /** 0 = the project has no managers yet. */
+  projectManagerCount: number
 }
 
 /**

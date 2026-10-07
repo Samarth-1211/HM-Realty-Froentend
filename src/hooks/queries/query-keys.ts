@@ -73,6 +73,9 @@ export const queryKeys = {
     media: (messageId: string) => ['whatsapp-chat', 'media', messageId] as const,
     templates: ['whatsapp-chat', 'templates'] as const,
   },
+  whatsappAds: {
+    all: ['whatsapp-ads'] as const,
+  },
   whatsappDebug: {
     health: ['whatsapp-debug', 'health'] as const,
     events: (filter: string) => ['whatsapp-debug', 'events', filter] as const,

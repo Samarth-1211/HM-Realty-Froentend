@@ -16,6 +16,7 @@ import {
   Sheet,
   Shuffle,
   FileSpreadsheet,
+  Megaphone,
 } from 'lucide-react'
 import { UserRole } from '@/types'
 import { ASSIGNER_ROLES, EMPLOYEE_MODULE_ROLES, ORG_MEMBER_ROLES, ORG_OVERSIGHT_ROLES, TARGETS_PAGE_ROLES } from '@/lib/constants'
@@ -110,6 +111,12 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'WhatsApp Inbox',
     icon: MessageCircle,
     roles: Object.values(UserRole),
+  },
+  {
+    to: '/whatsapp-ads',
+    label: 'WhatsApp Ads',
+    icon: Megaphone,
+    roles: [UserRole.ADMIN],
   },
   {
     to: '/attendance',

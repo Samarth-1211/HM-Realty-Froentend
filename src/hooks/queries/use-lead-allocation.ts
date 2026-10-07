@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { leadAllocationApi } from '@/api/lead-allocation.api'
+import { leadAllocationApi, type LeadAllocationMode } from '@/api/lead-allocation.api'
 import { extractErrorMessage } from '@/lib/api-client'
 import { queryKeys } from './query-keys'
 
@@ -21,6 +21,36 @@ export function useUpdateAutoAllocation() {
     },
     onError: (error) =>
       toast.error('Could not update AutoPilot', { description: extractErrorMessage(error) }),
+  })
+}
+
+export function useUpdateLeadAllocationMode() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (mode: LeadAllocationMode) => leadAllocationApi.updateMode(mode),
+    onSuccess: (data) => {
+      toast.success(data.mode === 'PROJECT_WISE' ? 'Project-wise routing enabled' : 'Project-wise routing disabled')
+      qc.invalidateQueries({ queryKey: queryKeys.leadAllocation.settings })
+    },
+    onError: (error) =>
+      toast.error('Could not update project-wise routing', { description: extractErrorMessage(error) }),
+  })
+}
+
+export function useUpdatePlatformProjectRouting() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (enabled: boolean) => leadAllocationApi.updatePlatformProjectRouting(enabled),
+    onSuccess: (data) => {
+      toast.success(
+        data.projectWisePlatformLeads
+          ? 'Project-wise routing enabled for platform leads'
+          : 'Project-wise routing disabled for platform leads',
+      )
+      qc.invalidateQueries({ queryKey: queryKeys.leadAllocation.settings })
+    },
+    onError: (error) =>
+      toast.error('Could not update project-wise routing for platform leads', { description: extractErrorMessage(error) }),
   })
 }
 

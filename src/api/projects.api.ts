@@ -46,6 +46,8 @@ export interface CreateProjectPayload {
   rateListDate?: string | null
   description?: string | null
   activePlatforms?: LeadSource[]
+  /** Replaces the whole list. */
+  whatsappKeywords?: string[]
   isActive?: boolean
 }
 

@@ -6,6 +6,8 @@ export interface LeadAllocationSettings {
   mode: LeadAllocationMode
   autoAllocationEnabled: boolean
   autoReallocateLostLeads: boolean
+  /** Portal/ad-platform leads that name a project go to that project's managers. */
+  projectWisePlatformLeads: boolean
 }
 
 export interface ShuffleLostLeadsResult {
@@ -17,6 +19,14 @@ export interface ShuffleLostLeadsResult {
 export const leadAllocationApi = {
   getSettings: () =>
     apiClient.get<LeadAllocationSettings>('/lead-allocation/settings').then((r) => r.data),
+
+  updateMode: (mode: LeadAllocationMode) =>
+    apiClient.patch<{ mode: LeadAllocationMode }>('/lead-allocation/settings', { mode }).then((r) => r.data),
+
+  updatePlatformProjectRouting: (enabled: boolean) =>
+    apiClient
+      .patch<{ projectWisePlatformLeads: boolean }>('/lead-allocation/platform-project-routing', { enabled })
+      .then((r) => r.data),
 
   updateAutoAllocation: (enabled: boolean) =>
     apiClient

@@ -38,6 +38,10 @@ export function AssignManagersModal({
   return (
     <Modal open={open} onClose={onClose} title="Assign managers" subtitle={project.name} size="sm">
       <div className="flex flex-col gap-4">
+        <p className="rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-500">
+          With project-wise routing on, this project’s WhatsApp and platform leads are shared in turn among the managers
+          assigned here. While no manager is assigned, they go to all managers.
+        </p>
         <div className="flex gap-2">
           <Select value={selected} onChange={(e) => setSelected(e.target.value)} className="flex-1">
             <option value="">Select a manager…</option>

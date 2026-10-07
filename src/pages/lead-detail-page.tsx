@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react'
-import { useParams, useNavigate } from '@tanstack/react-router'
+import { Link, useParams, useNavigate } from '@tanstack/react-router'
 import {
   ArrowLeft,
   Calendar,
@@ -11,6 +11,7 @@ import {
   FolderKanban,
   Mail,
   MapPin,
+  Megaphone,
   NotebookPen,
   Pencil,
   Phone,
@@ -183,6 +184,36 @@ export function LeadDetailPage() {
                   Hot lead from {formatEnumLabel(lead.source)} — first assigned to a manager, and can be reassigned
                   from there like any other lead.
                 </p>
+              </div>
+            )}
+            {lead.adSource && (
+              <div className="flex items-start gap-3 rounded-xl bg-emerald-50 p-3">
+                <Megaphone className="mt-0.5 size-4 shrink-0 text-emerald-600" />
+                <div className="min-w-0">
+                  <p className="text-xs font-medium text-emerald-600">From a Click-to-WhatsApp ad</p>
+                  <p className="mt-0.5 text-sm font-medium text-slate-700">{lead.adSource.headline ?? `Ad ${lead.adSource.adId}`}</p>
+                  <p className="flex flex-wrap items-center gap-x-2 text-xs text-slate-500">
+                    <span>Ad ID {lead.adSource.adId}</span>
+                    {lead.adSource.sourceUrl && (
+                      <a href={lead.adSource.sourceUrl} target="_blank" rel="noreferrer" className="font-medium text-brand-600 hover:underline">
+                        View ad
+                      </a>
+                    )}
+                  </p>
+                  {!lead.adSource.projectId && (
+                    <p className="mt-1 text-xs text-amber-700">
+                      This ad isn’t linked to a project yet.
+                      {currentUser?.role === UserRole.ADMIN && (
+                        <>
+                          {' '}
+                          <Link to="/whatsapp-ads" className="font-semibold underline">
+                            Link it on WhatsApp Ads
+                          </Link>
+                        </>
+                      )}
+                    </p>
+                  )}
+                </div>
               </div>
             )}
             {lead.intakeChannel === LeadIntakeChannel.BULK_UPLOAD && (

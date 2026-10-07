@@ -53,6 +53,13 @@ const positiveNum = (value: string) => {
   return n !== null && n > 0 ? n : null
 }
 
+/** "green valley, GV plots" → ['green valley', 'GV plots'] */
+const splitKeywords = (value: string) =>
+  value
+    .split(',')
+    .map((k) => k.trim())
+    .filter(Boolean)
+
 const plotSizeSchema = z.object({ areaSqft: z.string(), widthFt: z.string(), lengthFt: z.string() })
 
 // Numeric inputs are kept as strings so "blank" and "0" stay distinguishable;
@@ -89,6 +96,8 @@ const schema = z
     rateListDate: z.string(),
     description: z.string(),
     activePlatforms: z.array(z.string()),
+    // Comma-separated in the form; sent as a list.
+    whatsappKeywords: z.string(),
     isActive: z.boolean(),
   })
   .superRefine((v, ctx) => {
@@ -147,6 +156,12 @@ const schema = z
       const min = positive(['budgetMin'], v.budgetMin, true)
       ordered('budgetMax', min, positive(['budgetMax'], v.budgetMax))
     }
+
+    // Shorter keywords are ignored when matching — they turn up in ordinary messages too often.
+    const keywords = splitKeywords(v.whatsappKeywords)
+    if (keywords.length > 30) issue(['whatsappKeywords'], 'At most 30 keywords')
+    else if (keywords.some((k) => k.length < 3)) issue(['whatsappKeywords'], 'Each keyword needs at least 3 characters')
+    else if (keywords.some((k) => k.length > 60)) issue(['whatsappKeywords'], 'Each keyword can be at most 60 characters')
   })
 
 type FormValues = z.infer<typeof schema>
@@ -192,6 +207,7 @@ function toFormValues(project: Project | null | undefined): FormValues {
     rateListDate: project?.rateListDate?.slice(0, 10) ?? '',
     description: project?.description ?? '',
     activePlatforms: project?.activePlatforms ?? [],
+    whatsappKeywords: (project?.whatsappKeywords ?? []).join(', '),
     isActive: project?.isActive ?? true,
   }
 }
@@ -234,6 +250,7 @@ function toPayload(v: FormValues): CreateProjectPayload {
     rateListDate: v.rateListDate || null,
     description: v.description.trim() || null,
     activePlatforms: v.activePlatforms as LeadSource[],
+    whatsappKeywords: splitKeywords(v.whatsappKeywords),
     isActive: v.isActive,
   }
 }
@@ -720,6 +737,14 @@ export function ProjectFormModal({
                 />
               )}
             />
+          </Field>
+          <Field
+            label="Lead keywords"
+            className="sm:col-span-2"
+            error={errors.whatsappKeywords?.message}
+            hint="Separate with commas. A new WhatsApp or platform lead whose ad or message contains one of these — or the project name — is tagged with this project."
+          >
+            <Input {...register('whatsappKeywords')} error={!!errors.whatsappKeywords} placeholder="green valley, GV plots" />
           </Field>
           <Controller
             control={control}

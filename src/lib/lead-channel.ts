@@ -1,4 +1,13 @@
-import { LeadIntakeChannel, LeadSource, LeadStatus, UserRole, type AuthUser, type Lead } from '@/types'
+import {
+  LeadImportAllocationMode,
+  LeadIntakeChannel,
+  LeadSource,
+  LeadStatus,
+  UserRole,
+  type AuthUser,
+  type Lead,
+  type LeadImportBatch,
+} from '@/types'
 
 /**
  * For "All statuses" lists: lost leads sink below everything still in play.
@@ -47,6 +56,21 @@ export function uploadedByLabel(lead: Pick<Lead, 'intakeChannel' | 'importBatch'
   const batch = lead.importBatch
   if (!batch) return 'an Admin'
   return `${batch.uploadedBy.firstName} ${batch.uploadedBy.lastName} (${batch.fileName})`
+}
+
+/** Who an uploaded sheet was shared with, e.g. "All teams" or "Priya Shah, Raj Mehta — with their teams". */
+export function uploadSharedWithLabel(
+  batch: Pick<LeadImportBatch, 'allocationMode' | 'collaborators' | 'uploadedBy'>,
+): string {
+  const picked = batch.collaborators
+  const names = picked.map((m) => `${m.firstName} ${m.lastName}`).join(', ')
+  const one = picked.length === 1
+  if (batch.allocationMode === LeadImportAllocationMode.ALL_TEAMS) return 'All teams'
+  if (batch.allocationMode === LeadImportAllocationMode.MANAGERS_AND_TEAMS) return `${names} — with their ${one ? 'team' : 'teams'}`
+  if (batch.allocationMode === LeadImportAllocationMode.MANAGERS_ONLY) return `${names} — ${one ? 'manager' : 'managers'} only`
+  // Uploaded before there was a choice: an Admin's went to every team, a Manager's to their own plus these managers'.
+  if (batch.uploadedBy.role !== UserRole.MANAGER) return 'All teams'
+  return names || 'Own team only'
 }
 
 /** One-line provenance for the Lead Sheet's "Provided By" column. */

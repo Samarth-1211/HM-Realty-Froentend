@@ -1,20 +1,23 @@
-import { useEffect, useState } from 'react'
-import { CheckCircle2, Download, FileSpreadsheet, TriangleAlert, XCircle } from 'lucide-react'
+import { useEffect, useState, type ReactNode } from 'react'
+import { CheckCircle2, Download, FileSpreadsheet, TriangleAlert, UserCheck, Users, XCircle } from 'lucide-react'
 import { toast } from 'sonner'
 import { Modal } from '@/components/ui/modal'
 import { Button } from '@/components/ui/button'
 import { FileDropZone } from '@/components/ui/file-drop-zone'
-import { Field } from '@/components/ui/input'
+import { Field, Label } from '@/components/ui/input'
 import { MultiSelect } from '@/components/ui/multi-select'
 import { ProgressBar } from '@/components/ui/progress-bar'
+import { Toggle } from '@/components/ui/toggle'
 import { leadsApi } from '@/api/leads.api'
 import { useImportLeads, useLeadImport } from '@/hooks/queries/use-leads'
 import { usePeerManagers } from '@/hooks/queries/use-team'
 import { useAuthStore } from '@/store/auth-store'
 import { extractErrorMessage } from '@/lib/api-client'
 import { downloadBlob } from '@/lib/export-csv'
+import { uploadSharedWithLabel } from '@/lib/lead-channel'
 import { cn } from '@/lib/utils'
 import {
+  LeadImportAllocationMode,
   LeadImportStatus,
   UserRole,
   type LeadImportAllocation,
@@ -28,32 +31,44 @@ const ROWS_LISTED = 8
 const count = (n: number) => n.toLocaleString('en-IN')
 
 /**
- * "Upload Excel" for leads, for Admins and Managers: pick a sheet (a Manager
- * can also pick other managers to share it with) → upload it (progress by
- * bytes) → the server imports its rows (progress by rows, polled) → summary
- * of what was imported, who got it, and which rows were skipped and why.
+ * "Upload Excel" for leads, for Admins and Managers: pick a sheet and who
+ * gets its leads (every team, or picked managers with or without their
+ * teams) → upload it (progress by bytes) → the server imports its rows
+ * (progress by rows, polled) → summary of what was imported, who got it,
+ * and which rows were skipped and why.
  */
 export function ImportLeadsModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const user = useAuthStore((s) => s.user)
+  const isManager = user?.role === UserRole.MANAGER
   const [file, setFile] = useState<File | null>(null)
-  const [collaboratorIds, setCollaboratorIds] = useState<string[]>([])
+  const [everyone, setEveryone] = useState(!isManager)
+  const [managerIds, setManagerIds] = useState<string[]>([])
+  const [withTeams, setWithTeams] = useState(true)
   const [uploadPercent, setUploadPercent] = useState(0)
   const [batchId, setBatchId] = useState<string | null>(null)
   const [downloading, setDownloading] = useState(false)
-  const isManager = useAuthStore((s) => s.user?.role === UserRole.MANAGER)
-  const { data: peers = [] } = usePeerManagers(open && isManager)
+  // The org's other managers; an Admin isn't one, so for them it's all of them.
+  const { data: peers = [] } = usePeerManagers(open)
   const upload = useImportLeads()
   const { data: batch } = useLeadImport(batchId)
-  const peerName = (id: string) => {
+  // A Manager can take a share themselves, so they head their own list.
+  const managerOptions = [...(isManager && user ? [user.id] : []), ...peers.map((p) => p.id)]
+  const managerName = (id: string) => {
+    if (id === user?.id) return `${user.firstName} ${user.lastName} (you)`
     const m = peers.find((p) => p.id === id)
     return m ? `${m.firstName} ${m.lastName}` : 'Manager'
   }
+  const sharedBeyondOwnTeam = isManager && (everyone || managerIds.some((id) => id !== user?.id))
 
   const processing = !!batchId && (!batch || batch.status === LeadImportStatus.PROCESSING)
   const finished = !!batch && batch.status !== LeadImportStatus.PROCESSING
 
+  // Starts where uploads used to go: every team for an Admin, their own team for a Manager.
   const reset = () => {
     setFile(null)
-    setCollaboratorIds([])
+    setEveryone(!isManager)
+    setManagerIds(isManager && user ? [user.id] : [])
+    setWithTeams(true)
     setUploadPercent(0)
     setBatchId(null)
     upload.reset()
@@ -69,7 +84,18 @@ export function ImportLeadsModal({ open, onClose }: { open: boolean; onClose: ()
     if (!file) return
     setUploadPercent(0)
     upload.mutate(
-      { file, collaboratorIds: isManager ? collaboratorIds : [], onProgress: setUploadPercent },
+      {
+        file,
+        allocation: everyone
+          ? { allocationMode: LeadImportAllocationMode.ALL_TEAMS, managerIds: [] }
+          : {
+              allocationMode: withTeams
+                ? LeadImportAllocationMode.MANAGERS_AND_TEAMS
+                : LeadImportAllocationMode.MANAGERS_ONLY,
+              managerIds,
+            },
+        onProgress: setUploadPercent,
+      },
       { onSuccess: (created) => setBatchId(created.id) },
     )
   }
@@ -90,11 +116,7 @@ export function ImportLeadsModal({ open, onClose }: { open: boolean; onClose: ()
       open={open}
       onClose={onClose}
       title="Upload leads from Excel"
-      subtitle={
-        isManager
-          ? 'Shared across your team — and the teams of any managers you collaborate with'
-          : 'Shared equally across the managers’ presales teams'
-      }
+      subtitle="Choose who gets the leads — every team, or the managers you pick"
       size="lg"
     >
       <div className="flex flex-col gap-5">
@@ -127,33 +149,68 @@ export function ImportLeadsModal({ open, onClose }: { open: boolean; onClose: ()
               hint=".xlsx or .csv · up to 5,000 leads · 10 MB"
             />
 
-            {isManager && (
-              <Field
-                label="Collaborate with other managers"
-                hint="Optional — each picked manager’s team gets an equal share alongside yours. Leave empty to keep every lead in your own team."
-              >
-                <MultiSelect
-                  options={peers.map((p) => p.id)}
-                  value={collaboratorIds}
-                  onChange={setCollaboratorIds}
-                  formatLabel={peerName}
-                  placeholder="Only my team"
-                  searchable
-                  searchPlaceholder="Search managers…"
-                  emptyLabel="No other managers in your organization"
+            <div>
+              <Label>Who gets these leads?</Label>
+              <div role="radiogroup" className="grid gap-2 sm:grid-cols-2">
+                <AllocationChoice
+                  selected={everyone}
+                  onSelect={() => setEveryone(true)}
+                  disabled={upload.isPending}
+                  icon={<Users className="size-4" />}
+                  title="Everyone"
+                  description="Auto-allocated across every manager’s presales team"
                 />
-              </Field>
+                <AllocationChoice
+                  selected={!everyone}
+                  onSelect={() => setEveryone(false)}
+                  disabled={upload.isPending}
+                  icon={<UserCheck className="size-4" />}
+                  title="Specific managers"
+                  description="Shared equally among the managers you pick"
+                />
+              </div>
+            </div>
+
+            {!everyone && (
+              <>
+                <Field label="Managers" hint="Each picked manager gets an equal share of the sheet.">
+                  <MultiSelect
+                    options={managerOptions}
+                    value={managerIds}
+                    onChange={setManagerIds}
+                    formatLabel={managerName}
+                    placeholder="Pick one or more managers"
+                    searchable
+                    searchPlaceholder="Search managers…"
+                    emptyLabel="No managers in your organization yet"
+                  />
+                </Field>
+
+                <div className="flex items-center justify-between gap-4 rounded-xl bg-slate-50 p-4">
+                  <div>
+                    <p className="text-sm font-medium text-slate-800">Share with their team members too</p>
+                    <p className="mt-0.5 text-xs text-slate-500">
+                      {withTeams
+                        ? 'On — each manager’s share is spread across the manager and their presales team.'
+                        : 'Off — the leads go only to the picked managers themselves.'}
+                    </p>
+                  </div>
+                  <Toggle checked={withTeams} onChange={setWithTeams} disabled={upload.isPending} />
+                </div>
+              </>
             )}
 
             <ul className="list-disc space-y-1 pl-5 text-xs text-slate-500">
+              <li>Every uploaded lead is marked as provided by you.</li>
+              {sharedBeyondOwnTeam && (
+                <li>Leads that go to another manager or their team won’t show in your Leads list — only that manager and the Admin see them.</li>
+              )}
               <li>
-                {isManager
-                  ? 'Every uploaded lead is marked as provided by you, and your team and each collaborator’s team get an equal share. If nobody in those teams is available today, the leads come to you.'
-                  : 'Every uploaded lead is marked as provided by you, and each manager’s team gets an equal share.'}
+                Anyone absent or on leave today isn’t given any. If nobody is available, the leads{' '}
+                {isManager ? 'come to you' : 'stay unassigned for you to hand out'}.
               </li>
-              <li>The Admin can see this upload — who uploaded it, when, the collaborators — and download the sheet.</li>
+              <li>The Admin can see this upload — who uploaded it, when, who it was shared with — and download the sheet.</li>
               <li>Numbers already in the CRM are skipped, not duplicated.</li>
-              <li>Presales members who are absent or on leave today aren’t given any.</li>
             </ul>
 
             {upload.isPending && (
@@ -167,7 +224,7 @@ export function ImportLeadsModal({ open, onClose }: { open: boolean; onClose: ()
               <Button variant="ghost" onClick={onClose}>
                 Cancel
               </Button>
-              <Button onClick={start} disabled={!file} loading={upload.isPending}>
+              <Button onClick={start} disabled={!file || (!everyone && managerIds.length === 0)} loading={upload.isPending}>
                 Upload
               </Button>
             </div>
@@ -212,6 +269,50 @@ export function ImportLeadsModal({ open, onClose }: { open: boolean; onClose: ()
   )
 }
 
+function AllocationChoice({
+  selected,
+  onSelect,
+  disabled,
+  icon,
+  title,
+  description,
+}: {
+  selected: boolean
+  onSelect: () => void
+  disabled?: boolean
+  icon: ReactNode
+  title: string
+  description: string
+}) {
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={selected}
+      disabled={disabled}
+      onClick={onSelect}
+      className={cn(
+        'flex items-start gap-3 rounded-xl p-3 text-left ring-1 ring-inset transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500',
+        selected ? 'bg-brand-50 ring-brand-500' : 'bg-white ring-slate-200 hover:bg-slate-50',
+        disabled && 'cursor-not-allowed opacity-60',
+      )}
+    >
+      <span
+        className={cn(
+          'mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg',
+          selected ? 'bg-brand-600 text-white' : 'bg-slate-100 text-slate-500',
+        )}
+      >
+        {icon}
+      </span>
+      <span>
+        <span className={cn('block text-sm font-medium', selected ? 'text-brand-700' : 'text-slate-800')}>{title}</span>
+        <span className="mt-0.5 block text-xs text-slate-500">{description}</span>
+      </span>
+    </button>
+  )
+}
+
 function Stat({ label, value, tone }: { label: string; value: number; tone: 'success' | 'warning' | 'danger' }) {
   const tones = {
     success: 'bg-emerald-50 text-emerald-700',
@@ -227,15 +328,25 @@ function Stat({ label, value, tone }: { label: string; value: number; tone: 'suc
 }
 
 function groupByTeam(allocation: LeadImportAllocation[]) {
-  const teams = new Map<string, { managerName: string; total: number; members: LeadImportAllocation[] }>()
+  const teams = new Map<
+    string,
+    { managerName: string; managerAlone: boolean; total: number; members: LeadImportAllocation[] }
+  >()
   for (const row of allocation) {
     const key = row.managerId ?? ''
-    const team = teams.get(key) ?? { managerName: row.managerName ?? 'No manager', total: 0, members: [] }
+    const team = teams.get(key) ?? { managerName: row.managerName ?? 'No manager', managerAlone: true, total: 0, members: [] }
     team.total += row.count
     team.members.push(row)
+    // The manager's own row carries their id as its managerId.
+    team.managerAlone = team.managerAlone && row.userId === row.managerId
     teams.set(key, team)
   }
   return [...teams.values()]
+}
+
+function teamLabel(team: { managerName: string; managerAlone: boolean }) {
+  if (team.managerName === 'No manager') return 'Presales without a manager'
+  return team.managerAlone ? team.managerName : `${team.managerName}’s team`
 }
 
 const ISSUE_STYLES: Record<LeadImportIssue['level'], { dot: string; label: string; order: number }> = {
@@ -286,12 +397,9 @@ export function ImportSummary({ batch }: { batch: LeadImportBatch }) {
         </div>
       )}
 
-      {batch.collaborators.length > 0 && (
-        <p className="text-xs text-slate-500">
-          <span className="font-medium text-slate-600">Collaborators:</span>{' '}
-          {batch.collaborators.map((c) => `${c.firstName} ${c.lastName}`).join(', ')}
-        </p>
-      )}
+      <p className="text-xs text-slate-500">
+        <span className="font-medium text-slate-600">Shared with:</span> {uploadSharedWithLabel(batch)}
+      </p>
 
       <div className="grid grid-cols-3 gap-2">
         <Stat label="Imported" value={batch.createdCount} tone="success" />
@@ -301,17 +409,19 @@ export function ImportSummary({ batch }: { batch: LeadImportBatch }) {
 
       {teams.length > 0 && (
         <section className="flex flex-col gap-2">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Shared across presales teams</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Who got the leads</p>
           <ul className="flex flex-col gap-2">
             {teams.map((team) => (
               <li key={team.managerName} className="rounded-xl border border-slate-100 px-3 py-2.5">
                 <p className="text-sm font-medium text-slate-800">
-                  {team.managerName === 'No manager' ? 'Presales without a manager' : `${team.managerName}’s team`}
+                  {teamLabel(team)}
                   <span className="ml-1.5 font-normal text-slate-400">· {count(team.total)} leads</span>
                 </p>
-                <p className="mt-0.5 text-xs text-slate-500">
-                  {team.members.map((m) => `${m.name} (${m.count})`).join(', ')}
-                </p>
+                {!team.managerAlone && (
+                  <p className="mt-0.5 text-xs text-slate-500">
+                    {team.members.map((m) => `${m.name} (${m.count})`).join(', ')}
+                  </p>
+                )}
               </li>
             ))}
           </ul>
@@ -322,8 +432,8 @@ export function ImportSummary({ batch }: { batch: LeadImportBatch }) {
         <div className="flex items-start gap-2 rounded-xl bg-amber-50 p-3 text-sm text-amber-800">
           <TriangleAlert className="mt-0.5 size-4 shrink-0" />
           <p>
-            {count(unassigned)} lead{unassigned === 1 ? '' : 's'} couldn’t be assigned — no presales team member was
-            available. Assign {unassigned === 1 ? 'it' : 'them'} from the Leads list.
+            {count(unassigned)} lead{unassigned === 1 ? '' : 's'} couldn’t be assigned — nobody the sheet was shared
+            with was available today. Assign {unassigned === 1 ? 'it' : 'them'} from the Leads list.
           </p>
         </div>
       )}

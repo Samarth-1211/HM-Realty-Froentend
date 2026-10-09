@@ -4,6 +4,7 @@ import { toast } from 'sonner'
 import {
   leadsApi,
   type CreateLeadManualPayload,
+  type LeadImportAllocationChoice,
   type LeadQuery,
   type UpdateLeadDetailsPayload,
   type UpdateLeadFollowUpPayload,
@@ -218,13 +219,13 @@ export function useImportLeads() {
   return useMutation({
     mutationFn: ({
       file,
-      collaboratorIds,
+      allocation,
       onProgress,
     }: {
       file: File
-      collaboratorIds?: string[]
+      allocation: LeadImportAllocationChoice
       onProgress?: (percent: number) => void
-    }) => leadsApi.importSheet(file, collaboratorIds, onProgress),
+    }) => leadsApi.importSheet(file, allocation, onProgress),
     onError: (error) => toast.error('Could not upload the sheet', { description: extractErrorMessage(error) }),
   })
 }

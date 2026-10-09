@@ -50,7 +50,7 @@ export function LeadsPage() {
   useMarkLeadsSeenWhileOpen()
 
   const canAssign = currentUser && ASSIGNER_ROLES.includes(currentUser.role)
-  // Managers upload too — shared with their own team and any managers they pick to collaborate with.
+  // Managers upload too — like Admins, they choose who the sheet is shared with.
   const canImport = currentUser?.role === UserRole.ADMIN || currentUser?.role === UserRole.MANAGER
   // Managers see their own and their team's leads; hot leads are assigned to them personally.
   const isManager = currentUser?.role === UserRole.MANAGER

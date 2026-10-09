@@ -258,6 +258,18 @@ export const LeadImportStatus = {
 } as const
 export type LeadImportStatus = (typeof LeadImportStatus)[keyof typeof LeadImportStatus]
 
+/**
+ * Who an uploaded lead sheet is shared with: every manager's presales team,
+ * or picked managers — each with an equal share, spread across the manager
+ * and their presales team or kept to the manager alone.
+ */
+export const LeadImportAllocationMode = {
+  ALL_TEAMS: 'ALL_TEAMS',
+  MANAGERS_AND_TEAMS: 'MANAGERS_AND_TEAMS',
+  MANAGERS_ONLY: 'MANAGERS_ONLY',
+} as const
+export type LeadImportAllocationMode = (typeof LeadImportAllocationMode)[keyof typeof LeadImportAllocationMode]
+
 export const AttendanceStatus = {
   PRESENT: 'PRESENT',
   HALF_DAY: 'HALF_DAY',
@@ -587,7 +599,7 @@ export interface LeadImportIssue {
   message: string
 }
 
-/** How many of an upload's leads one presales member received. */
+/** How many of an upload's leads one person received — a presales member, or a manager (then `managerId` is their own id). */
 export interface LeadImportAllocation {
   userId: string
   name: string
@@ -615,7 +627,12 @@ export interface LeadImportBatch {
   createdAt: string
   completedAt: string | null
   uploadedBy: { id: string; firstName: string; lastName: string; role: UserRole }
-  /** Managers a Manager shared the sheet with, on top of their own team — empty for an Admin's upload. */
+  /** Who the uploader chose to share the sheet with — null for uploads made before there was a choice. */
+  allocationMode: LeadImportAllocationMode | null
+  /**
+   * The managers picked to share the sheet — the uploader too, if they picked themselves. Without an
+   * `allocationMode`: the other managers a Manager shared it with, on top of their own team.
+   */
   collaborators: { id: string; firstName: string; lastName: string }[]
   /** Whether the original sheet was kept (false for uploads made before sheets were stored). */
   hasFile: boolean

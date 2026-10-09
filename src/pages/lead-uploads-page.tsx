@@ -15,18 +15,13 @@ import { leadsApi } from '@/api/leads.api'
 import { useLeadImport, useLeadImports } from '@/hooks/queries/use-leads'
 import { extractErrorMessage } from '@/lib/api-client'
 import { downloadBlob } from '@/lib/export-csv'
+import { uploadSharedWithLabel } from '@/lib/lead-channel'
 import { formatDateTime, formatFileSize } from '@/lib/utils'
 import { LeadImportStatus, UserRole, type LeadImportBatch } from '@/types'
 
 const PAGE_SIZE = 25
 
 const fullName = (u: { firstName: string; lastName: string }) => `${u.firstName} ${u.lastName}`
-
-function collaboratorsLabel(batch: LeadImportBatch): string {
-  if (batch.uploadedBy.role !== UserRole.MANAGER) return 'All teams'
-  if (batch.collaborators.length === 0) return 'Own team only'
-  return batch.collaborators.map(fullName).join(', ')
-}
 
 function StatusBadge({ status }: { status: LeadImportBatch['status'] }) {
   if (status === LeadImportStatus.PROCESSING) return <Badge variant="brand">Importing</Badge>
@@ -36,9 +31,8 @@ function StatusBadge({ status }: { status: LeadImportBatch['status'] }) {
 
 /**
  * Admin's history of every lead sheet uploaded in the org — by Admins and
- * Managers: when it came in, who uploaded it, which managers they shared it
- * with (collaborators), how the import went, and the original file to
- * download.
+ * Managers: when it came in, who uploaded it, who they shared it with, how
+ * the import went, and the original file to download.
  */
 export function LeadUploadsPage() {
   const [page, setPage] = useState(1)
@@ -92,10 +86,10 @@ export function LeadUploadsPage() {
       ),
     },
     {
-      key: 'collaborators',
-      header: 'Collaborators',
+      key: 'sharedWith',
+      header: 'Shared with',
       render: (b) => (
-        <span className={b.collaborators.length > 0 ? 'text-slate-700' : 'text-slate-400'}>{collaboratorsLabel(b)}</span>
+        <span className={b.collaborators.length > 0 ? 'text-slate-700' : 'text-slate-400'}>{uploadSharedWithLabel(b)}</span>
       ),
     },
     {
@@ -174,7 +168,7 @@ export function LeadUploadsPage() {
     <div>
       <PageHeader
         title="Lead Uploads"
-        description="Every Excel sheet of leads uploaded by Admins and Managers — when, by whom, the managers they collaborated with, and the original file."
+        description="Every Excel sheet of leads uploaded by Admins and Managers — when, by whom, who it was shared with, and the original file."
       />
 
       <Card>
@@ -240,8 +234,8 @@ function UploadDetailModal({
               </dd>
             </div>
             <div>
-              <dt className="text-xs text-slate-400">Collaborators</dt>
-              <dd className="text-slate-700">{collaboratorsLabel(batch)}</dd>
+              <dt className="text-xs text-slate-400">Shared with</dt>
+              <dd className="text-slate-700">{uploadSharedWithLabel(batch)}</dd>
             </div>
             <div>
               <dt className="text-xs text-slate-400">Leads still in the CRM</dt>

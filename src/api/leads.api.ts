@@ -6,6 +6,7 @@ import type {
   DeleteImportLeadsResult,
   CreateLeadManualResult,
   Lead,
+  LeadImportAllocationMode,
   LeadImportBatch,
   LeadProgressStage,
   LeadPurpose,
@@ -27,6 +28,12 @@ export interface CreateLeadManualPayload {
   referredByName?: string
   referredByEmail?: string
   referredByPhone?: string
+}
+
+/** Who gets an uploaded sheet's leads. `managerIds` are the picked managers — empty for ALL_TEAMS. */
+export interface LeadImportAllocationChoice {
+  allocationMode: LeadImportAllocationMode
+  managerIds: string[]
 }
 
 /** A lead's own details. Omit a field to leave it; `null` clears an optional one. */
@@ -134,10 +141,10 @@ export const leadsApi = {
 
   /**
    * Admin/Manager Excel/CSV upload. Returns as soon as the file is checked; rows import in the background.
-   * `collaboratorIds` (Managers only): other Managers whose teams share the sheet.
+   * `allocation` says who gets the leads.
    */
-  importSheet: (file: File, collaboratorIds: string[] = [], onProgress?: (percent: number) => void) =>
-    postFile<LeadImportBatch>('/leads/import', file, onProgress, { collaboratorIds }),
+  importSheet: (file: File, allocation: LeadImportAllocationChoice, onProgress?: (percent: number) => void) =>
+    postFile<LeadImportBatch>('/leads/import', file, onProgress, { ...allocation }),
 
   /** Polled for the upload's progress and, once done, its per-row outcome. */
   getImport: (id: string) => apiClient.get<LeadImportBatch>(`/leads/imports/${id}`).then((r) => r.data),

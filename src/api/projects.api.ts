@@ -69,7 +69,7 @@ export const projectsApi = {
       .delete<{ message: string; id: string }>(`/projects/${id}`)
       .then((r) => r.data),
 
-  /** Adds or replaces the brochure (PDF/JPG/PNG/WEBP, up to 25 MB). */
+  /** Adds or replaces the brochure (PDF/JPG/PNG/WEBP, up to 50 MB). */
   uploadBrochure: (id: string, file: File, onProgress?: (percent: number) => void) =>
     postFile<Project>(`/projects/${id}/brochure`, file, onProgress),
 

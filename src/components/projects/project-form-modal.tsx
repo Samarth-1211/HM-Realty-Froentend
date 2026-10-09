@@ -37,7 +37,7 @@ import {
   formatPlotSize,
 } from '@/lib/project-pricing'
 
-const MAX_BROCHURE_BYTES = 25 * 1024 * 1024
+const MAX_BROCHURE_BYTES = 50 * 1024 * 1024
 
 const PLC_PRESETS = [
   { min: 5, max: 10 },
@@ -801,7 +801,7 @@ export function ProjectFormModal({
               disabled={saving}
               icon={<FileText className="size-5" />}
               title={existingBrochureUrl ? 'Replace the brochure' : 'Upload a brochure'}
-              hint="PDF or image (JPG, PNG, WEBP) · up to 25 MB · everyone in your team can send it to customers"
+              hint="PDF or image (JPG, PNG, WEBP) · up to 50 MB · everyone in your team can send it to customers"
             />
             {uploadPercent !== null && (
               <ProgressBar

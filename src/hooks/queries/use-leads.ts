@@ -230,6 +230,14 @@ export function useImportLeads() {
   })
 }
 
+/** Counts the leads in a chosen sheet before it's uploaded. */
+export function usePreviewLeadImport() {
+  return useMutation({
+    mutationFn: (file: File) => leadsApi.previewImport(file),
+    onError: (error) => toast.error('Could not read the sheet', { description: extractErrorMessage(error) }),
+  })
+}
+
 /**
  * Follows an upload while its rows are imported (polling every second),
  * then refreshes the lead lists once it has finished.

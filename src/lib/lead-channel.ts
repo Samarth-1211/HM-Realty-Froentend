@@ -66,6 +66,7 @@ export function uploadSharedWithLabel(
   const names = picked.map((m) => `${m.firstName} ${m.lastName}`).join(', ')
   const one = picked.length === 1
   if (batch.allocationMode === LeadImportAllocationMode.ALL_TEAMS) return 'All teams'
+  if (batch.allocationMode === LeadImportAllocationMode.CUSTOM) return 'Custom split'
   if (batch.allocationMode === LeadImportAllocationMode.MANAGERS_AND_TEAMS) return `${names} — with their ${one ? 'team' : 'teams'}`
   if (batch.allocationMode === LeadImportAllocationMode.MANAGERS_ONLY) return `${names} — ${one ? 'manager' : 'managers'} only`
   // Uploaded before there was a choice: an Admin's went to every team, a Manager's to their own plus these managers'.

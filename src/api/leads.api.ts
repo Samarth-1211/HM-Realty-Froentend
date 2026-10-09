@@ -8,6 +8,7 @@ import type {
   Lead,
   LeadImportAllocationMode,
   LeadImportBatch,
+  LeadImportPreview,
   LeadProgressStage,
   LeadPurpose,
   LeadStatus,
@@ -30,10 +31,14 @@ export interface CreateLeadManualPayload {
   referredByPhone?: string
 }
 
-/** Who gets an uploaded sheet's leads. `managerIds` are the picked managers — empty for ALL_TEAMS. */
+/**
+ * Who gets an uploaded sheet's leads. `managerIds` are the picked managers (MANAGERS_* modes);
+ * `customAllocations` says how many leads each person gets (CUSTOM).
+ */
 export interface LeadImportAllocationChoice {
   allocationMode: LeadImportAllocationMode
   managerIds: string[]
+  customAllocations?: { userId: string; count: number }[]
 }
 
 /** A lead's own details. Omit a field to leave it; `null` clears an optional one. */
@@ -143,8 +148,19 @@ export const leadsApi = {
    * Admin/Manager Excel/CSV upload. Returns as soon as the file is checked; rows import in the background.
    * `allocation` says who gets the leads.
    */
-  importSheet: (file: File, allocation: LeadImportAllocationChoice, onProgress?: (percent: number) => void) =>
-    postFile<LeadImportBatch>('/leads/import', file, onProgress, { ...allocation }),
+  importSheet: (
+    file: File,
+    { allocationMode, managerIds, customAllocations }: LeadImportAllocationChoice,
+    onProgress?: (percent: number) => void,
+  ) =>
+    postFile<LeadImportBatch>('/leads/import', file, onProgress, {
+      allocationMode,
+      managerIds,
+      ...(customAllocations ? { customAllocations: JSON.stringify(customAllocations) } : {}),
+    }),
+
+  /** Counts the leads in a sheet without uploading it — new, already in the CRM, unreadable. */
+  previewImport: (file: File) => postFile<LeadImportPreview>('/leads/import/preview', file),
 
   /** Polled for the upload's progress and, once done, its per-row outcome. */
   getImport: (id: string) => apiClient.get<LeadImportBatch>(`/leads/imports/${id}`).then((r) => r.data),

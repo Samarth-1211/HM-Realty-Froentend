@@ -2,43 +2,10 @@ import { useState } from 'react'
 import { Modal } from '@/components/ui/modal'
 import { Select } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
-import { useUsers } from '@/hooks/queries/use-users'
-import { usePeerManagers } from '@/hooks/queries/use-team'
+import { useAssignablePeople } from '@/hooks/queries/use-assignable-people'
 import { useAssignLead, useBulkAssignLeads } from '@/hooks/queries/use-leads'
 import { useAuthStore } from '@/store/auth-store'
-import { STAFF_ROLES } from '@/lib/constants'
-import { UserRole, type Lead, type User } from '@/types'
-
-interface Candidate {
-  id: string
-  label: string
-}
-
-const fullName = (u: { firstName: string; lastName: string }) => `${u.firstName} ${u.lastName}`
-
-/**
- * Everyone an Admin can hand a lead to, grouped by team: each Manager
- * followed by their sales team, then sales people without a manager.
- */
-function teamGroups(users: User[]): { label: string; candidates: Candidate[] }[] {
-  const active = users.filter((u) => u.isActive && (u.role === UserRole.MANAGER || STAFF_ROLES.includes(u.role)))
-  const byName = (a: User, b: User) => fullName(a).localeCompare(fullName(b))
-  const managers = active.filter((u) => u.role === UserRole.MANAGER).sort(byName)
-  const managerIds = new Set(managers.map((m) => m.id))
-  const staffOf = (managerId: string | null) =>
-    active
-      .filter((u) => STAFF_ROLES.includes(u.role) && (managerId ? u.managerId === managerId : !u.managerId || !managerIds.has(u.managerId)))
-      .sort(byName)
-      .map((u) => ({ id: u.id, label: `${fullName(u)} (${u.role})` }))
-
-  const groups = managers.map((m) => ({
-    label: `${fullName(m)}’s team`,
-    candidates: [{ id: m.id, label: `${fullName(m)} (Manager)` }, ...staffOf(m.id)],
-  }))
-  const unteamed = staffOf(null)
-  if (unteamed.length > 0) groups.push({ label: 'Not in a team', candidates: unteamed })
-  return groups
-}
+import type { Lead } from '@/types'
 
 /**
  * Assign one lead (`lead`) or a whole selection (`leads`) to someone.
@@ -70,11 +37,7 @@ export function AssignLeadModal({
   const currentUser = useAuthStore((s) => s.user)
   const targets = leads ?? (lead ? [lead] : [])
   const isBulk = !!leads
-  const isManager = currentUser?.role === UserRole.MANAGER
-  // An Admin's user list is the whole org; a Manager's only their own team.
-  const { data: users } = useUsers(open)
-  // Handing a lead over to another Manager is the one thing a Manager can do across teams.
-  const { data: peers } = usePeerManagers(open && isManager)
+  const { groups, peerIds } = useAssignablePeople(open)
   const assign = useAssignLead()
   const bulkAssign = useBulkAssignLeads()
 
@@ -87,25 +50,7 @@ export function AssignLeadModal({
 
   if (targets.length === 0 || !currentUser) return null
 
-  const groups: { label: string; candidates: Candidate[] }[] = isManager
-    ? [
-        {
-          label: 'You & your team',
-          candidates: [
-            { id: currentUser.id, label: `${fullName(currentUser)} (you)` },
-            ...(users ?? [])
-              .filter((u) => STAFF_ROLES.includes(u.role) && u.isActive)
-              .map((u) => ({ id: u.id, label: `${fullName(u)} (${u.role})` })),
-          ],
-        },
-        {
-          label: 'Hand over to another manager',
-          candidates: (peers ?? []).map((m) => ({ id: m.id, label: `${fullName(m)} (Manager)` })),
-        },
-      ]
-    : teamGroups(users ?? [])
-
-  const isHandover = isManager && (peers ?? []).some((m) => m.id === selected)
+  const isHandover = peerIds.has(selected)
   const pending = assign.isPending || bulkAssign.isPending
 
   const submit = () => {

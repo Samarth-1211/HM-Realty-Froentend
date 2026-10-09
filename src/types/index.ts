@@ -261,12 +261,14 @@ export type LeadImportStatus = (typeof LeadImportStatus)[keyof typeof LeadImport
 /**
  * Who an uploaded lead sheet is shared with: every manager's presales team,
  * or picked managers — each with an equal share, spread across the manager
- * and their presales team or kept to the manager alone.
+ * and their presales team or kept to the manager alone — or a custom split,
+ * where the uploader says how many leads each person gets.
  */
 export const LeadImportAllocationMode = {
   ALL_TEAMS: 'ALL_TEAMS',
   MANAGERS_AND_TEAMS: 'MANAGERS_AND_TEAMS',
   MANAGERS_ONLY: 'MANAGERS_ONLY',
+  CUSTOM: 'CUSTOM',
 } as const
 export type LeadImportAllocationMode = (typeof LeadImportAllocationMode)[keyof typeof LeadImportAllocationMode]
 
@@ -606,6 +608,19 @@ export interface LeadImportAllocation {
   managerId: string | null
   managerName: string | null
   count: number
+}
+
+/** POST /leads/import/preview — what a sheet holds, counted before it's uploaded. */
+export interface LeadImportPreview {
+  fileName: string
+  totalRows: number
+  /** Rows that would become new leads — what there is to give out. */
+  newLeadCount: number
+  /** Rows whose number is already in the CRM, or repeats an earlier row. */
+  duplicateCount: number
+  /** Rows that can't be read (no name, no valid mobile number). */
+  invalidCount: number
+  ignoredColumns: string[]
 }
 
 /** GET /leads/imports/:id — polled while an upload is processed. Also a row of GET /leads/imports (issues null there). */

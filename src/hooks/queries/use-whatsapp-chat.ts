@@ -61,6 +61,18 @@ export function useSendWhatsAppMessage(leadId: string) {
   })
 }
 
+export function useSendWhatsAppMedia(leadId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ file, caption }: { file: File; caption: string }) => whatsappChatApi.sendMedia(leadId, file, caption),
+    // Refreshed either way: a send WhatsApp rejected is still logged in the thread, as failed.
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.whatsappChat.thread(leadId) })
+    },
+    onError: (error) => toast.error('File not sent', { description: extractErrorMessage(error) }),
+  })
+}
+
 /** Clears the thread's unread count for the current user — silent on failure, it's only a badge. */
 export function useMarkWhatsAppRead() {
   const qc = useQueryClient()

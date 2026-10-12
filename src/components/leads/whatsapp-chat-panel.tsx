@@ -1,11 +1,28 @@
 import { Fragment, type ReactNode, useEffect, useRef, useState } from 'react'
-import { AlertTriangle, Check, CheckCheck, CircleAlert, Clock, Download, FileText, ImageOff, RotateCw, Send, SendHorizontal } from 'lucide-react'
+import {
+  AlertTriangle,
+  Check,
+  CheckCheck,
+  CircleAlert,
+  Clock,
+  Download,
+  FileText,
+  Image as ImageIcon,
+  ImageOff,
+  Paperclip,
+  RotateCw,
+  Send,
+  SendHorizontal,
+  X,
+} from 'lucide-react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Select } from '@/components/ui/select'
 import { Spinner } from '@/components/ui/spinner'
 import {
   useBlobUrlRef,
   useMarkWhatsAppRead,
+  useSendWhatsAppMedia,
   useSendWhatsAppMessage,
   useSendWhatsAppTemplate,
   useWhatsAppMedia,
@@ -221,11 +238,21 @@ function TemplateSender({ leadId }: { leadId: string }) {
 
 const COMPOSER_MAX_HEIGHT_PX = 128
 
+// Mirrors the backend's limits for files sent from the chat.
+const ATTACHMENT_IMAGE_TYPES = ['image/jpeg', 'image/png']
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024
+const MAX_PDF_BYTES = 50 * 1024 * 1024
+const CAPTION_MAX_LENGTH = 1024
+
 export function WhatsAppChatPanel({ leadId, className }: { leadId: string; className?: string }) {
   const { data: thread, isLoading, isError, refetch, isFetching } = useWhatsAppThread(leadId)
   const sendMessage = useSendWhatsAppMessage(leadId)
   const markRead = useMarkWhatsAppRead()
+  const sendMedia = useSendWhatsAppMedia(leadId)
   const [text, setText] = useState('')
+  /** The file picked to send next; what's typed becomes its caption. */
+  const [attachment, setAttachment] = useState<File | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
   const composerRef = useRef<HTMLTextAreaElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
@@ -259,10 +286,44 @@ export function WhatsAppChatPanel({ leadId, className }: { leadId: string; class
     if (lastInboundId) markReadMutate(leadId)
   }, [leadId, lastInboundId, markReadMutate])
 
+  const sending = sendMessage.isPending || sendMedia.isPending
+
   const onSend = () => {
     const trimmed = text.trim()
-    if (!trimmed || sendMessage.isPending) return
+    if (sending) return
+    if (attachment) {
+      // What's typed goes along as the file's caption.
+      sendMedia.mutate(
+        { file: attachment, caption: trimmed },
+        {
+          onSuccess: () => {
+            setText('')
+            setAttachment(null)
+          },
+        },
+      )
+      return
+    }
+    if (!trimmed) return
     sendMessage.mutate(trimmed, { onSuccess: () => setText('') })
+  }
+
+  const onPickFile = (file: File | undefined) => {
+    if (!file) return
+    const isImage = ATTACHMENT_IMAGE_TYPES.includes(file.type)
+    if (!isImage && file.type !== 'application/pdf') {
+      toast.error('This file can\'t be sent', { description: 'Choose a JPG or PNG image, or a PDF.' })
+      return
+    }
+    const maxBytes = isImage ? MAX_IMAGE_BYTES : MAX_PDF_BYTES
+    if (file.size > maxBytes) {
+      toast.error('This file is too large', {
+        description: isImage ? 'WhatsApp only accepts images up to 5 MB.' : 'The PDF must be 50 MB or smaller.',
+      })
+      return
+    }
+    setAttachment(file)
+    composerRef.current?.focus()
   }
 
   const frame = cn('flex h-[32rem] flex-col overflow-hidden rounded-xl border border-wa-line font-wa', className)
@@ -289,7 +350,7 @@ export function WhatsAppChatPanel({ leadId, className }: { leadId: string; class
   }
 
   const sentAt = (m: WhatsAppMessage) => m.waTimestamp ?? m.createdAt
-  const canSend = !!text.trim()
+  const canSend = !!attachment || !!text.trim()
 
   return (
     <div className={frame}>
@@ -333,35 +394,82 @@ export function WhatsAppChatPanel({ leadId, className }: { leadId: string; class
             <TemplateSender leadId={leadId} />
           </div>
         ) : (
-          <div className="flex items-end gap-2">
-            <textarea
-              ref={composerRef}
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault()
-                  onSend()
-                }
-              }}
-              disabled={sendMessage.isPending}
-              placeholder="Type a message"
-              rows={1}
-              className="min-h-[42px] flex-1 resize-none rounded-lg border-0 bg-white px-3 py-2.5 text-[15px] leading-[22px] text-wa-ink placeholder:text-wa-muted focus:outline-none disabled:cursor-not-allowed disabled:text-wa-muted"
-            />
-            <button
-              type="button"
-              onClick={onSend}
-              disabled={!canSend || sendMessage.isPending}
-              aria-label="Send"
-              title="Send"
-              className={cn(
-                'flex size-[42px] shrink-0 items-center justify-center rounded-full transition-colors',
-                canSend ? 'bg-wa-green text-white hover:bg-wa-green-dark' : 'text-wa-icon',
-              )}
-            >
-              {sendMessage.isPending ? <Spinner className="text-current" /> : <SendHorizontal className="size-5" />}
-            </button>
+          <div className="flex flex-col gap-2">
+            {attachment && (
+              <div className="flex items-center gap-2.5 rounded-lg bg-white px-3 py-2 text-xs text-wa-ink">
+                {attachment.type === 'application/pdf' ? (
+                  <FileText className="size-5 shrink-0 text-wa-icon" />
+                ) : (
+                  <ImageIcon className="size-5 shrink-0 text-wa-icon" />
+                )}
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate font-medium">{attachment.name}</span>
+                  <span className="text-wa-muted">{formatFileSize(attachment.size)}</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setAttachment(null)}
+                  disabled={sending}
+                  aria-label="Remove the file"
+                  title="Remove"
+                  className="flex size-7 shrink-0 items-center justify-center rounded-full text-wa-icon hover:bg-wa-hover"
+                >
+                  <X className="size-4" />
+                </button>
+              </div>
+            )}
+            <div className="flex items-end gap-2">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
+                className="hidden"
+                onChange={(e) => {
+                  onPickFile(e.target.files?.[0])
+                  // Cleared so picking the same file again still fires a change.
+                  e.target.value = ''
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={sending}
+                aria-label="Attach an image or PDF"
+                title="Attach an image or PDF"
+                className="flex size-[42px] shrink-0 items-center justify-center rounded-full text-wa-icon transition-colors hover:bg-wa-hover"
+              >
+                <Paperclip className="size-5" />
+              </button>
+              <textarea
+                ref={composerRef}
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault()
+                    onSend()
+                  }
+                }}
+                disabled={sending}
+                maxLength={attachment ? CAPTION_MAX_LENGTH : undefined}
+                placeholder={attachment ? 'Add a caption (optional)' : 'Type a message'}
+                rows={1}
+                className="min-h-[42px] flex-1 resize-none rounded-lg border-0 bg-white px-3 py-2.5 text-[15px] leading-[22px] text-wa-ink placeholder:text-wa-muted focus:outline-none disabled:cursor-not-allowed disabled:text-wa-muted"
+              />
+              <button
+                type="button"
+                onClick={onSend}
+                disabled={!canSend || sending}
+                aria-label="Send"
+                title="Send"
+                className={cn(
+                  'flex size-[42px] shrink-0 items-center justify-center rounded-full transition-colors',
+                  canSend ? 'bg-wa-green text-white hover:bg-wa-green-dark' : 'text-wa-icon',
+                )}
+              >
+                {sending ? <Spinner className="text-current" /> : <SendHorizontal className="size-5" />}
+              </button>
+            </div>
           </div>
         )}
       </div>

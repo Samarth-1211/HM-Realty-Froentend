@@ -1,4 +1,4 @@
-import { apiClient } from '@/lib/api-client'
+import { apiClient, postFile } from '@/lib/api-client'
 import { waDebug } from '@/lib/wa-debug-logger'
 import type { LeadStatus, WhatsAppMessage, WhatsAppThread } from '@/types'
 
@@ -36,6 +36,12 @@ export const whatsappChatApi = {
   sendMessage: (leadId: string, text: string) =>
     waDebug.track('POST message', () =>
       apiClient.post<WhatsAppMessage>(`/leads/${leadId}/whatsapp/messages`, { text }).then((r) => r.data),
+    ),
+
+  /** An image (JPG/PNG) or a PDF, with an optional caption. */
+  sendMedia: (leadId: string, file: File, caption: string) =>
+    waDebug.track('POST media', () =>
+      postFile<WhatsAppMessage>(`/leads/${leadId}/whatsapp/media`, file, undefined, caption ? { caption } : {}),
     ),
 
   markRead: (leadId: string) =>

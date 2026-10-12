@@ -6,6 +6,7 @@ import {
   formatProjectBudget,
   formatProjectPlotSizes,
   formatRate,
+  sizesLabel,
 } from '@/lib/project-pricing'
 import type { Project } from '@/types'
 
@@ -41,7 +42,7 @@ export function projectShareMessage(project: Project, customerName?: string | nu
     detail('Basic rate', formatRate(project.basicRateMin, project.basicRateMax)),
     detail('E+M charges', formatEmCharges(project)),
     detail('PLC', formatPlc(project)),
-    detail('Plot sizes', formatProjectPlotSizes(project)),
+    detail(sizesLabel(project.propertyType), formatProjectPlotSizes(project)),
     detail('Budget', formatProjectBudget(project)),
     detail('Payment terms', project.paymentTerms && formatEnumLabel(project.paymentTerms)),
     project.description ? `\n${project.description.trim()}` : null,

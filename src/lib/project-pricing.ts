@@ -1,4 +1,4 @@
-import { EmChargesStatus, PlotSizeMode, type Project } from '@/types'
+import { EmChargesStatus, PlotSizeMode, PropertyType, type Project } from '@/types'
 
 /** Mirrors computeBudgetRange in the backend's project-pricing.util.ts, which is authoritative. */
 export function computeBudgetRange(input: {
@@ -52,6 +52,27 @@ function toNumber(value: string | number | null | undefined): number | null {
   if (value === null || value === undefined || value === '') return null
   const n = Number(value)
   return Number.isNaN(n) ? null : n
+}
+
+/**
+ * How a project's sizes are worded and entered for its property type. A flat is
+ * sold by its area alone, so it has no width × length.
+ */
+export function sizeTerms(type: PropertyType): { noun: string; areaLabel: string; hasDimensions: boolean } {
+  switch (type) {
+    case PropertyType.FLAT:
+      return { noun: 'flat', areaLabel: 'Super built-up area', hasDimensions: false }
+    case PropertyType.COMMERCIAL:
+      return { noun: 'unit', areaLabel: 'Area', hasDimensions: true }
+    default:
+      return { noun: 'plot', areaLabel: 'Area', hasDimensions: true }
+  }
+}
+
+/** "Plot sizes", "Flat sizes", "Unit sizes". */
+export function sizesLabel(type: PropertyType): string {
+  const { noun } = sizeTerms(type)
+  return `${noun[0].toUpperCase()}${noun.slice(1)} sizes`
 }
 
 /** "850 (17×50) sq.ft", or "850 sq.ft" without both dimensions. */

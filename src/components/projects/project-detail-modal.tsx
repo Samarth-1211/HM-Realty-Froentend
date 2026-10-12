@@ -16,6 +16,7 @@ import {
   formatProjectBudget,
   formatProjectPlotSizes,
   formatRate,
+  sizesLabel,
 } from '@/lib/project-pricing'
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
@@ -77,8 +78,15 @@ export function ProjectDetailModal({
             <Item label="Guideline rate">{formatGuidelineRate(project)}</Item>
           </Section>
 
-          <Section title="Plot sizes & budget">
-            <Item label={project.plotSizeMode === PlotSizeMode.RANGE ? 'Plot size range' : 'Plot sizes'} wide>
+          <Section title={`${sizesLabel(project.propertyType)} & budget`}>
+            <Item
+              label={
+                project.plotSizeMode === PlotSizeMode.RANGE
+                  ? `${sizesLabel(project.propertyType).slice(0, -1)} range`
+                  : sizesLabel(project.propertyType)
+              }
+              wide
+            >
               {project.plotSizeMode === PlotSizeMode.LIST && project.plotSizes?.length ? (
                 <ul className="flex flex-wrap gap-1.5">
                   {project.plotSizes.map((s) => (

@@ -73,7 +73,7 @@ export function ProjectsPage() {
     },
     {
       key: 'sizes',
-      header: 'Plot sizes',
+      header: 'Sizes',
       className: 'max-w-56',
       render: (p) => {
         const sizes = formatProjectPlotSizes(p)

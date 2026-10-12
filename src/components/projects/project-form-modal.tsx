@@ -35,6 +35,8 @@ import {
   computeBudgetRange,
   formatBudgetRange,
   formatPlotSize,
+  sizeTerms,
+  sizesLabel,
 } from '@/lib/project-pricing'
 
 const MAX_BROCHURE_BYTES = 50 * 1024 * 1024
@@ -141,9 +143,11 @@ const schema = z
     if (!v.guidelineRateNa) positive(['guidelineRate'], v.guidelineRate)
 
     if (v.plotSizeMode === PlotSizeMode.LIST) {
-      if (v.plotSizes.length === 0) issue(['plotSizes'], 'Add at least one plot size')
+      const { noun, hasDimensions } = sizeTerms(v.propertyType)
+      if (v.plotSizes.length === 0) issue(['plotSizes'], `Add at least one ${noun} size`)
       v.plotSizes.forEach((s, i) => {
         positive(['plotSizes', i, 'areaSqft'], s.areaSqft, true)
+        if (!hasDimensions) return
         positive(['plotSizes', i, 'widthFt'], s.widthFt)
         positive(['plotSizes', i, 'lengthFt'], s.lengthFt)
       })
@@ -214,6 +218,7 @@ function toFormValues(project: Project | null | undefined): FormValues {
 
 function toPayload(v: FormValues): CreateProjectPayload {
   const isList = v.plotSizeMode === PlotSizeMode.LIST
+  const { hasDimensions } = sizeTerms(v.propertyType)
   const emAmount = num(v.emCharges)
   const rateMin = num(v.basicRateMin)
   return {
@@ -237,7 +242,11 @@ function toPayload(v: FormValues): CreateProjectPayload {
     guidelineRateNa: v.guidelineRateNa,
     plotSizeMode: v.plotSizeMode,
     plotSizes: isList
-      ? v.plotSizes.map((s) => ({ areaSqft: Number(s.areaSqft), widthFt: num(s.widthFt), lengthFt: num(s.lengthFt) }))
+      ? v.plotSizes.map((s) => ({
+          areaSqft: Number(s.areaSqft),
+          widthFt: hasDimensions ? num(s.widthFt) : null,
+          lengthFt: hasDimensions ? num(s.lengthFt) : null,
+        }))
       : [],
     plotAreaMin: isList ? null : num(v.plotAreaMin),
     plotAreaMax: isList ? null : num(v.plotAreaMax),
@@ -257,10 +266,11 @@ function toPayload(v: FormValues): CreateProjectPayload {
 
 /** The budget the backend will calculate from the current form values. */
 function useCalculatedBudget(control: Control<FormValues>) {
-  const [rateMin, isRange, rateMax, mode, plotSizes, areaMin, areaMax] = useWatch({
+  const [rateMin, isRange, rateMax, mode, plotSizes, areaMin, areaMax, propertyType] = useWatch({
     control,
-    name: ['basicRateMin', 'basicRateIsRange', 'basicRateMax', 'plotSizeMode', 'plotSizes', 'plotAreaMin', 'plotAreaMax'],
+    name: ['basicRateMin', 'basicRateIsRange', 'basicRateMax', 'plotSizeMode', 'plotSizes', 'plotAreaMin', 'plotAreaMax', 'propertyType'],
   })
+  const { hasDimensions } = sizeTerms(propertyType)
   const min = positiveNum(rateMin)
   const max = isRange ? positiveNum(rateMax) : min
   const perPlot =
@@ -268,7 +278,11 @@ function useCalculatedBudget(control: Control<FormValues>) {
       ? plotSizes.flatMap((s) => {
           const area = positiveNum(s.areaSqft)
           if (area === null || min === null) return []
-          const size = { areaSqft: area, widthFt: positiveNum(s.widthFt), lengthFt: positiveNum(s.lengthFt) }
+          const size = {
+            areaSqft: area,
+            widthFt: hasDimensions ? positiveNum(s.widthFt) : null,
+            lengthFt: hasDimensions ? positiveNum(s.lengthFt) : null,
+          }
           return [{ label: formatPlotSize(size), budget: formatBudgetRange(Math.round(min * area), Math.round((max ?? min) * area)) }]
         })
       : []
@@ -357,11 +371,12 @@ export function ProjectFormModal({
     }
   }, [open, project, reset])
 
-  const [basicRateIsRange, emChargesStatus, plcNa, plcMin, plcMax, guidelineRateNa, plotSizeMode, budgetIsManual, budgetMin, budgetMax] =
+  const [basicRateIsRange, emChargesStatus, plcNa, plcMin, plcMax, guidelineRateNa, plotSizeMode, budgetIsManual, budgetMin, budgetMax, propertyType] =
     useWatch({
       control,
-      name: ['basicRateIsRange', 'emChargesStatus', 'plcNa', 'plcMinPercent', 'plcMaxPercent', 'guidelineRateNa', 'plotSizeMode', 'budgetIsManual', 'budgetMin', 'budgetMax'],
+      name: ['basicRateIsRange', 'emChargesStatus', 'plcNa', 'plcMinPercent', 'plcMaxPercent', 'guidelineRateNa', 'plotSizeMode', 'budgetIsManual', 'budgetMin', 'budgetMax', 'propertyType'],
     })
+  const { noun, areaLabel, hasDimensions } = sizeTerms(propertyType)
   const calculated = useCalculatedBudget(control)
 
   /** Width × length fills in the area; the area stays editable afterwards. */
@@ -565,11 +580,12 @@ export function ProjectFormModal({
           </Field>
         </FormSection>
 
-        <FormSection title="Plot sizes & budget">
+        <FormSection title={`${sizesLabel(propertyType)} & budget`}>
           <div className="flex flex-col gap-2 sm:col-span-2">
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium text-slate-700">
-                Plot sizes<span className="text-rose-500"> *</span>
+                {sizesLabel(propertyType)}
+                <span className="text-rose-500"> *</span>
               </span>
               <Toggle
                 checked={plotSizeMode === PlotSizeMode.RANGE}
@@ -585,32 +601,36 @@ export function ProjectFormModal({
                   return (
                     <div key={row.id} className="flex flex-col gap-1">
                       <div className="flex items-center gap-2">
+                        {hasDimensions && (
+                          <>
+                            <Input
+                              type="number"
+                              step="any"
+                              min={0}
+                              aria-label="Width (ft)"
+                              placeholder="Width"
+                              error={!!rowErrors?.widthFt}
+                              {...register(`plotSizes.${i}.widthFt`, { onChange: () => fillArea(i) })}
+                            />
+                            <span className="text-sm text-slate-400">×</span>
+                            <Input
+                              type="number"
+                              step="any"
+                              min={0}
+                              aria-label="Length (ft)"
+                              placeholder="Length"
+                              error={!!rowErrors?.lengthFt}
+                              {...register(`plotSizes.${i}.lengthFt`, { onChange: () => fillArea(i) })}
+                            />
+                            <span className="text-sm text-slate-400">=</span>
+                          </>
+                        )}
                         <Input
                           type="number"
                           step="any"
                           min={0}
-                          aria-label="Width (ft)"
-                          placeholder="Width"
-                          error={!!rowErrors?.widthFt}
-                          {...register(`plotSizes.${i}.widthFt`, { onChange: () => fillArea(i) })}
-                        />
-                        <span className="text-sm text-slate-400">×</span>
-                        <Input
-                          type="number"
-                          step="any"
-                          min={0}
-                          aria-label="Length (ft)"
-                          placeholder="Length"
-                          error={!!rowErrors?.lengthFt}
-                          {...register(`plotSizes.${i}.lengthFt`, { onChange: () => fillArea(i) })}
-                        />
-                        <span className="text-sm text-slate-400">=</span>
-                        <Input
-                          type="number"
-                          step="any"
-                          min={0}
-                          aria-label="Area (sq.ft)"
-                          placeholder="Area"
+                          aria-label={`${areaLabel} (sq.ft)`}
+                          placeholder={hasDimensions ? areaLabel : `${areaLabel} (sq.ft), e.g. 1250`}
                           error={!!rowErrors?.areaSqft}
                           {...register(`plotSizes.${i}.areaSqft`)}
                         />
@@ -619,7 +639,7 @@ export function ProjectFormModal({
                           variant="ghost"
                           size="icon"
                           className="shrink-0"
-                          aria-label="Remove plot size"
+                          aria-label={`Remove ${noun} size`}
                           disabled={plotSizes.fields.length === 1}
                           onClick={() => plotSizes.remove(i)}
                         >
@@ -640,17 +660,21 @@ export function ProjectFormModal({
                 <div>
                   <Button type="button" variant="secondary" size="sm" onClick={() => plotSizes.append(EMPTY_PLOT_SIZE)}>
                     <Plus className="size-4" />
-                    Add plot size
+                    Add {noun} size
                   </Button>
                 </div>
-                <p className="text-xs text-slate-400">Width × length (ft) fills in the area (sq.ft) automatically; you can still edit it.</p>
+                <p className="text-xs text-slate-400">
+                  {hasDimensions
+                    ? 'Width × length (ft) fills in the area (sq.ft) automatically; you can still edit it.'
+                    : `One row per ${noun} size, e.g. 2 BHK 1250 and 3 BHK 1650 sq.ft — mention the BHK mix in the description.`}
+                </p>
               </div>
             ) : (
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <Field error={errors.plotAreaMin?.message} hint="Smallest plot, sq.ft">
+                <Field error={errors.plotAreaMin?.message} hint={`Smallest ${noun}, sq.ft`}>
                   <Input type="number" step="any" min={0} {...register('plotAreaMin')} error={!!errors.plotAreaMin} placeholder="1150" />
                 </Field>
-                <Field error={errors.plotAreaMax?.message} hint="Largest plot, sq.ft">
+                <Field error={errors.plotAreaMax?.message} hint={`Largest ${noun}, sq.ft`}>
                   <Input type="number" step="any" min={0} {...register('plotAreaMax')} error={!!errors.plotAreaMax} placeholder="2000" />
                 </Field>
               </div>
@@ -662,7 +686,7 @@ export function ProjectFormModal({
               <div>
                 <p className="text-sm font-medium text-slate-700">Budget</p>
                 <p className="text-xs text-slate-400">
-                  {budgetIsManual ? 'Entered manually (lump-sum price)' : 'Basic rate × plot area'}
+                  {budgetIsManual ? 'Entered manually (lump-sum price)' : `Basic rate × ${noun} area`}
                 </p>
               </div>
               <Toggle checked={budgetIsManual} onChange={setBudgetManual} label="Manual override" />
@@ -694,7 +718,7 @@ export function ProjectFormModal({
                 )}
               </div>
             ) : (
-              <p className="text-sm text-slate-400">Enter a basic rate and plot sizes to calculate the budget.</p>
+              <p className="text-sm text-slate-400">Enter a basic rate and {noun} sizes to calculate the budget.</p>
             )}
           </div>
         </FormSection>

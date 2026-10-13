@@ -13,6 +13,8 @@ import { formatLeadNumber, splitPhoneList } from '@/lib/utils'
 import type { Lead } from '@/types'
 
 const PHONE = /^\+?[0-9]{7,15}$/
+/** "+91 98765-43210" -> "+919876543210": older leads were saved with spaces, which must not block an edit. */
+const compactPhone = (v: string) => v.replace(/[\s\-().]/g, '')
 const amount = z
   .string()
   .optional()
@@ -21,7 +23,10 @@ const amount = z
 const schema = z
   .object({
     fullName: z.string().trim().min(1, 'Required'),
-    phone: z.string().min(1, 'Required').regex(PHONE, 'Enter a valid phone number'),
+    phone: z
+      .string()
+      .min(1, 'Required')
+      .refine((v) => PHONE.test(compactPhone(v)), 'Enter a valid phone number'),
     alternatePhones: z
       .string()
       .optional()
@@ -68,7 +73,7 @@ function changedFields(before: FormValues, after: FormValues): UpdateLeadDetails
   const num = (v: string | undefined) => (v ? Number(v) : null)
 
   if (after.fullName.trim() !== before.fullName) payload.fullName = after.fullName.trim()
-  if (after.phone !== before.phone) payload.phone = after.phone
+  if (after.phone !== before.phone) payload.phone = compactPhone(after.phone)
   if (after.alternatePhones !== before.alternatePhones) payload.alternatePhones = splitPhoneList(after.alternatePhones ?? '')
   if (after.email !== before.email) payload.email = text(after.email)
   if (after.projectId !== before.projectId) payload.projectId = after.projectId || null
@@ -85,8 +90,8 @@ function changedFields(before: FormValues, after: FormValues): UpdateLeadDetails
 
 /**
  * Edits a lead's own details. Admins can edit any lead; Managers the
- * manually added and Excel-uploaded leads in their team. The Admins are
- * notified of what changed.
+ * manually added and Excel-uploaded leads in their team; the assignee their
+ * own lead. The Admins are notified of what changed.
  */
 export function LeadEditModal({ lead, onClose }: { lead: Lead | null; onClose: () => void }) {
   const update = useUpdateLead()

@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react'
-import { Link, useParams, useNavigate } from '@tanstack/react-router'
+import { Link, useCanGoBack, useParams, useNavigate, useRouter } from '@tanstack/react-router'
 import {
   ArrowLeft,
   Calendar,
@@ -15,6 +15,7 @@ import {
   NotebookPen,
   Pencil,
   Phone,
+  Ruler,
   Tag,
   Target,
   ThumbsDown,
@@ -36,7 +37,7 @@ import { FollowUpModal } from '@/components/leads/follow-up-modal'
 import { DeleteLeadDialog } from '@/components/leads/delete-lead-dialog'
 import { LeadEditModal } from '@/components/leads/lead-edit-modal'
 import { LeadChannelBadge } from '@/components/leads/lead-channel-badge'
-import { canManageLeadRecord, uploaderRoleLabel } from '@/lib/lead-channel'
+import { canEditLeadRecord, canManageLeadRecord, uploaderRoleLabel } from '@/lib/lead-channel'
 import { TaskFormModal } from '@/components/tasks/task-form-modal'
 import { ShareProjectModal } from '@/components/projects/share-project-modal'
 import { WhatsAppGlyph } from '@/components/integrations/whatsapp-mark'
@@ -55,7 +56,7 @@ import {
   VISIT_STATUS_LABELS,
 } from '@/lib/constants'
 import { LeadIntakeChannel, LeadStatus, UserRole } from '@/types'
-import { formatCurrency, formatDate, formatDateTime, formatEnumLabel } from '@/lib/utils'
+import { formatCurrency, formatDate, formatDateTime, formatEnumLabel, formatLeadBudget, formatLeadPlotSize } from '@/lib/utils'
 
 const ACTIVITY_LABELS: Record<string, string> = {
   CREATED: 'Lead created',
@@ -70,6 +71,10 @@ const ACTIVITY_LABELS: Record<string, string> = {
 export function LeadDetailPage() {
   const { leadId } = useParams({ from: '/_app/leads/$leadId' })
   const navigate = useNavigate()
+  const router = useRouter()
+  const canGoBack = useCanGoBack()
+  // Back to wherever the lead was opened from — the same page of the list, not its first.
+  const goBack = () => (canGoBack ? router.history.back() : navigate({ to: '/leads' }))
   const currentUser = useAuthStore((s) => s.user)
   const { data: lead, isLoading } = useLead(leadId)
   const [assignOpen, setAssignOpen] = useState(false)
@@ -85,8 +90,10 @@ export function LeadDetailPage() {
 
   if (isLoading || !lead) return <PageLoader label="Loading lead…" />
 
-  // Admins: any lead. Managers: manually added / Excel-uploaded leads in their team.
+  // Delete — Admins: any lead. Managers: manually added / Excel-uploaded leads in their team.
   const canManage = canManageLeadRecord(currentUser, lead)
+  // Edit — the same people, plus whoever the lead is assigned to.
+  const canEdit = canEditLeadRecord(currentUser, lead)
 
   const canChangeStatus =
     !!currentUser &&
@@ -109,9 +116,7 @@ export function LeadDetailPage() {
     { icon: FolderKanban, label: 'Project', value: lead.project?.name ?? '—' },
     { icon: Tag, label: 'Property interest', value: lead.propertyInterest ?? '—' },
     { icon: MapPin, label: 'City', value: lead.city ?? '—' },
-    { icon: Wallet, label: 'Budget', value: lead.budgetMin || lead.budgetMax
-      ? `${formatCurrency(lead.budgetMin)} – ${formatCurrency(lead.budgetMax)}`
-      : '—' },
+    { icon: Wallet, label: 'Budget', value: formatLeadBudget(lead) },
     { icon: Calendar, label: 'Received', value: formatDateTime(lead.receivedAt ?? lead.createdAt) },
   ]
 
@@ -120,7 +125,7 @@ export function LeadDetailPage() {
       {/* Title on its own line on phones; the actions wrap underneath instead of running off-screen. */}
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex min-w-0 basis-full items-center gap-3 lg:basis-0 lg:flex-1">
-          <Button variant="ghost" size="icon" className="shrink-0" onClick={() => navigate({ to: '/leads' })}>
+          <Button variant="ghost" size="icon" className="shrink-0" onClick={goBack}>
             <ArrowLeft className="size-4" />
           </Button>
           <div className="min-w-0 flex-1">
@@ -159,7 +164,7 @@ export function LeadDetailPage() {
             Follow-up
           </Button>
         )}
-        {canManage && (
+        {canEdit && (
           <Button size="sm" variant="outline" onClick={() => setEditOpen(true)}>
             <Pencil className="size-4" />
             Edit
@@ -317,6 +322,11 @@ export function LeadDetailPage() {
               )}
             </FollowUpStat>
             <FollowUpStat icon={Tag} label="Purpose" value={lead.purpose ? LEAD_PURPOSE_LABELS[lead.purpose] : '—'} />
+            <FollowUpStat
+              icon={Ruler}
+              label="Plot size"
+              value={lead.plotSizeSqFt != null ? `${formatLeadPlotSize(lead)} sq ft` : '—'}
+            />
             <FollowUpStat icon={Clock} label="Last contacted" value={formatDateTime(lead.lastContactedAt)} />
             <FollowUpStat icon={Calendar} label="Next follow-up" value={formatDateTime(lead.nextFollowUpAt)} />
             <FollowUpStat icon={Calendar} label="Site visit date" value={formatDate(lead.siteVisitDate)} />
@@ -374,7 +384,7 @@ export function LeadDetailPage() {
         open={assignOpen}
         onClose={() => setAssignOpen(false)}
         lead={lead}
-        onHandedOver={() => navigate({ to: '/leads' })}
+        onHandedOver={goBack}
       />
       <TaskFormModal open={taskOpen} onClose={() => setTaskOpen(false)} lead={{ id: lead.id, fullName: lead.fullName }} />
       <ShareProjectModal
@@ -386,7 +396,7 @@ export function LeadDetailPage() {
       {canChangeStatus && <FollowUpModal open={followUpOpen} onClose={() => setFollowUpOpen(false)} lead={lead} />}
       {editOpen && <LeadEditModal lead={lead} onClose={() => setEditOpen(false)} />}
       {deleteOpen && (
-        <DeleteLeadDialog lead={lead} onClose={() => setDeleteOpen(false)} onDeleted={() => navigate({ to: '/leads' })} />
+        <DeleteLeadDialog lead={lead} onClose={() => setDeleteOpen(false)} onDeleted={goBack} />
       )}
     </div>
   )

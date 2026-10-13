@@ -568,7 +568,9 @@ export interface Lead {
   progressStage: LeadProgressStage | null
   progressStageNote: string | null
   leadNumber: number
+  /** A single size, or the low end of a range when `plotSizeMaxSqFt` is set. */
   plotSizeSqFt: number | null
+  plotSizeMaxSqFt: number | null
   purpose: LeadPurpose | null
   leadTemperature: LeadTemperature | null
   lastContactedAt: string | null

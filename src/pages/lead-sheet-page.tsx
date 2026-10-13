@@ -12,11 +12,13 @@ import { useLeads } from '@/hooks/queries/use-leads'
 import { useUsers } from '@/hooks/queries/use-users'
 import { useAuthStore } from '@/store/auth-store'
 import { exportToCsv } from '@/lib/export-csv'
-import { lostLeadsLast, providedByLabel, uploadedByLabel } from '@/lib/lead-channel'
+import { lostLeadsLast, matchesLeadStatusFilter, providedByLabel, uploadedByLabel } from '@/lib/lead-channel'
 import { LeadChannelBadge } from '@/components/leads/lead-channel-badge'
+import { LeadStatusFilter } from '@/components/leads/lead-status-filter'
 import {
   BOOKING_STATUS_COLORS,
   BOOKING_STATUS_LABELS,
+  LEAD_PROGRESS_STAGE_LABELS,
   LEAD_PURPOSE_LABELS,
   LEAD_STATUS_COLORS,
   LEAD_TEMPERATURE_COLORS,
@@ -24,8 +26,17 @@ import {
   VISIT_STATUS_COLORS,
   VISIT_STATUS_LABELS,
 } from '@/lib/constants'
-import { formatCurrency, formatDate, formatDateTime, formatEnumLabel, formatLeadNumber, formatLeadPhones } from '@/lib/utils'
-import { BookingStatus, LeadSource, LeadStatus, LeadTemperature, UserRole, type Lead } from '@/types'
+import {
+  formatCurrency,
+  formatDate,
+  formatDateTime,
+  formatEnumLabel,
+  formatLeadBudget,
+  formatLeadNumber,
+  formatLeadPhones,
+  formatLeadPlotSize,
+} from '@/lib/utils'
+import { BookingStatus, LeadSource, LeadTemperature, UserRole, type Lead } from '@/types'
 
 function leadIdLabel(lead: Lead): string {
   return formatLeadNumber(lead.leadNumber)
@@ -35,9 +46,10 @@ function assigneeLabel(lead: Lead): string {
   return lead.assignedTo ? `${lead.assignedTo.firstName} ${lead.assignedTo.lastName}` : 'Unassigned'
 }
 
-function budgetLabel(lead: Lead): string {
-  if (!lead.budgetMin && !lead.budgetMax) return '—'
-  return `${formatCurrency(lead.budgetMin)} – ${formatCurrency(lead.budgetMax)}`
+/** "Site visit scheduled", or the typed note for an "Other" stage; empty unless the lead is in progress. */
+function progressStageLabel(lead: Lead): string {
+  if (!lead.progressStage) return ''
+  return lead.progressStage === 'OTHER' ? (lead.progressStageNote ?? 'Other') : LEAD_PROGRESS_STAGE_LABELS[lead.progressStage]
 }
 
 export function LeadSheetPage() {
@@ -64,7 +76,7 @@ export function LeadSheetPage() {
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
     const matching = leads.filter((l) => {
-      if (status && l.status !== status) return false
+      if (!matchesLeadStatusFilter(l, status)) return false
       if (temperature && l.leadTemperature !== temperature) return false
       if (source && l.source !== source) return false
       if (executive && l.assignedToId !== executive) return false
@@ -105,8 +117,8 @@ export function LeadSheetPage() {
     { id: 'executive', header: 'Assigned Executive', accessor: assigneeLabel, minWidth: '160px' },
     { id: 'location', header: 'Interested Location', accessor: (l) => l.city ?? '', minWidth: '150px' },
     { id: 'project', header: 'Project', accessor: (l) => l.project?.name ?? '', minWidth: '140px' },
-    { id: 'budget', header: 'Budget (₹)', accessor: (l) => Number(l.budgetMax ?? l.budgetMin ?? 0), cell: budgetLabel, align: 'right', minWidth: '170px' },
-    { id: 'plotSize', header: 'Plot Size (Sq Ft)', accessor: (l) => l.plotSizeSqFt, align: 'right', minWidth: '140px' },
+    { id: 'budget', header: 'Budget (₹)', accessor: (l) => Number(l.budgetMax ?? l.budgetMin ?? 0), cell: formatLeadBudget, align: 'right', minWidth: '170px' },
+    { id: 'plotSize', header: 'Plot Size (Sq Ft)', accessor: (l) => l.plotSizeSqFt, cell: formatLeadPlotSize, align: 'right', minWidth: '140px' },
     { id: 'purpose', header: 'Purpose', accessor: (l) => l.purpose ?? '', cell: (l) => (l.purpose ? LEAD_PURPOSE_LABELS[l.purpose] : '—'), minWidth: '110px' },
     {
       id: 'stage',
@@ -115,6 +127,7 @@ export function LeadSheetPage() {
       cell: (l) => <StatusPill label={formatEnumLabel(l.status)} className={LEAD_STATUS_COLORS[l.status]} />,
       minWidth: '130px',
     },
+    { id: 'progressStage', header: 'Progress Stage', accessor: progressStageLabel, cell: (l) => progressStageLabel(l) || '—', minWidth: '170px' },
     {
       id: 'temperature',
       header: 'Lead Temperature',
@@ -150,7 +163,11 @@ export function LeadSheetPage() {
     exportToCsv(
       `lead-sheet-${new Date().toISOString().slice(0, 10)}`,
       columns.map((c) => c.header),
-      rowsForExport(columns, filtered),
+      // A plot size range sorts on its low end; the file gets the whole range.
+      rowsForExport(
+        columns.map((c) => (c.id === 'plotSize' ? { ...c, accessor: (l: Lead) => (l.plotSizeSqFt != null ? formatLeadPlotSize(l) : null) } : c)),
+        filtered,
+      ),
     )
   }
 
@@ -177,14 +194,12 @@ export function LeadSheetPage() {
             placeholder="Search name, phone, project, lead ID…"
             className="lg:max-w-[240px]"
           />
-          <Select value={status} onChange={(e) => setStatus(e.target.value)} className="lg:max-w-[150px]">
-            <option value="">All stages</option>
-            {Object.values(LeadStatus).map((s) => (
-              <option key={s} value={s}>
-                {formatEnumLabel(s)}
-              </option>
-            ))}
-          </Select>
+          <LeadStatusFilter
+            allLabel="All stages"
+            value={status}
+            onChange={(e) => setStatus(e.target.value)}
+            className="lg:max-w-[200px]"
+          />
           <Select value={temperature} onChange={(e) => setTemperature(e.target.value)} className="lg:max-w-[140px]">
             <option value="">All temperatures</option>
             {Object.values(LeadTemperature).map((t) => (

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { useNavigate } from '@tanstack/react-router'
+import { useNavigate, useSearch } from '@tanstack/react-router'
 import { Contact, FileSpreadsheet, ListChecks, Pencil, Plus, Trash2, UserPlus, X } from 'lucide-react'
 import { PageHeader } from '@/components/ui/page-header'
 import { Card } from '@/components/ui/card'
@@ -15,11 +15,20 @@ import { BulkDeleteLeadsDialog, type SheetToDelete } from '@/components/leads/bu
 import { LeadEditModal } from '@/components/leads/lead-edit-modal'
 import { ImportLeadsModal } from '@/components/leads/import-leads-modal'
 import { LeadChannelBadge } from '@/components/leads/lead-channel-badge'
+import { LeadStatusFilter } from '@/components/leads/lead-status-filter'
 import { useLeads, useMarkLeadsSeenWhileOpen } from '@/hooks/queries/use-leads'
 import { useAuthStore } from '@/store/auth-store'
 import { ASSIGNER_ROLES } from '@/lib/constants'
-import { canManageLeadRecord, LEAD_CHANNEL_LABELS, lostLeadsLast } from '@/lib/lead-channel'
-import { LeadIntakeChannel, LeadSource, LeadStatus, UserRole, type Lead } from '@/types'
+import {
+  canEditLeadRecord,
+  canManageLeadRecord,
+  LEAD_CHANNEL_LABELS,
+  lostLeadsLast,
+  matchesLeadStatusFilter,
+  parseLeadStatusFilter,
+} from '@/lib/lead-channel'
+import { LeadIntakeChannel, LeadSource, UserRole, type Lead } from '@/types'
+import type { LeadsSearch } from '@/router'
 import { formatDate, formatDateTime, formatEnumLabel } from '@/lib/utils'
 
 const checkboxClass = 'size-4 cursor-pointer rounded border-slate-300 text-brand-600 focus:ring-brand-500'
@@ -27,12 +36,11 @@ const checkboxClass = 'size-4 cursor-pointer rounded border-slate-300 text-brand
 export function LeadsPage() {
   const navigate = useNavigate()
   const currentUser = useAuthStore((s) => s.user)
-  const [status, setStatus] = useState('')
-  const [source, setSource] = useState('')
-  const [channel, setChannel] = useState('')
-  const [onlyMine, setOnlyMine] = useState(false)
-  const [sheet, setSheet] = useState('')
-  const [page, setPage] = useState(1)
+  // Page and filters are kept in the URL, so "back" from a lead returns to the same page.
+  const search = useSearch({ from: '/_app/leads' })
+  const { status = '', source = '', channel = '', sheet = '', mine: onlyMine = false } = search
+  const setSearch = (changes: LeadsSearch) =>
+    navigate({ to: '/leads', search: (prev) => ({ ...prev, ...changes }), replace: true })
   // Bulk selection: the checkboxes only show once "Select" is pressed.
   const [selecting, setSelecting] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
@@ -57,9 +65,7 @@ export function LeadsPage() {
 
   // The backend only filters by status server-side; the other filters and
   // pagination happen client-side since GET /leads returns a plain array.
-  const { data: allLeads = [], isLoading } = useLeads({
-    status: (status || undefined) as LeadStatus | undefined,
-  })
+  const { data: allLeads = [], isLoading } = useLeads({ status: parseLeadStatusFilter(status).status })
 
   // Every uploaded Excel sheet the visible leads came from, newest first.
   const sheets = useMemo(() => {
@@ -71,6 +77,7 @@ export function LeadsPage() {
   const filtered = useMemo(() => {
     const matching = allLeads.filter(
       (l) =>
+        matchesLeadStatusFilter(l, status) &&
         (!source || l.source === source) &&
         (!channel || l.intakeChannel === channel) &&
         (!sheet || l.importBatchId === sheet) &&
@@ -78,12 +85,13 @@ export function LeadsPage() {
     )
     return status ? matching : lostLeadsLast(matching)
   }, [allLeads, status, source, channel, sheet, onlyMine, currentUser?.id])
+  // Clamped, in case the list got shorter since the URL was written.
+  const page = Math.min(search.page ?? 1, Math.max(1, Math.ceil(filtered.length / pageSize)))
   const paged = filtered.slice((page - 1) * pageSize, page * pageSize)
 
   // A filter change starts over on page 1 with nothing selected.
-  const changeFilter = (apply: () => void) => {
-    apply()
-    setPage(1)
+  const changeFilter = (changes: LeadsSearch) => {
+    setSearch({ ...changes, page: undefined })
     setSelectedIds(new Set())
   }
 
@@ -148,29 +156,32 @@ export function LeadsPage() {
         ),
     },
     { key: 'received', header: 'Received', render: (l) => <span className="text-slate-400">{formatDateTime(l.createdAt)}</span> },
-    ...(canAssign
+    // Everyone gets Edit on the leads they hold; Assign and Delete stay with Managers and Admins.
+    ...(canAssign || allLeads.some((l) => canEditLeadRecord(currentUser, l))
       ? [
           {
             key: 'actions',
             header: '',
-            headerClassName: 'w-28',
-            className: 'w-28',
+            headerClassName: canAssign ? 'w-28' : 'w-12',
+            className: canAssign ? 'w-28' : 'w-12',
             render: (l: Lead) => {
               const canManage = canManageLeadRecord(currentUser, l)
               return (
                 <div className="flex items-center gap-1">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setAssignLead(l)
-                    }}
-                    title="Assign"
-                  >
-                    <UserPlus className="size-4" />
-                  </Button>
-                  {canManage && (
+                  {canAssign && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setAssignLead(l)
+                      }}
+                      title="Assign"
+                    >
+                      <UserPlus className="size-4" />
+                    </Button>
+                  )}
+                  {canEditLeadRecord(currentUser, l) && (
                     <Button
                       variant="ghost"
                       size="sm"
@@ -267,21 +278,16 @@ export function LeadsPage() {
 
       <Card>
         <div className="flex flex-col gap-3 border-b border-slate-100 p-4 sm:flex-row">
-          <Select
+          <LeadStatusFilter
+            allLabel="All statuses"
             value={status}
-            onChange={(e) => changeFilter(() => setStatus(e.target.value))}
-            className="sm:max-w-[170px]"
-          >
-            <option value="">All statuses</option>
-            {Object.values(LeadStatus).map((s) => (
-              <option key={s} value={s}>
-                {formatEnumLabel(s)}
-              </option>
-            ))}
-          </Select>
+            onChange={(e) => changeFilter({ status: e.target.value || undefined })}
+            className="sm:max-w-[200px]"
+            title="Filter by status, or by the stage an in-progress lead is at"
+          />
           <Select
             value={source}
-            onChange={(e) => changeFilter(() => setSource(e.target.value))}
+            onChange={(e) => changeFilter({ source: e.target.value || undefined })}
             className="sm:max-w-[190px]"
           >
             <option value="">All sources</option>
@@ -293,7 +299,7 @@ export function LeadsPage() {
           </Select>
           <Select
             value={channel}
-            onChange={(e) => changeFilter(() => setChannel(e.target.value))}
+            onChange={(e) => changeFilter({ channel: e.target.value || undefined })}
             className="sm:max-w-[200px]"
           >
             <option value="">All channels</option>
@@ -306,7 +312,7 @@ export function LeadsPage() {
           {sheets.length > 0 && (
             <Select
               value={sheet}
-              onChange={(e) => changeFilter(() => setSheet(e.target.value))}
+              onChange={(e) => changeFilter({ sheet: e.target.value || undefined })}
               className="sm:max-w-[240px]"
               title="Show only the leads from one uploaded Excel sheet"
             >
@@ -321,7 +327,7 @@ export function LeadsPage() {
           {isManager && (
             <Select
               value={onlyMine ? 'mine' : ''}
-              onChange={(e) => changeFilter(() => setOnlyMine(e.target.value === 'mine'))}
+              onChange={(e) => changeFilter({ mine: e.target.value === 'mine' || undefined })}
               className="sm:max-w-[190px]"
             >
               <option value="">My team’s leads</option>
@@ -400,7 +406,7 @@ export function LeadsPage() {
           emptyDescription="Try adjusting your filters, or add a new lead."
         />
         {filtered.length > 0 && (
-          <Pagination page={page} pageSize={pageSize} total={filtered.length} onPageChange={setPage} />
+          <Pagination page={page} pageSize={pageSize} total={filtered.length} onPageChange={(next) => setSearch({ page: next })} />
         )}
       </Card>
 
@@ -421,7 +427,7 @@ export function LeadsPage() {
         <BulkDeleteLeadsDialog
           sheet={sheetToDelete}
           onClose={() => setSheetToDelete(null)}
-          onDeleted={() => changeFilter(() => setSheet(''))}
+          onDeleted={() => changeFilter({ sheet: undefined })}
         />
       )}
       <LeadEditModal lead={editLead} onClose={() => setEditLead(null)} />

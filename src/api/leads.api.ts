@@ -80,7 +80,13 @@ export interface UpdateLeadFollowUpPayload {
   visitStatus?: VisitStatus
   leadTemperature?: LeadTemperature
   purpose?: LeadPurpose
-  plotSizeSqFt?: number
+  /** A single size, or the low end of a range; `null` clears it. */
+  plotSizeSqFt?: number | null
+  /** High end of a plot size range; `null` for a single size. */
+  plotSizeMaxSqFt?: number | null
+  /** One amount is sent as the same `budgetMin` and `budgetMax`; `null` clears. */
+  budgetMin?: number | null
+  budgetMax?: number | null
   mainObjection?: string
   bookingProbability?: number
   bookingStatus?: BookingStatus
@@ -102,7 +108,7 @@ export const leadsApi = {
   createManual: (payload: CreateLeadManualPayload) =>
     apiClient.post<CreateLeadManualResult>('/leads/manual', payload).then((r) => r.data),
 
-  /** Admins: any lead. Managers: manually added / Excel-uploaded leads in their team. */
+  /** Admins: any lead. Managers: manually added / Excel-uploaded leads in their team. The assignee: their own lead. */
   update: (id: string, payload: UpdateLeadDetailsPayload) =>
     apiClient.patch<LeadWithActivity>(`/leads/${id}`, payload).then((r) => r.data),
 

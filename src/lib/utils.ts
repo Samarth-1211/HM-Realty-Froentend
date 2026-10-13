@@ -51,6 +51,24 @@ export function formatTime(value: string | null | undefined) {
   return new Intl.DateTimeFormat('en-IN', { hour: '2-digit', minute: '2-digit' }).format(date)
 }
 
+/** A lead's budget — one amount, a range, or an open-ended "From"/"Up to"; "—" when unset. */
+export function formatLeadBudget(lead: { budgetMin: string | null; budgetMax: string | null }) {
+  const min = lead.budgetMin != null ? Number(lead.budgetMin) : null
+  const max = lead.budgetMax != null ? Number(lead.budgetMax) : null
+  if (min === null && max === null) return '—'
+  if (min === null) return `Up to ${formatCurrency(max)}`
+  if (max === null) return `From ${formatCurrency(min)}`
+  return min === max ? formatCurrency(min) : `${formatCurrency(min)} – ${formatCurrency(max)}`
+}
+
+/** A lead's plot size in sq ft — "1,200" or "1,200 – 1,500"; "—" when unset. */
+export function formatLeadPlotSize(lead: { plotSizeSqFt: number | null; plotSizeMaxSqFt?: number | null }) {
+  const { plotSizeSqFt: min, plotSizeMaxSqFt: max } = lead
+  if (min == null) return '—'
+  const plain = new Intl.NumberFormat('en-IN')
+  return max == null || max === min ? plain.format(min) : `${plain.format(min)} – ${plain.format(max)}`
+}
+
 /** Human-friendly sequential lead id, e.g. 123 -> "LD-000123". */
 export function formatLeadNumber(leadNumber: number) {
   return `LD-${String(leadNumber).padStart(6, '0')}`

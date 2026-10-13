@@ -23,15 +23,12 @@ import { useLead } from '@/hooks/queries/use-leads'
 import { useBlobUrlRef, useWhatsAppMedia, useWhatsAppThread } from '@/hooks/queries/use-whatsapp-chat'
 import type { WhatsAppInboxItem } from '@/api/whatsapp-chat.api'
 import { LEAD_TEMPERATURE_COLORS, LEAD_TEMPERATURE_LABELS } from '@/lib/constants'
-import { formatCurrency, formatDate, formatDateTime, formatEnumLabel, formatLeadNumber, formatRoleLabel } from '@/lib/utils'
+import { formatDate, formatLeadBudget, formatDateTime, formatEnumLabel, formatLeadNumber, formatRoleLabel } from '@/lib/utils'
 import { MEDIA_TYPES, whatsappDisplayName } from '@/lib/whatsapp-format'
 import type { Lead, WhatsAppMessage } from '@/types'
 
 function budgetLabel(lead: Lead) {
-  if (lead.budgetMin && lead.budgetMax) return `${formatCurrency(lead.budgetMin)} – ${formatCurrency(lead.budgetMax)}`
-  if (lead.budgetMin) return `From ${formatCurrency(lead.budgetMin)}`
-  if (lead.budgetMax) return `Up to ${formatCurrency(lead.budgetMax)}`
-  return null
+  return lead.budgetMin || lead.budgetMax ? formatLeadBudget(lead) : null
 }
 
 function Section({ title, children }: { title?: string; children: ReactNode }) {

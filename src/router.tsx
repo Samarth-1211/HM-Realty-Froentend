@@ -169,10 +169,33 @@ const userDetailRoute = createRoute({
   beforeLoad: requireRole([UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER]),
 })
 
+/** The Leads list's page and filters live in the URL, so coming back from a lead lands where you left. */
+export interface LeadsSearch {
+  page?: number
+  /** A status, or "IN_PROGRESS:<stage>" — see LeadStatusFilter. */
+  status?: string
+  source?: string
+  channel?: string
+  sheet?: string
+  mine?: boolean
+}
+
 const leadsRoute = createRoute({
   getParentRoute: () => appLayoutRoute,
   path: '/leads',
   component: LeadsPage,
+  validateSearch: (search: Record<string, unknown>): LeadsSearch => {
+    const text = (v: unknown) => (typeof v === 'string' && v ? v : undefined)
+    const page = Math.floor(Number(search.page))
+    return {
+      page: page > 1 ? page : undefined,
+      status: text(search.status),
+      source: text(search.source),
+      channel: text(search.channel),
+      sheet: text(search.sheet),
+      mine: search.mine === true || search.mine === 'true' ? true : undefined,
+    }
+  },
 })
 
 const leadDetailRoute = createRoute({

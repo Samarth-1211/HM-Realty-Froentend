@@ -1,6 +1,7 @@
 import {
   LeadImportAllocationMode,
   LeadIntakeChannel,
+  LeadProgressStage,
   LeadSource,
   LeadStatus,
   UserRole,
@@ -24,9 +25,9 @@ export function isManuallyAddedLead(lead: Pick<Lead, 'intakeChannel' | 'source'>
 }
 
 /**
- * Whether the user may edit or delete this lead's record — mirrors the
- * backend: Admins any lead; Managers manually added / Excel-uploaded leads
- * held by them or their team.
+ * Whether the user may delete this lead's record — mirrors the backend:
+ * Admins any lead; Managers manually added / Excel-uploaded leads held by
+ * them or their team.
  */
 export function canManageLeadRecord(
   user: Pick<AuthUser, 'id' | 'role'> | null | undefined,
@@ -36,6 +37,32 @@ export function canManageLeadRecord(
   if (user.role === UserRole.ADMIN || user.role === UserRole.SUPER_ADMIN) return true
   if (user.role !== UserRole.MANAGER || !isManuallyAddedLead(lead)) return false
   return lead.assignedToId === user.id || lead.assignedTo?.managerId === user.id
+}
+
+/** Whether the user may edit this lead's details: anyone who may delete it, plus whoever it's assigned to. */
+export function canEditLeadRecord(
+  user: Pick<AuthUser, 'id' | 'role'> | null | undefined,
+  lead: Pick<Lead, 'intakeChannel' | 'source' | 'assignedToId' | 'assignedTo'>,
+): boolean {
+  return !!user && (lead.assignedToId === user.id || canManageLeadRecord(user, lead))
+}
+
+/**
+ * A status-filter value is a status, or one in-progress stage written as
+ * "IN_PROGRESS:<stage>" (see LeadStatusFilter).
+ */
+export function parseLeadStatusFilter(value: string): { status?: LeadStatus; stage?: LeadProgressStage } {
+  const [status, stage] = value.split(':')
+  // Anything unrecognised (a hand-edited URL) counts as no filter.
+  return {
+    status: Object.values(LeadStatus).find((s) => s === status),
+    stage: Object.values(LeadProgressStage).find((s) => s === stage),
+  }
+}
+
+export function matchesLeadStatusFilter(lead: Pick<Lead, 'status' | 'progressStage'>, value: string): boolean {
+  const { status, stage } = parseLeadStatusFilter(value)
+  return (!status || lead.status === status) && (!stage || lead.progressStage === stage)
 }
 
 export const LEAD_CHANNEL_LABELS: Record<LeadIntakeChannel, string> = {

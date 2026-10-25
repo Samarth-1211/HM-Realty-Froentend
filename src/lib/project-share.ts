@@ -19,17 +19,35 @@ export function brochureUrl(project: Pick<Project, 'brochureToken'>, download = 
   return `${API_BASE_URL.replace(/\/$/, '')}/public/brochures/${project.brochureToken}${download ? '?download=1' : ''}`
 }
 
+/** The brochure as a File, for attaching it to a share or a WhatsApp send. */
+export async function fetchBrochureFile(
+  project: Pick<Project, 'name' | 'brochureToken' | 'brochureFileName' | 'brochureMimeType'>,
+): Promise<File> {
+  const url = brochureUrl(project)
+  if (!url) throw new Error('This project has no brochure')
+  const res = await fetch(url)
+  if (!res.ok) throw new Error(`Brochure download failed (${res.status})`)
+  const blob = await res.blob()
+  const type = blob.type || project.brochureMimeType || 'application/pdf'
+  return new File([blob], project.brochureFileName || `${project.name} brochure.pdf`, { type })
+}
+
 /**
  * The WhatsApp message about a project for a customer — the user can edit it
  * before sending. Internal fields (rate-list source, guideline rate, remarks)
- * are left out; "*text*" is WhatsApp's bold.
+ * are left out; "*text*" is WhatsApp's bold. `withBrochure: false` leaves
+ * out the brochure link too.
  */
-export function projectShareMessage(project: Project, customerName?: string | null): string {
+export function projectShareMessage(
+  project: Project,
+  customerName?: string | null,
+  { withBrochure = true }: { withBrochure?: boolean } = {},
+): string {
   const detail = (label: string, value: string | null | undefined) =>
     value && value !== '—' ? `*${label}:* ${value}` : null
 
   const place = [project.location, project.zone].filter(Boolean).join(', ')
-  const brochure = brochureUrl(project)
+  const brochure = withBrochure ? brochureUrl(project) : null
 
   const lines = [
     `Hi${customerName ? ` ${customerName.split(' ')[0]}` : ''},`,
@@ -53,6 +71,17 @@ export function projectShareMessage(project: Project, customerName?: string | nu
   ]
 
   return lines.filter((line) => line !== null).join('\n')
+}
+
+/**
+ * The short text that goes with the brochure file when only the brochure is
+ * sent. No link: the file itself is attached.
+ */
+export function projectBrochureMessage(project: Project, customerName?: string | null): string {
+  return [
+    `Hi${customerName ? ` ${customerName.split(' ')[0]}` : ''}, here's the brochure for *${project.name}*.`,
+    `— ${APP_NAME}`,
+  ].join('\n')
 }
 
 /**

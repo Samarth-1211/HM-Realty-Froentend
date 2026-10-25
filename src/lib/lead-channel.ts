@@ -87,13 +87,18 @@ export function uploadedByLabel(lead: Pick<Lead, 'intakeChannel' | 'importBatch'
 
 /** Who an uploaded sheet was shared with, e.g. "All teams" or "Priya Shah, Raj Mehta — with their teams". */
 export function uploadSharedWithLabel(
-  batch: Pick<LeadImportBatch, 'allocationMode' | 'collaborators' | 'uploadedBy'>,
+  batch: Pick<LeadImportBatch, 'allocationMode' | 'collaborators' | 'uploadedBy'> & Partial<Pick<LeadImportBatch, 'allocation'>>,
 ): string {
   const picked = batch.collaborators
   const names = picked.map((m) => `${m.firstName} ${m.lastName}`).join(', ')
   const one = picked.length === 1
   if (batch.allocationMode === LeadImportAllocationMode.ALL_TEAMS) return 'All teams'
-  if (batch.allocationMode === LeadImportAllocationMode.CUSTOM) return 'Custom split'
+  if (batch.allocationMode === LeadImportAllocationMode.CUSTOM) {
+    // "Just me": a custom split that gave everything to the uploader.
+    const given = batch.allocation ?? []
+    const keptByUploader = given.length > 0 && given.every((a) => a.userId === batch.uploadedBy.id)
+    return keptByUploader ? 'Kept by uploader' : 'Custom split'
+  }
   if (batch.allocationMode === LeadImportAllocationMode.MANAGERS_AND_TEAMS) return `${names} — with their ${one ? 'team' : 'teams'}`
   if (batch.allocationMode === LeadImportAllocationMode.MANAGERS_ONLY) return `${names} — ${one ? 'manager' : 'managers'} only`
   // Uploaded before there was a choice: an Admin's went to every team, a Manager's to their own plus these managers'.

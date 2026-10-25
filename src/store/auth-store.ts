@@ -35,3 +35,9 @@ export const useAuthStore = create<AuthState>()(
     },
   ),
 )
+
+// Pick up tokens another tab saved (it refreshed, logged in or logged out),
+// so this tab never sends a refresh token that has already been rotated.
+window.addEventListener('storage', (e) => {
+  if (e.key === 'crm-auth') void useAuthStore.persist.rehydrate()
+})

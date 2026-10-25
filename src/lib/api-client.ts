@@ -16,36 +16,41 @@ apiClient.interceptors.request.use((config) => {
   return config
 })
 
-// --- 401 handling: single-flight refresh, queue concurrent requests --------
+// --- 401 handling: one refresh at a time, across all open tabs -------------
+//
+// Each refresh rotates the refresh token, so two tabs refreshing with the same
+// one would get the second rejected and log the user out everywhere. A Web
+// Lock makes tabs take turns, and a tab that finds a newer token already saved
+// by another tab just uses it.
 
-let isRefreshing = false
-let refreshWaiters: Array<(token: string | null) => void> = []
+let refreshInFlight: Promise<string | null> | null = null
 
-function subscribeToRefresh(cb: (token: string | null) => void) {
-  refreshWaiters.push(cb)
-}
-
-function notifyRefreshed(token: string | null) {
-  refreshWaiters.forEach((cb) => cb(token))
-  refreshWaiters = []
-}
-
-async function performRefresh(): Promise<string | null> {
-  const refreshToken = useAuthStore.getState().refreshToken
-  if (!refreshToken) return null
-  try {
-    const { data } = await axios.post<RefreshResponse>(`${API_BASE_URL}/auth/refresh`, {
-      refreshToken,
-    })
-    useAuthStore.getState().setTokens({
-      accessToken: data.accessToken,
-      refreshToken: data.refreshToken,
-    })
-    return data.accessToken
-  } catch {
-    useAuthStore.getState().clearSession()
-    return null
+/** A new access token, or null when the session has really ended. Throws if the server couldn't be reached. */
+async function performRefresh(failedToken: string | undefined): Promise<string | null> {
+  const run = async (): Promise<string | null> => {
+    await useAuthStore.persist.rehydrate()
+    const { accessToken, refreshToken } = useAuthStore.getState()
+    if (accessToken && accessToken !== failedToken) return accessToken
+    if (!refreshToken) return null
+    try {
+      const { data } = await axios.post<RefreshResponse>(`${API_BASE_URL}/auth/refresh`, {
+        refreshToken,
+      })
+      useAuthStore.getState().setTokens({
+        accessToken: data.accessToken,
+        refreshToken: data.refreshToken,
+      })
+      return data.accessToken
+    } catch (refreshError) {
+      // Only a rejected refresh token ends the session; a network blip shouldn't.
+      if (axios.isAxiosError(refreshError) && refreshError.response?.status === 401) {
+        useAuthStore.getState().clearSession()
+        return null
+      }
+      throw refreshError
+    }
   }
+  return navigator.locks ? navigator.locks.request('crm-auth-refresh', run) : run()
 }
 
 apiClient.interceptors.response.use(
@@ -61,28 +66,24 @@ apiClient.interceptors.response.use(
 
     if (status === 401 && originalRequest && !originalRequest._retry && !isAuthRoute) {
       originalRequest._retry = true
+      const failedToken = String(originalRequest.headers.Authorization ?? '').replace(/^Bearer /, '') || undefined
 
-      if (!isRefreshing) {
-        isRefreshing = true
-        const newToken = await performRefresh()
-        isRefreshing = false
-        notifyRefreshed(newToken)
-        if (!newToken) {
-          window.location.assign('/login')
-          return Promise.reject(error)
-        }
-      }
-
-      return new Promise((resolve, reject) => {
-        subscribeToRefresh((token) => {
-          if (!token) {
-            reject(error)
-            return
-          }
-          originalRequest.headers.Authorization = `Bearer ${token}`
-          resolve(apiClient(originalRequest))
-        })
+      refreshInFlight ??= performRefresh(failedToken).finally(() => {
+        refreshInFlight = null
       })
+
+      let token: string | null
+      try {
+        token = await refreshInFlight
+      } catch {
+        return Promise.reject(error)
+      }
+      if (!token) {
+        window.location.assign('/login')
+        return Promise.reject(error)
+      }
+      originalRequest.headers.Authorization = `Bearer ${token}`
+      return apiClient(originalRequest)
     }
 
     return Promise.reject(error)

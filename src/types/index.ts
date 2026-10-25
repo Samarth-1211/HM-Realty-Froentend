@@ -41,6 +41,7 @@ export const LeadProgressStage = {
   SITE_VISIT_SCHEDULED: 'SITE_VISIT_SCHEDULED',
   DOCUMENTATION_PENDING: 'DOCUMENTATION_PENDING',
   AWAITING_DECISION: 'AWAITING_DECISION',
+  NPC: 'NPC',
   OTHER: 'OTHER',
 } as const
 export type LeadProgressStage = (typeof LeadProgressStage)[keyof typeof LeadProgressStage]
@@ -691,6 +692,8 @@ export interface LeadActivityLog {
   type: LeadActivityType
   description: string
   performedById: string | null
+  /** Who made the change — included by GET /leads/:id. */
+  performedBy?: { firstName: string; lastName: string } | null
   metadata: Record<string, unknown> | null
   createdAt: string
 }
@@ -986,6 +989,8 @@ export interface Task {
   completedAt: string | null
   createdById: string
   createdBy: { id: string; firstName: string; lastName: string; role: UserRole } | null
+  /** Scheduled reminders, earliest first; offset 0 is the one at the due time. */
+  reminders?: { offsetMinutes: number; remindAt: string; firedAt: string | null }[]
   createdAt: string
   updatedAt: string
 }

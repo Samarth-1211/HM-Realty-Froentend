@@ -1,4 +1,5 @@
 import { TrendingUp, UsersRound } from 'lucide-react'
+import { Link } from '@tanstack/react-router'
 import { useTeamSummary } from '@/hooks/queries/use-employees'
 import { useLeads } from '@/hooks/queries/use-leads'
 import { StatCard } from '@/components/dashboard/stat-card'
@@ -23,12 +24,12 @@ export function ManagerDashboard() {
   return (
     <div className="flex flex-col gap-6">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <StatCard label="Team members" value={members.length} icon={UsersRound} tone="brand" delay={0} />
-        <StatCard label="Active leads (team)" value={totalActiveLeads} icon={TrendingUp} tone="violet" delay={0.05} />
+        <StatCard label="Team members" value={members.length} icon={UsersRound} tone="brand" delay={0} link={{ to: '/team' }} />
+        <StatCard label="Active leads (team)" value={totalActiveLeads} icon={TrendingUp} tone="violet" delay={0.05} link={{ to: '/leads' }} />
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <CheckInCard />
+        <CheckInCard showAttendanceLink />
       </div>
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-5">
@@ -54,7 +55,12 @@ export function ManagerDashboard() {
               <p className="px-2 py-6 text-center text-sm text-slate-400">No team members yet.</p>
             )}
             {members.map((m) => (
-              <div key={m.userId} className="flex items-center gap-3 rounded-xl px-2 py-2.5 hover:bg-slate-50">
+              <Link
+                key={m.userId}
+                to="/users/$userId"
+                params={{ userId: m.userId }}
+                className="flex items-center gap-3 rounded-xl px-2 py-2.5 hover:bg-slate-50"
+              >
                 <Avatar firstName={m.fullName.split(' ')[0] ?? ''} lastName={m.fullName.split(' ')[1] ?? ''} size="sm" />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium text-slate-800">{m.fullName}</p>
@@ -63,7 +69,7 @@ export function ManagerDashboard() {
                 <div className="text-right text-xs text-slate-500">
                   <p className="font-semibold text-slate-700">{m.activeLeadCount} active</p>
                 </div>
-              </div>
+              </Link>
             ))}
           </CardBody>
         </Card>

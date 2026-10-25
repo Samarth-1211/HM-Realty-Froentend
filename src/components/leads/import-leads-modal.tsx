@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { CheckCircle2, Download, FileSpreadsheet, ListOrdered, Plus, TriangleAlert, UserCheck, Users, X, XCircle } from 'lucide-react'
+import { CheckCircle2, Download, FileSpreadsheet, ListOrdered, Plus, TriangleAlert, User, UserCheck, Users, X, XCircle } from 'lucide-react'
 import { toast } from 'sonner'
 import { Modal } from '@/components/ui/modal'
 import { Button } from '@/components/ui/button'
@@ -33,7 +33,7 @@ const ROWS_LISTED = 8
 
 const count = (n: number) => n.toLocaleString('en-IN')
 
-type Scope = 'everyone' | 'managers' | 'custom'
+type Scope = 'everyone' | 'managers' | 'custom' | 'me'
 
 /** One line of a custom split: a person and how many leads they get (as typed). */
 interface Share {
@@ -48,8 +48,8 @@ const emptyShare = (): Share => ({ key: ++shareKey, userId: '', count: '' })
 /**
  * "Upload Excel" for leads, for Admins and Managers: pick a sheet (its
  * leads are counted straight away) and who gets them — every team, picked
- * managers with or without their teams, or a custom split of so many leads
- * per person → upload it (progress by bytes) → the server imports its rows
+ * managers with or without their teams, a custom split of so many leads
+ * per person, or just the uploader → upload it (progress by bytes) → the server imports its rows
  * (progress by rows, polled) → summary of what was imported, who got it,
  * and which rows were skipped and why.
  */
@@ -98,6 +98,7 @@ export function ImportLeadsModal({ open, onClose }: { open: boolean; onClose: ()
     !!file &&
     !!preview.data &&
     (everyone ||
+      (scope === 'me' && preview.data.newLeadCount > 0) ||
       (scope === 'managers' && managerIds.length > 0) ||
       (scope === 'custom' && sharesComplete && overBy <= 0))
 
@@ -132,6 +133,15 @@ export function ImportLeadsModal({ open, onClose }: { open: boolean; onClose: ()
 
   const allocation = (): LeadImportAllocationChoice => {
     if (everyone) return { allocationMode: LeadImportAllocationMode.ALL_TEAMS, managerIds: [] }
+    // A custom split with the uploader as the only person, given every row —
+    // only the new leads are handed out, so that covers them all.
+    if (scope === 'me' && user) {
+      return {
+        allocationMode: LeadImportAllocationMode.CUSTOM,
+        managerIds: [],
+        customAllocations: [{ userId: user.id, count: preview.data?.totalRows ?? 0 }],
+      }
+    }
     if (scope === 'custom') {
       return {
         allocationMode: LeadImportAllocationMode.CUSTOM,
@@ -170,7 +180,7 @@ export function ImportLeadsModal({ open, onClose }: { open: boolean; onClose: ()
       open={open}
       onClose={onClose}
       title="Upload leads from Excel"
-      subtitle="Choose who gets the leads — every team, the managers you pick, or your own split"
+      subtitle="Choose who gets the leads — every team, the managers you pick, your own split, or just you"
       size="lg"
     >
       <div className="flex flex-col gap-5">
@@ -208,7 +218,7 @@ export function ImportLeadsModal({ open, onClose }: { open: boolean; onClose: ()
 
             <div>
               <Label>Who gets these leads?</Label>
-              <div role="radiogroup" className="grid gap-2 sm:grid-cols-3">
+              <div role="radiogroup" className="grid gap-2 sm:grid-cols-2">
                 <AllocationChoice
                   selected={everyone}
                   onSelect={() => setScope('everyone')}
@@ -232,6 +242,14 @@ export function ImportLeadsModal({ open, onClose }: { open: boolean; onClose: ()
                   icon={<ListOrdered className="size-4" />}
                   title="Custom split"
                   description="You decide how many leads each person gets"
+                />
+                <AllocationChoice
+                  selected={scope === 'me'}
+                  onSelect={() => setScope('me')}
+                  disabled={upload.isPending}
+                  icon={<User className="size-4" />}
+                  title="Just me"
+                  description="Every new lead in the sheet is assigned to you"
                 />
               </div>
             </div>
@@ -340,7 +358,9 @@ export function ImportLeadsModal({ open, onClose }: { open: boolean; onClose: ()
               {sharedBeyondOwnTeam && (
                 <li>Leads that go to another manager or their team won’t show in your Leads list — only that manager and the Admin see them.</li>
               )}
-              {scope === 'custom' ? (
+              {scope === 'me' ? (
+                <li>Every new lead in the sheet is assigned to you, even if you’re marked absent today.</li>
+              ) : scope === 'custom' ? (
                 <li>
                   Each person gets the number you enter, even if they’re absent today — fewer only if the sheet turns out
                   short. Leads left over {isManager ? 'come to you' : 'stay unassigned for you to hand out'}.

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { CalendarCheck, Clock, MapPinned } from 'lucide-react'
 import { Card, CardBody, CardHeader } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { ButtonLink } from '@/components/ui/button-link'
 import { Select } from '@/components/ui/select'
 import { Spinner } from '@/components/ui/spinner'
 import { Badge } from '@/components/ui/badge'
@@ -17,7 +18,8 @@ const DAY_TYPES: { value: string; label: string }[] = [
   { value: AttendanceStatus.ON_SITE_VISIT, label: 'On-site visit' },
 ]
 
-export function CheckInCard() {
+/** `showAttendanceLink` adds a link to the full Attendance page (for the dashboard). */
+export function CheckInCard({ showAttendanceLink = false }: { showAttendanceLink?: boolean }) {
   const { data: today, isLoading } = useTodayAttendance()
   const checkIn = useCheckIn()
   const [dayType, setDayType] = useState<string>(AttendanceStatus.PRESENT)
@@ -28,6 +30,13 @@ export function CheckInCard() {
       <CardHeader
         title="Today's attendance"
         subtitle={new Intl.DateTimeFormat('en-IN', { weekday: 'long', day: '2-digit', month: 'short' }).format(new Date())}
+        action={
+          showAttendanceLink && (
+            <ButtonLink to="/attendance" variant="secondary" size="sm">
+              View attendance
+            </ButtonLink>
+          )
+        }
       />
       <CardBody>
         {isLoading ? (

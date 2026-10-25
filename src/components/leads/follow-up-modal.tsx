@@ -11,7 +11,9 @@ import {
   VISIT_STATUS_LABELS,
 } from '@/lib/constants'
 import { cn, splitPhoneList, toDatetimeLocal } from '@/lib/utils'
-import { BookingStatus, LeadPurpose, LeadTemperature, VisitStatus, type Lead } from '@/types'
+import type { UpdateLeadFollowUpPayload } from '@/api/leads.api'
+import { BookingStatus, LeadPurpose, LeadTemperature, VisitStatus, type LeadWithActivity } from '@/types'
+import { RemarkHistory } from './remark-history'
 
 const TEMPERATURE_OPTIONS = Object.values(LeadTemperature)
 const PURPOSE_OPTIONS = Object.values(LeadPurpose)
@@ -39,7 +41,7 @@ function rangeValues(input: RangeInput): { min: number | null; max: number | nul
 
 const sameRange = (a: RangeInput, b: RangeInput) => a.isRange === b.isRange && a.min === b.min && a.max === b.max
 
-export function FollowUpModal({ open, onClose, lead }: { open: boolean; onClose: () => void; lead: Lead }) {
+export function FollowUpModal({ open, onClose, lead }: { open: boolean; onClose: () => void; lead: LeadWithActivity }) {
   const update = useUpdateLeadFollowUp()
 
   const [alternatePhones, setAlternatePhones] = useState('')
@@ -101,35 +103,41 @@ export function FollowUpModal({ open, onClose, lead }: { open: boolean; onClose:
     e.preventDefault()
     if (alternatePhonesError || budgetError || plotSizeError) return
 
-    // Sent only when touched, so saving other fields never rewrites them.
-    const budgetChanged = !sameRange(budget, toRangeInput(lead.budgetMin, lead.budgetMax))
-    const plotSizeChanged = !sameRange(plotSize, toRangeInput(lead.plotSizeSqFt, lead.plotSizeMaxSqFt))
+    // Only what was changed is sent, so saving one field never rewrites the
+    // others; an emptied field is sent as null, which clears it.
+    const text = (v: string) => v.trim() || null
+    const date = (v: string) => (v ? new Date(v).toISOString() : null)
+    const num = (v: string) => (v ? Number(v) : null)
+    const payload: UpdateLeadFollowUpPayload = {}
+    if (alternatePhones !== (lead.alternatePhones ?? []).join(', ')) payload.alternatePhones = alternatePhoneList
+    if (leadTemperature !== (lead.leadTemperature ?? '')) payload.leadTemperature = leadTemperature || null
+    if (purpose !== (lead.purpose ?? '')) payload.purpose = purpose || null
+    if (!sameRange(budget, toRangeInput(lead.budgetMin, lead.budgetMax))) {
+      payload.budgetMin = budgetValues.min
+      payload.budgetMax = budgetValues.max
+    }
+    if (!sameRange(plotSize, toRangeInput(lead.plotSizeSqFt, lead.plotSizeMaxSqFt))) {
+      payload.plotSizeSqFt = plotValues.min
+      payload.plotSizeMaxSqFt = plotSize.isRange ? plotValues.max : null
+    }
+    if (lastContactedAt !== toDatetimeLocal(lead.lastContactedAt)) payload.lastContactedAt = date(lastContactedAt)
+    if (nextFollowUpAt !== toDatetimeLocal(lead.nextFollowUpAt)) payload.nextFollowUpAt = date(nextFollowUpAt)
+    if (siteVisitDate !== toDatetimeLocal(lead.siteVisitDate)) payload.siteVisitDate = date(siteVisitDate)
+    if (visitStatus !== (lead.visitStatus ?? '')) payload.visitStatus = visitStatus || null
+    if (text(mainObjection) !== text(lead.mainObjection ?? '')) payload.mainObjection = text(mainObjection)
+    if (bookingProbability !== (lead.bookingProbability != null ? String(lead.bookingProbability) : '')) {
+      payload.bookingProbability = num(bookingProbability)
+    }
+    if (bookingStatus !== (lead.bookingStatus ?? '')) payload.bookingStatus = bookingStatus || null
+    if (bookingValue !== (lead.bookingValue ?? '')) payload.bookingValue = num(bookingValue)
+    if (text(lostNurtureReason) !== text(lead.lostNurtureReason ?? '')) payload.lostNurtureReason = text(lostNurtureReason)
+    if (text(remarks) !== text(lead.remarks ?? '')) payload.remarks = text(remarks)
 
-    update.mutate(
-      {
-        id: lead.id,
-        payload: {
-          alternatePhones: alternatePhoneList,
-          leadTemperature: leadTemperature || undefined,
-          purpose: purpose || undefined,
-          ...(budgetChanged ? { budgetMin: budgetValues.min, budgetMax: budgetValues.max } : {}),
-          ...(plotSizeChanged
-            ? { plotSizeSqFt: plotValues.min, plotSizeMaxSqFt: plotSize.isRange ? plotValues.max : null }
-            : {}),
-          lastContactedAt: lastContactedAt ? new Date(lastContactedAt).toISOString() : undefined,
-          nextFollowUpAt: nextFollowUpAt ? new Date(nextFollowUpAt).toISOString() : undefined,
-          siteVisitDate: siteVisitDate ? new Date(siteVisitDate).toISOString() : undefined,
-          visitStatus: visitStatus || undefined,
-          mainObjection: mainObjection.trim() || undefined,
-          bookingProbability: bookingProbability ? Number(bookingProbability) : undefined,
-          bookingStatus: bookingStatus || undefined,
-          bookingValue: bookingValue ? Number(bookingValue) : undefined,
-          lostNurtureReason: lostNurtureReason.trim() || undefined,
-          remarks: remarks.trim() || undefined,
-        },
-      },
-      { onSuccess: onClose },
-    )
+    if (Object.keys(payload).length === 0) {
+      onClose()
+      return
+    }
+    update.mutate({ id: lead.id, payload }, { onSuccess: onClose })
   }
 
   return (
@@ -209,17 +217,18 @@ export function FollowUpModal({ open, onClose, lead }: { open: boolean; onClose:
           </Field>
         </div>
 
-        <Field label="Main objection">
-          <Textarea value={mainObjection} onChange={(e) => setMainObjection(e.target.value)} placeholder="e.g. Price is above their budget" />
-        </Field>
+        <ClearableTextField label="Main objection" value={mainObjection} onChange={setMainObjection} placeholder="e.g. Price is above their budget" />
 
-        <Field label="Lost / nurture reason">
-          <Textarea value={lostNurtureReason} onChange={(e) => setLostNurtureReason(e.target.value)} placeholder="Why this lead was lost, or why it's being nurtured" />
-        </Field>
+        <ClearableTextField
+          label="Lost / nurture reason"
+          value={lostNurtureReason}
+          onChange={setLostNurtureReason}
+          placeholder="Why this lead was lost, or why it's being nurtured"
+        />
 
-        <Field label="Remarks">
-          <Textarea value={remarks} onChange={(e) => setRemarks(e.target.value)} placeholder="Any other notes" />
-        </Field>
+        <ClearableTextField label="Remarks" value={remarks} onChange={setRemarks} placeholder="Any other notes" />
+
+        <RemarkHistory logs={lead.activityLogs} currentRemarks={lead.remarks} />
 
         <div className="flex justify-end gap-2 pt-2">
           <Button type="button" variant="ghost" onClick={onClose} disabled={update.isPending}>
@@ -231,6 +240,38 @@ export function FollowUpModal({ open, onClose, lead }: { open: boolean; onClose:
         </div>
       </form>
     </Modal>
+  )
+}
+
+/** A notes box with a "Clear" button; saving it empty removes the text from the lead. */
+function ClearableTextField({
+  label,
+  value,
+  onChange,
+  placeholder,
+}: {
+  label: string
+  value: string
+  onChange: (value: string) => void
+  placeholder?: string
+}) {
+  return (
+    <div className="flex flex-col">
+      <div className="mb-1.5 flex items-center justify-between gap-2">
+        <Label className="mb-0">{label}</Label>
+        {value && (
+          <button
+            type="button"
+            onClick={() => onChange('')}
+            title={`Remove the ${label.toLowerCase()} — it's cleared when you save`}
+            className="rounded-md px-2 py-0.5 text-xs font-medium text-slate-500 ring-1 ring-inset ring-slate-200 transition-colors hover:bg-rose-50 hover:text-rose-600 hover:ring-rose-200"
+          >
+            Clear
+          </button>
+        )}
+      </div>
+      <Textarea value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} aria-label={label} />
+    </div>
   )
 }
 

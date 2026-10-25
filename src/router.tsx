@@ -172,6 +172,8 @@ const userDetailRoute = createRoute({
 /** The Leads list's page and filters live in the URL, so coming back from a lead lands where you left. */
 export interface LeadsSearch {
   page?: number
+  /** Free-text search over name, phone, project and lead ID. */
+  q?: string
   /** A status, or "IN_PROGRESS:<stage>" — see LeadStatusFilter. */
   status?: string
   source?: string
@@ -189,6 +191,7 @@ const leadsRoute = createRoute({
     const page = Math.floor(Number(search.page))
     return {
       page: page > 1 ? page : undefined,
+      q: text(search.q),
       status: text(search.status),
       source: text(search.source),
       channel: text(search.channel),

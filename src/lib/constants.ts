@@ -120,6 +120,7 @@ export const LEAD_PROGRESS_STAGE_LABELS: Record<string, string> = {
   SITE_VISIT_SCHEDULED: 'Site visit scheduled',
   DOCUMENTATION_PENDING: 'Documentation pending',
   AWAITING_DECISION: 'Awaiting decision',
+  NPC: 'NPC',
   OTHER: 'Other',
 }
 

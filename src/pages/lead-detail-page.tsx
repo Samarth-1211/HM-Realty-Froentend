@@ -34,15 +34,15 @@ import { LeadStatusControl } from '@/components/leads/lead-status-control'
 import { AssignLeadModal } from '@/components/leads/assign-lead-modal'
 import { WhatsAppChatPanel } from '@/components/leads/whatsapp-chat-panel'
 import { FollowUpModal } from '@/components/leads/follow-up-modal'
+import { getRemarkHistory, RemarkHistory } from '@/components/leads/remark-history'
 import { DeleteLeadDialog } from '@/components/leads/delete-lead-dialog'
 import { LeadEditModal } from '@/components/leads/lead-edit-modal'
 import { LeadChannelBadge } from '@/components/leads/lead-channel-badge'
 import { canEditLeadRecord, canManageLeadRecord, uploaderRoleLabel } from '@/lib/lead-channel'
 import { TaskFormModal } from '@/components/tasks/task-form-modal'
-import { ShareProjectModal } from '@/components/projects/share-project-modal'
+import { ShareToLeadModal } from '@/components/leads/share-to-lead-modal'
 import { WhatsAppGlyph } from '@/components/integrations/whatsapp-mark'
 import { useLead } from '@/hooks/queries/use-leads'
-import { useProject } from '@/hooks/queries/use-projects'
 import { useAuthStore } from '@/store/auth-store'
 import {
   ASSIGNER_ROLES,
@@ -83,8 +83,6 @@ export function LeadDetailPage() {
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
   const [shareOpen, setShareOpen] = useState(false)
-  // The lead's project, for sending its details to this customer on WhatsApp.
-  const { data: project } = useProject(lead?.projectId ?? undefined)
 
   const canAssign = currentUser && ASSIGNER_ROLES.includes(currentUser.role)
 
@@ -152,12 +150,10 @@ export function LeadDetailPage() {
           <CheckSquare className="size-4" />
           Add Task
         </Button>
-        {project && (
-          <Button size="sm" variant="outline" onClick={() => setShareOpen(true)} title={`Send ${project.name} on WhatsApp`}>
-            <WhatsAppGlyph />
-            Share project
-          </Button>
-        )}
+        <Button size="sm" variant="outline" onClick={() => setShareOpen(true)} title="Send a project's details or brochure on WhatsApp">
+          <WhatsAppGlyph />
+          Share project
+        </Button>
         {canChangeStatus && (
           <Button size="sm" variant="outline" onClick={() => setFollowUpOpen(true)}>
             <NotebookPen className="size-4" />
@@ -362,7 +358,11 @@ export function LeadDetailPage() {
               <p className="mt-0.5 text-sm text-slate-700">{lead.lostNurtureReason}</p>
             </div>
           )}
-          {lead.remarks && (
+          {getRemarkHistory(lead.activityLogs).length > 0 ? (
+            <div className="mt-4">
+              <RemarkHistory logs={lead.activityLogs} currentRemarks={lead.remarks} />
+            </div>
+          ) : lead.remarks && (
             <div className="mt-3 rounded-xl bg-slate-50 p-3">
               <p className="text-xs font-medium text-slate-400">Remarks</p>
               <p className="mt-0.5 text-sm text-slate-700">{lead.remarks}</p>
@@ -387,12 +387,7 @@ export function LeadDetailPage() {
         onHandedOver={goBack}
       />
       <TaskFormModal open={taskOpen} onClose={() => setTaskOpen(false)} lead={{ id: lead.id, fullName: lead.fullName }} />
-      <ShareProjectModal
-        open={shareOpen}
-        onClose={() => setShareOpen(false)}
-        project={project ?? null}
-        defaultPhone={lead.phone}
-      />
+      <ShareToLeadModal open={shareOpen} onClose={() => setShareOpen(false)} lead={lead} />
       {canChangeStatus && <FollowUpModal open={followUpOpen} onClose={() => setFollowUpOpen(false)} lead={lead} />}
       {editOpen && <LeadEditModal lead={lead} onClose={() => setEditOpen(false)} />}
       {deleteOpen && (

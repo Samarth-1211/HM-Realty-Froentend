@@ -56,7 +56,12 @@ export function TaskFormModal({
     setAssignedToId(task?.userId ?? '')
     setDueAt(toDatetimeLocal(task?.dueAt))
     setLeadId(task?.leadId ?? lead?.id ?? '')
-    setReminders([1440, 360])
+    // An existing task keeps the reminders it has (the one at the due time is always added).
+    setReminders(
+      task?.reminders?.length
+        ? [...new Set(task.reminders.map((r) => r.offsetMinutes).filter((m) => m > 0))].sort((a, b) => a - b)
+        : [1440, 360],
+    )
   }, [open, task, lead])
 
   const pending = create.isPending || update.isPending
@@ -156,7 +161,10 @@ export function TaskFormModal({
         </Field>
 
         {dueAt && (
-          <Field label="Remind me" hint="You'll get an in-app notification at each of these times">
+          <Field
+            label="Reminders"
+            hint="Sent in the app and by email at each of these times — and at the due time itself"
+          >
             <ReminderPicker value={reminders} onChange={setReminders} disabled={pending} />
           </Field>
         )}

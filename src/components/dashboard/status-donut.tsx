@@ -9,7 +9,14 @@ const STATUS_HEX: Record<string, string> = {
   LOST: '#f43f5e',
 }
 
-export function StatusDonut({ data }: { data: Record<string, number> }) {
+export function StatusDonut({
+  data,
+  onStatusClick,
+}: {
+  data: Record<string, number>
+  /** Called with the status of the slice or legend row that was clicked. */
+  onStatusClick?: (status: string) => void
+}) {
   const entries = Object.entries(data).filter(([, v]) => v > 0)
   const total = entries.reduce((sum, [, v]) => sum + v, 0)
 
@@ -36,6 +43,8 @@ export function StatusDonut({ data }: { data: Record<string, number> }) {
               outerRadius={80}
               paddingAngle={3}
               strokeWidth={0}
+              onClick={onStatusClick ? (_slice, index) => onStatusClick(chartData[index].status) : undefined}
+              className={onStatusClick ? 'cursor-pointer outline-none' : undefined}
             >
               {chartData.map((entry) => (
                 <Cell key={entry.status} fill={STATUS_HEX[entry.status] ?? '#94a3b8'} />
@@ -52,18 +61,35 @@ export function StatusDonut({ data }: { data: Record<string, number> }) {
         </div>
       </div>
       <div className="flex flex-1 flex-col gap-2">
-        {chartData.map((entry) => (
-          <div key={entry.status} className="flex items-center justify-between text-sm">
-            <div className="flex items-center gap-2">
-              <span
-                className="size-2.5 rounded-full"
-                style={{ backgroundColor: STATUS_HEX[entry.status] ?? '#94a3b8' }}
-              />
-              <span className="text-slate-600">{entry.name}</span>
+        {chartData.map((entry) => {
+          const row = (
+            <>
+              <div className="flex items-center gap-2">
+                <span
+                  className="size-2.5 rounded-full"
+                  style={{ backgroundColor: STATUS_HEX[entry.status] ?? '#94a3b8' }}
+                />
+                <span className="text-slate-600">{entry.name}</span>
+              </div>
+              <span className="font-semibold text-slate-800">{entry.value}</span>
+            </>
+          )
+          return onStatusClick ? (
+            <button
+              key={entry.status}
+              type="button"
+              onClick={() => onStatusClick(entry.status)}
+              title={`See ${entry.name.toLowerCase()} leads`}
+              className="-mx-2 flex items-center justify-between rounded-lg px-2 py-0.5 text-sm transition-colors hover:bg-slate-50"
+            >
+              {row}
+            </button>
+          ) : (
+            <div key={entry.status} className="flex items-center justify-between text-sm">
+              {row}
             </div>
-            <span className="font-semibold text-slate-800">{entry.value}</span>
-          </div>
-        ))}
+          )
+        })}
       </div>
     </div>
   )

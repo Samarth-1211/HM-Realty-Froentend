@@ -38,10 +38,10 @@ export function SuperAdminDashboard() {
   return (
     <div className="flex flex-col gap-6">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Total Organizations" value={list.length} icon={Building2} tone="brand" delay={0} />
-        <StatCard label="Active" value={active} icon={CheckCircle2} tone="emerald" delay={0.05} />
-        <StatCard label="Suspended" value={suspended} icon={PauseCircle} tone="amber" delay={0.1} />
-        <StatCard label="Archived" value={archived} icon={Archive} tone="rose" delay={0.15} />
+        <StatCard label="Total Organizations" value={list.length} icon={Building2} tone="brand" delay={0} link={{ to: '/organizations' }} />
+        <StatCard label="Active" value={active} icon={CheckCircle2} tone="emerald" delay={0.05} link={{ to: '/organizations' }} />
+        <StatCard label="Suspended" value={suspended} icon={PauseCircle} tone="amber" delay={0.1} link={{ to: '/organizations' }} />
+        <StatCard label="Archived" value={archived} icon={Archive} tone="rose" delay={0.15} link={{ to: '/organizations' }} />
       </div>
 
       <Card>

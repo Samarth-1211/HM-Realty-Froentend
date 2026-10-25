@@ -5,6 +5,7 @@ import { PageHeader } from '@/components/ui/page-header'
 import { Card } from '@/components/ui/card'
 import { DataTable, type Column } from '@/components/ui/data-table'
 import { Select } from '@/components/ui/select'
+import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Pagination } from '@/components/ui/pagination'
 import { LeadStatusBadge } from '@/components/leads/lead-status-badge'
@@ -29,7 +30,7 @@ import {
 } from '@/lib/lead-channel'
 import { LeadIntakeChannel, LeadSource, UserRole, type Lead } from '@/types'
 import type { LeadsSearch } from '@/router'
-import { formatDate, formatDateTime, formatEnumLabel } from '@/lib/utils'
+import { formatDate, formatDateTime, formatEnumLabel, formatLeadNumber, formatLeadPhones } from '@/lib/utils'
 
 const checkboxClass = 'size-4 cursor-pointer rounded border-slate-300 text-brand-600 focus:ring-brand-500'
 
@@ -38,7 +39,7 @@ export function LeadsPage() {
   const currentUser = useAuthStore((s) => s.user)
   // Page and filters are kept in the URL, so "back" from a lead returns to the same page.
   const search = useSearch({ from: '/_app/leads' })
-  const { status = '', source = '', channel = '', sheet = '', mine: onlyMine = false } = search
+  const { q = '', status = '', source = '', channel = '', sheet = '', mine: onlyMine = false } = search
   const setSearch = (changes: LeadsSearch) =>
     navigate({ to: '/leads', search: (prev) => ({ ...prev, ...changes }), replace: true })
   // Bulk selection: the checkboxes only show once "Select" is pressed.
@@ -75,16 +76,21 @@ export function LeadsPage() {
   }, [allLeads])
 
   const filtered = useMemo(() => {
+    const query = q.trim().toLowerCase()
     const matching = allLeads.filter(
       (l) =>
         matchesLeadStatusFilter(l, status) &&
         (!source || l.source === source) &&
         (!channel || l.intakeChannel === channel) &&
         (!sheet || l.importBatchId === sheet) &&
-        (!onlyMine || l.assignedToId === currentUser?.id),
+        (!onlyMine || l.assignedToId === currentUser?.id) &&
+        (!query ||
+          `${l.fullName} ${formatLeadPhones(l)} ${l.project?.name ?? ''} ${formatLeadNumber(l.leadNumber)}`
+            .toLowerCase()
+            .includes(query)),
     )
     return status ? matching : lostLeadsLast(matching)
-  }, [allLeads, status, source, channel, sheet, onlyMine, currentUser?.id])
+  }, [allLeads, q, status, source, channel, sheet, onlyMine, currentUser?.id])
   // Clamped, in case the list got shorter since the URL was written.
   const page = Math.min(search.page ?? 1, Math.max(1, Math.ceil(filtered.length / pageSize)))
   const paged = filtered.slice((page - 1) * pageSize, page * pageSize)
@@ -278,6 +284,12 @@ export function LeadsPage() {
 
       <Card>
         <div className="flex flex-col gap-3 border-b border-slate-100 p-4 sm:flex-row">
+          <Input
+            value={q}
+            onChange={(e) => changeFilter({ q: e.target.value || undefined })}
+            placeholder="Search name, phone, project, lead ID…"
+            className="sm:max-w-[240px]"
+          />
           <LeadStatusFilter
             allLabel="All statuses"
             value={status}
@@ -403,7 +415,7 @@ export function LeadsPage() {
           }
           emptyIcon={Contact}
           emptyTitle="No leads found"
-          emptyDescription="Try adjusting your filters, or add a new lead."
+          emptyDescription="Try adjusting your filters or the search box, or add a new lead."
         />
         {filtered.length > 0 && (
           <Pagination page={page} pageSize={pageSize} total={filtered.length} onPageChange={(next) => setSearch({ page: next })} />

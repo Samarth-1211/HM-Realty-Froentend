@@ -1,10 +1,13 @@
 import { Contact } from 'lucide-react'
+import { useNavigate } from '@tanstack/react-router'
 import type { Lead } from '@/types'
 import { DataTable, type Column } from '@/components/ui/data-table'
 import { LeadStatusBadge } from '@/components/leads/lead-status-badge'
 import { formatDateTime, formatEnumLabel } from '@/lib/utils'
 
+/** Clicking a row opens that lead. */
 export function RecentLeadsTable({ leads, isLoading }: { leads: Lead[]; isLoading?: boolean }) {
+  const navigate = useNavigate()
   const columns: Column<Lead>[] = [
     {
       key: 'name',
@@ -47,6 +50,7 @@ export function RecentLeadsTable({ leads, isLoading }: { leads: Lead[]; isLoadin
       data={leads}
       isLoading={isLoading}
       rowKey={(l) => l.id}
+      onRowClick={(l) => navigate({ to: '/leads/$leadId', params: { leadId: l.id } })}
       emptyIcon={Contact}
       emptyTitle="No leads yet"
       emptyDescription="New leads will show up here as soon as they come in."

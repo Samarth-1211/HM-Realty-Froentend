@@ -71,15 +71,16 @@ export interface LeadQuery {
   status?: LeadStatus
 }
 
+/** Only the fields that changed are sent; `null` clears a field. */
 export interface UpdateLeadFollowUpPayload {
   /** Replaces the lead's alternate numbers; [] clears them. */
   alternatePhones?: string[]
-  lastContactedAt?: string
-  nextFollowUpAt?: string
-  siteVisitDate?: string
-  visitStatus?: VisitStatus
-  leadTemperature?: LeadTemperature
-  purpose?: LeadPurpose
+  lastContactedAt?: string | null
+  nextFollowUpAt?: string | null
+  siteVisitDate?: string | null
+  visitStatus?: VisitStatus | null
+  leadTemperature?: LeadTemperature | null
+  purpose?: LeadPurpose | null
   /** A single size, or the low end of a range; `null` clears it. */
   plotSizeSqFt?: number | null
   /** High end of a plot size range; `null` for a single size. */
@@ -87,12 +88,12 @@ export interface UpdateLeadFollowUpPayload {
   /** One amount is sent as the same `budgetMin` and `budgetMax`; `null` clears. */
   budgetMin?: number | null
   budgetMax?: number | null
-  mainObjection?: string
-  bookingProbability?: number
-  bookingStatus?: BookingStatus
-  bookingValue?: number
-  lostNurtureReason?: string
-  remarks?: string
+  mainObjection?: string | null
+  bookingProbability?: number | null
+  bookingStatus?: BookingStatus | null
+  bookingValue?: number | null
+  lostNurtureReason?: string | null
+  remarks?: string | null
 }
 
 export const leadsApi = {

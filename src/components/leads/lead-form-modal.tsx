@@ -112,15 +112,21 @@ export function LeadFormModal({ open, onClose }: { open: boolean; onClose: () =>
         <Field label="Property interest" error={errors.propertyInterest?.message}>
           <Input {...register('propertyInterest')} placeholder="3BHK Apartment in Bandra" />
         </Field>
-        {canAssign && (
-          <Field label="Assign to" hint="Leave blank to auto-allocate to the least-loaded agent">
+        {currentUser && (
+          <Field
+            label="Assign to"
+            hint={canAssign ? 'Auto-allocate gives it to the least-loaded agent' : 'Keep the lead yourself, or let it be auto-allocated'}
+          >
             <Select {...register('assignedToId')}>
               <option value="">Auto-allocate</option>
-              {candidates.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.firstName} {u.lastName} ({u.role})
-                </option>
-              ))}
+              <option value={currentUser.id}>Assign to me</option>
+              {candidates
+                .filter((u) => u.id !== currentUser.id)
+                .map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.firstName} {u.lastName} ({u.role})
+                  </option>
+                ))}
             </Select>
           </Field>
         )}

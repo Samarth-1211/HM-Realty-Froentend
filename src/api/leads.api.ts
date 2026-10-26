@@ -10,6 +10,7 @@ import type {
   LeadImportBatch,
   LeadImportPreview,
   LeadProgressStage,
+  LeadSiteVisit,
   LeadPurpose,
   LeadStatus,
   LeadTemperature,
@@ -64,6 +65,18 @@ export interface UpdateLeadStatusPayload {
   status: LeadStatus
   progressStage?: LeadProgressStage
   progressStageNote?: string
+  /** With stage SITE_VISIT_SCHEDULED: when the visit is booked for (ISO). */
+  siteVisitAt?: string
+}
+
+/** The "Site visit done" form; the photo goes alongside as the file. */
+export interface CreateSiteVisitPayload {
+  projectId: string
+  clientName: string
+  /** ISO date-time the visit took place. */
+  visitedAt: string
+  clientBy: string
+  visitBy: string
 }
 
 export interface LeadQuery {
@@ -120,8 +133,20 @@ export const leadsApi = {
   bulkAssign: (leadIds: string[], assignedToId: string) =>
     apiClient.post<BulkAssignLeadsResult>('/leads/bulk-assign', { leadIds, assignedToId }).then((r) => r.data),
 
-  updateStatus: ({ id, status, progressStage, progressStageNote }: UpdateLeadStatusPayload) =>
-    apiClient.patch<Lead>(`/leads/${id}/status`, { status, progressStage, progressStageNote }).then((r) => r.data),
+  updateStatus: ({ id, status, progressStage, progressStageNote, siteVisitAt }: UpdateLeadStatusPayload) =>
+    apiClient
+      .patch<Lead>(`/leads/${id}/status`, { status, progressStage, progressStageNote, siteVisitAt })
+      .then((r) => r.data),
+
+  /** Records a visit with its photo; moves the lead to In Progress → Site visit done. */
+  createSiteVisit: (id: string, photo: File, payload: CreateSiteVisitPayload, onProgress?: (percent: number) => void) =>
+    postFile<LeadSiteVisit>(`/leads/${id}/site-visits`, photo, onProgress, { ...payload }),
+
+  siteVisits: (id: string) => apiClient.get<LeadSiteVisit[]>(`/leads/${id}/site-visits`).then((r) => r.data),
+
+  /** The photo needs the login token, so it's fetched as a blob rather than linked. */
+  siteVisitPhoto: (id: string, visitId: string) =>
+    apiClient.get<Blob>(`/leads/${id}/site-visits/${visitId}/photo`, { responseType: 'blob' }).then((r) => r.data),
 
   updateFollowUp: (id: string, payload: UpdateLeadFollowUpPayload) =>
     apiClient.patch<Lead>(`/leads/${id}/follow-up`, payload).then((r) => r.data),

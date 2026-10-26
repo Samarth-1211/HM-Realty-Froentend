@@ -41,6 +41,7 @@ import { LeadChannelBadge } from '@/components/leads/lead-channel-badge'
 import { canEditLeadRecord, canManageLeadRecord, uploaderRoleLabel } from '@/lib/lead-channel'
 import { TaskFormModal } from '@/components/tasks/task-form-modal'
 import { ShareToLeadModal } from '@/components/leads/share-to-lead-modal'
+import { SiteVisitsCard } from '@/components/leads/site-visits-card'
 import { WhatsAppGlyph } from '@/components/integrations/whatsapp-mark'
 import { useLead } from '@/hooks/queries/use-leads'
 import { useAuthStore } from '@/store/auth-store'
@@ -325,7 +326,7 @@ export function LeadDetailPage() {
             />
             <FollowUpStat icon={Clock} label="Last contacted" value={formatDateTime(lead.lastContactedAt)} />
             <FollowUpStat icon={Calendar} label="Next follow-up" value={formatDateTime(lead.nextFollowUpAt)} />
-            <FollowUpStat icon={Calendar} label="Site visit date" value={formatDate(lead.siteVisitDate)} />
+            <FollowUpStat icon={Calendar} label="Site visit date" value={formatDateTime(lead.siteVisitDate)} />
             <FollowUpStat icon={Target} label="Visit status">
               {lead.visitStatus ? (
                 <Badge className={VISIT_STATUS_COLORS[lead.visitStatus]}>{VISIT_STATUS_LABELS[lead.visitStatus]}</Badge>
@@ -370,6 +371,8 @@ export function LeadDetailPage() {
           )}
         </CardBody>
       </Card>
+
+      <SiteVisitsCard leadId={lead.id} />
 
       {(lead.source === 'WHATSAPP' || lead._count.whatsappMessages > 0) && (
         <Card>

@@ -1,9 +1,10 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import {
   leadsApi,
   type CreateLeadManualPayload,
+  type CreateSiteVisitPayload,
   type LeadImportAllocationChoice,
   type LeadQuery,
   type UpdateLeadDetailsPayload,
@@ -152,6 +153,49 @@ export function useUpdateLeadStatus() {
       qc.invalidateQueries({ queryKey: queryKeys.leads.detail(vars.id) })
     },
     onError: (error) => toast.error('Could not update lead status', { description: extractErrorMessage(error) }),
+  })
+}
+
+export function useSiteVisits(leadId: string | undefined) {
+  return useQuery({
+    queryKey: queryKeys.leads.siteVisits(leadId ?? ''),
+    queryFn: () => leadsApi.siteVisits(leadId!),
+    enabled: !!leadId,
+  })
+}
+
+/**
+ * A visit's photo as a URL for <img>. The image is cached once; each
+ * component gets its own object URL, released when it unmounts.
+ */
+export function useSiteVisitPhotoUrl(leadId: string, visitId: string) {
+  const { data: blob, isError } = useQuery({
+    queryKey: [...queryKeys.leads.siteVisits(leadId), visitId, 'photo'],
+    queryFn: () => leadsApi.siteVisitPhoto(leadId, visitId),
+    // A visit's photo never changes.
+    staleTime: Infinity,
+  })
+  const [url, setUrl] = useState<string | null>(null)
+  useEffect(() => {
+    if (!blob) return
+    const objectUrl = URL.createObjectURL(blob)
+    setUrl(objectUrl)
+    return () => URL.revokeObjectURL(objectUrl)
+  }, [blob])
+  return { url, isError }
+}
+
+export function useCreateSiteVisit() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, photo, payload }: { id: string; photo: File; payload: CreateSiteVisitPayload }) =>
+      leadsApi.createSiteVisit(id, photo, payload),
+    onSuccess: () => {
+      toast.success('Site visit recorded')
+      // Under the 'leads' prefix: refreshes the lead, its visits and every list.
+      qc.invalidateQueries({ queryKey: ['leads'] })
+    },
+    onError: (error) => toast.error('Could not record the site visit', { description: extractErrorMessage(error) }),
   })
 }
 

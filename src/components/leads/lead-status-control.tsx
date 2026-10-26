@@ -2,14 +2,16 @@ import { useState } from 'react'
 import { Select } from '@/components/ui/select'
 import { useUpdateLeadStatus } from '@/hooks/queries/use-leads'
 import { formatEnumLabel } from '@/lib/utils'
-import { LeadStatus, type Lead, type LeadProgressStage } from '@/types'
+import { LeadProgressStage, LeadStatus, type Lead } from '@/types'
 import { LeadProgressStageModal } from './lead-progress-stage-modal'
+import { SiteVisitDoneModal } from './site-visit-done-modal'
 
 const STATUS_OPTIONS = Object.values(LeadStatus)
 
 export function LeadStatusControl({ lead }: { lead: Lead }) {
   const updateStatus = useUpdateLeadStatus()
   const [stageModalOpen, setStageModalOpen] = useState(false)
+  const [visitFormOpen, setVisitFormOpen] = useState(false)
 
   const handleChange = (status: LeadStatus) => {
     if (status === LeadStatus.IN_PROGRESS) {
@@ -19,9 +21,15 @@ export function LeadStatusControl({ lead }: { lead: Lead }) {
     updateStatus.mutate({ id: lead.id, status })
   }
 
-  const handleConfirmStage = (progressStage: LeadProgressStage, progressStageNote?: string) => {
+  const handleConfirmStage = (progressStage: LeadProgressStage, progressStageNote?: string, siteVisitAt?: string) => {
+    // "Site visit done" is saved by the visit form, together with its photo.
+    if (progressStage === LeadProgressStage.SITE_VISIT_DONE) {
+      setStageModalOpen(false)
+      setVisitFormOpen(true)
+      return
+    }
     updateStatus.mutate(
-      { id: lead.id, status: LeadStatus.IN_PROGRESS, progressStage, progressStageNote },
+      { id: lead.id, status: LeadStatus.IN_PROGRESS, progressStage, progressStageNote, siteVisitAt },
       { onSuccess: () => setStageModalOpen(false) },
     )
   }
@@ -58,7 +66,9 @@ export function LeadStatusControl({ lead }: { lead: Lead }) {
         loading={updateStatus.isPending}
         initialStage={lead.status === LeadStatus.IN_PROGRESS ? lead.progressStage : undefined}
         initialNote={lead.status === LeadStatus.IN_PROGRESS ? lead.progressStageNote : undefined}
+        initialVisitAt={lead.siteVisitDate}
       />
+      <SiteVisitDoneModal lead={lead} open={visitFormOpen} onClose={() => setVisitFormOpen(false)} />
     </>
   )
 }

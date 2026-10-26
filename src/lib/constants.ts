@@ -118,6 +118,7 @@ export const LEAD_PROGRESS_STAGE_LABELS: Record<string, string> = {
   FOLLOW_UP_SENT: 'Follow-up sent',
   NEGOTIATION: 'Negotiation',
   SITE_VISIT_SCHEDULED: 'Site visit scheduled',
+  SITE_VISIT_DONE: 'Site visit done',
   DOCUMENTATION_PENDING: 'Documentation pending',
   AWAITING_DECISION: 'Awaiting decision',
   NPC: 'NPC',

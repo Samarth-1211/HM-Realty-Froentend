@@ -39,6 +39,7 @@ export const LeadProgressStage = {
   FOLLOW_UP_SENT: 'FOLLOW_UP_SENT',
   NEGOTIATION: 'NEGOTIATION',
   SITE_VISIT_SCHEDULED: 'SITE_VISIT_SCHEDULED',
+  SITE_VISIT_DONE: 'SITE_VISIT_DONE',
   DOCUMENTATION_PENDING: 'DOCUMENTATION_PENDING',
   AWAITING_DECISION: 'AWAITING_DECISION',
   NPC: 'NPC',
@@ -696,6 +697,27 @@ export interface LeadActivityLog {
   performedBy?: { firstName: string; lastName: string } | null
   metadata: Record<string, unknown> | null
   createdAt: string
+}
+
+/** A site visit that took place, recorded from the "Site visit done" form. */
+export interface LeadSiteVisit {
+  id: string
+  leadId: string
+  projectId: string | null
+  /** As it was when the visit was recorded. */
+  projectName: string
+  clientName: string
+  visitedAt: string
+  /** Who handled the client for the visit. */
+  clientBy: string
+  /** Who went on the visit with the client. */
+  visitBy: string
+  photoFileName: string
+  photoMimeType: string
+  photoSizeBytes: number
+  createdAt: string
+  /** Who filled in the form. */
+  createdBy: { id: string; firstName: string; lastName: string }
 }
 
 export interface LeadWithActivity extends Lead {

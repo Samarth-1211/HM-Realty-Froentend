@@ -191,7 +191,7 @@ export const leadsApi = {
       ...(customAllocations ? { customAllocations: JSON.stringify(customAllocations) } : {}),
     }),
 
-  /** Counts the leads in a sheet without uploading it — new, already in the CRM, unreadable. */
+  /** Counts the leads in a sheet without uploading it — new and unreadable. */
   previewImport: (file: File) => postFile<LeadImportPreview>('/leads/import/preview', file),
 
   /** Polled for the upload's progress and, once done, its per-row outcome. */

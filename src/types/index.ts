@@ -600,7 +600,7 @@ export interface LeadImportBatchSummary {
 export interface LeadImportIssue {
   /** Row number as Excel shows it. */
   row: number
-  /** error: not imported · duplicate: already in the CRM, skipped · warning: imported, a value left blank */
+  /** error: not imported · duplicate: already in the CRM, skipped (older uploads only) · warning: imported, a value left blank */
   level: 'error' | 'duplicate' | 'warning'
   message: string
 }
@@ -620,7 +620,7 @@ export interface LeadImportPreview {
   totalRows: number
   /** Rows that would become new leads — what there is to give out. */
   newLeadCount: number
-  /** Rows whose number is already in the CRM, or repeats an earlier row. */
+  /** Always 0 now — uploads no longer skip numbers already in the CRM. Kept for older clients. */
   duplicateCount: number
   /** Rows that can't be read (no name, no valid mobile number). */
   invalidCount: number

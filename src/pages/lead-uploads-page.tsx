@@ -99,7 +99,8 @@ export function LeadUploadsPage() {
         <div className="flex flex-col items-start gap-1">
           <StatusBadge status={b.status} />
           <p className="whitespace-nowrap text-xs text-slate-500">
-            {b.createdCount.toLocaleString('en-IN')} imported · {b.duplicateCount.toLocaleString('en-IN')} duplicate ·{' '}
+            {b.createdCount.toLocaleString('en-IN')} imported ·{' '}
+            {b.duplicateCount > 0 && `${b.duplicateCount.toLocaleString('en-IN')} duplicate · `}
             {b.failedCount.toLocaleString('en-IN')} failed
           </p>
         </div>

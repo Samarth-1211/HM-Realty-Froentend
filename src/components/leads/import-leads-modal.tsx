@@ -372,7 +372,7 @@ export function ImportLeadsModal({ open, onClose }: { open: boolean; onClose: ()
                 </li>
               )}
               <li>The Admin can see this upload — who uploaded it, when, who it was shared with — and download the sheet.</li>
-              <li>Numbers already in the CRM are skipped, not duplicated.</li>
+              <li>Every row becomes a new lead, even if its number is already in the CRM or repeated in the sheet.</li>
             </ul>
 
             {upload.isPending && (
@@ -402,7 +402,8 @@ export function ImportLeadsModal({ open, onClose }: { open: boolean; onClose: ()
             />
             {batch && (
               <p className="text-xs text-slate-500">
-                {count(batch.createdCount)} imported · {count(batch.duplicateCount)} already in the CRM ·{' '}
+                {count(batch.createdCount)} imported ·{' '}
+                {batch.duplicateCount > 0 && `${count(batch.duplicateCount)} already in the CRM · `}
                 {count(batch.failedCount)} not imported
               </p>
             )}
@@ -579,9 +580,10 @@ export function ImportSummary({ batch }: { batch: LeadImportBatch }) {
         <span className="font-medium text-slate-600">Shared with:</span> {uploadSharedWithLabel(batch)}
       </p>
 
-      <div className="grid grid-cols-3 gap-2">
+      {/* Uploads no longer skip numbers already in the CRM; older uploads may still have some. */}
+      <div className={cn('grid gap-2', batch.duplicateCount > 0 ? 'grid-cols-3' : 'grid-cols-2')}>
         <Stat label="Imported" value={batch.createdCount} tone="success" />
-        <Stat label="Already in the CRM" value={batch.duplicateCount} tone="warning" />
+        {batch.duplicateCount > 0 && <Stat label="Already in the CRM" value={batch.duplicateCount} tone="warning" />}
         <Stat label="Not imported" value={batch.failedCount} tone="danger" />
       </div>
 

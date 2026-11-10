@@ -180,6 +180,9 @@ export interface LeadsSearch {
   channel?: string
   sheet?: string
   mine?: boolean
+  /** Lead date range, each end YYYY-MM-DD — see LeadDateRangeFilter. */
+  from?: string
+  to?: string
 }
 
 const leadsRoute = createRoute({
@@ -188,6 +191,7 @@ const leadsRoute = createRoute({
   component: LeadsPage,
   validateSearch: (search: Record<string, unknown>): LeadsSearch => {
     const text = (v: unknown) => (typeof v === 'string' && v ? v : undefined)
+    const day = (v: unknown) => (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : undefined)
     const page = Math.floor(Number(search.page))
     return {
       page: page > 1 ? page : undefined,
@@ -197,6 +201,8 @@ const leadsRoute = createRoute({
       channel: text(search.channel),
       sheet: text(search.sheet),
       mine: search.mine === true || search.mine === 'true' ? true : undefined,
+      from: day(search.from),
+      to: day(search.to),
     }
   },
 })

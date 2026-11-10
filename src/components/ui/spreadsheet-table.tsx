@@ -9,6 +9,8 @@ export interface SheetColumn<T> {
   header: string
   /** Raw value used for sorting and CSV export. */
   accessor: (row: T) => string | number | null | undefined
+  /** What the CSV gets, when that should differ from the value sorted on. */
+  exportValue?: (row: T) => string | number | null | undefined
   /** Optional custom render; falls back to the accessor's value. */
   cell?: (row: T) => ReactNode
   align?: 'left' | 'right' | 'center'
@@ -19,12 +21,36 @@ export interface SheetColumn<T> {
   minWidth?: string
 }
 
+/** The column the table is sorted on; null leaves the rows in the order given. */
+export type SheetSort = { id: string; dir: 'asc' | 'desc' } | null
+
+/** `data` in the order the table shows it for this sort. */
+export function sortRows<T>(columns: SheetColumn<T>[], data: T[], sort: SheetSort): T[] {
+  const col = sort && columns.find((c) => c.id === sort.id)
+  if (!col) return data
+
+  const copy = [...data]
+  copy.sort((a, b) => {
+    const av = col.accessor(a)
+    const bv = col.accessor(b)
+    if (av == null && bv == null) return 0
+    if (av == null) return 1
+    if (bv == null) return -1
+    if (typeof av === 'number' && typeof bv === 'number') return av - bv
+    return String(av).localeCompare(String(bv))
+  })
+  if (sort.dir === 'desc') copy.reverse()
+  return copy
+}
+
 /**
  * A dense, Excel-like table: sortable columns, a sticky header, an optional
  * frozen leading column, and zebra striping. Shared by the Lead Sheet,
  * Employee Report, and Team Performance views — pass the same `columns` to
  * `rowsForExport` (see lib/export-csv) to keep the on-screen and exported
- * columns in sync.
+ * columns in sync. The table keeps its own sort unless `sort` and
+ * `onSortChange` are passed — do that to export rows in the order shown
+ * (see `sortRows`).
  */
 export function SpreadsheetTable<T>({
   columns,
@@ -36,6 +62,8 @@ export function SpreadsheetTable<T>({
   emptyTitle,
   emptyDescription,
   maxHeight = '70vh',
+  sort: sortProp,
+  onSortChange,
 }: {
   columns: SheetColumn<T>[]
   data: T[]
@@ -46,38 +74,23 @@ export function SpreadsheetTable<T>({
   emptyTitle: string
   emptyDescription?: string
   maxHeight?: string
+  /** The sort, when the parent holds it; pass `onSortChange` with it. */
+  sort?: SheetSort
+  onSortChange?: (sort: SheetSort) => void
 }) {
-  const [sortId, setSortId] = useState<string | null>(null)
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
+  const [ownSort, setOwnSort] = useState<SheetSort>(null)
+  const sort = sortProp !== undefined ? sortProp : ownSort
+  const setSort = onSortChange ?? setOwnSort
+  const sortId = sort?.id ?? null
+  const sortDir = sort?.dir ?? 'asc'
 
-  const sorted = useMemo(() => {
-    if (!sortId) return data
-    const col = columns.find((c) => c.id === sortId)
-    if (!col) return data
+  const sorted = useMemo(() => sortRows(columns, data, sort), [columns, data, sort])
 
-    const copy = [...data]
-    copy.sort((a, b) => {
-      const av = col.accessor(a)
-      const bv = col.accessor(b)
-      if (av == null && bv == null) return 0
-      if (av == null) return 1
-      if (bv == null) return -1
-      if (typeof av === 'number' && typeof bv === 'number') return av - bv
-      return String(av).localeCompare(String(bv))
-    })
-    if (sortDir === 'desc') copy.reverse()
-    return copy
-  }, [data, sortId, sortDir, columns])
-
+  // A header click cycles: ascending, descending, back to unsorted.
   const toggleSort = (id: string) => {
-    if (sortId !== id) {
-      setSortId(id)
-      setSortDir('asc')
-    } else if (sortDir === 'asc') {
-      setSortDir('desc')
-    } else {
-      setSortId(null)
-    }
+    if (sortId !== id) setSort({ id, dir: 'asc' })
+    else if (sortDir === 'asc') setSort({ id, dir: 'desc' })
+    else setSort(null)
   }
 
   if (isLoading) {
@@ -163,5 +176,5 @@ export function SpreadsheetTable<T>({
 
 /** Maps rows through the same column defs used on-screen, for CSV export. */
 export function rowsForExport<T>(columns: SheetColumn<T>[], data: T[]): (string | number | null | undefined)[][] {
-  return data.map((row) => columns.map((col) => col.accessor(row)))
+  return data.map((row) => columns.map((col) => (col.exportValue ?? col.accessor)(row)))
 }

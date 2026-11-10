@@ -17,6 +17,7 @@ import { LeadEditModal } from '@/components/leads/lead-edit-modal'
 import { ImportLeadsModal } from '@/components/leads/import-leads-modal'
 import { LeadChannelBadge } from '@/components/leads/lead-channel-badge'
 import { LeadStatusFilter } from '@/components/leads/lead-status-filter'
+import { LeadDateRangeFilter } from '@/components/leads/lead-date-range-filter'
 import { useLeads, useMarkLeadsSeenWhileOpen } from '@/hooks/queries/use-leads'
 import { useAuthStore } from '@/store/auth-store'
 import { ASSIGNER_ROLES } from '@/lib/constants'
@@ -25,6 +26,7 @@ import {
   canManageLeadRecord,
   LEAD_CHANNEL_LABELS,
   lostLeadsLast,
+  matchesLeadDateRange,
   matchesLeadStatusFilter,
   parseLeadStatusFilter,
 } from '@/lib/lead-channel'
@@ -39,7 +41,7 @@ export function LeadsPage() {
   const currentUser = useAuthStore((s) => s.user)
   // Page and filters are kept in the URL, so "back" from a lead returns to the same page.
   const search = useSearch({ from: '/_app/leads' })
-  const { q = '', status = '', source = '', channel = '', sheet = '', mine: onlyMine = false } = search
+  const { q = '', status = '', source = '', channel = '', sheet = '', mine: onlyMine = false, from = '', to = '' } = search
   const setSearch = (changes: LeadsSearch) =>
     navigate({ to: '/leads', search: (prev) => ({ ...prev, ...changes }), replace: true })
   // Bulk selection: the checkboxes only show once "Select" is pressed.
@@ -84,13 +86,14 @@ export function LeadsPage() {
         (!channel || l.intakeChannel === channel) &&
         (!sheet || l.importBatchId === sheet) &&
         (!onlyMine || l.assignedToId === currentUser?.id) &&
+        matchesLeadDateRange(l, from, to) &&
         (!query ||
           `${l.fullName} ${formatLeadPhones(l)} ${l.project?.name ?? ''} ${formatLeadNumber(l.leadNumber)}`
             .toLowerCase()
             .includes(query)),
     )
     return status ? matching : lostLeadsLast(matching)
-  }, [allLeads, q, status, source, channel, sheet, onlyMine, currentUser?.id])
+  }, [allLeads, q, status, source, channel, sheet, onlyMine, from, to, currentUser?.id])
   // Clamped, in case the list got shorter since the URL was written.
   const page = Math.min(search.page ?? 1, Math.max(1, Math.ceil(filtered.length / pageSize)))
   const paged = filtered.slice((page - 1) * pageSize, page * pageSize)
@@ -283,7 +286,7 @@ export function LeadsPage() {
       />
 
       <Card>
-        <div className="flex flex-col gap-3 border-b border-slate-100 p-4 sm:flex-row">
+        <div className="flex flex-col gap-3 border-b border-slate-100 p-4 sm:flex-row sm:flex-wrap">
           <Input
             value={q}
             onChange={(e) => changeFilter({ q: e.target.value || undefined })}
@@ -346,6 +349,11 @@ export function LeadsPage() {
               <option value="mine">Assigned to me</option>
             </Select>
           )}
+          <LeadDateRangeFilter
+            from={from}
+            to={to}
+            onChange={(range) => changeFilter({ from: range.from || undefined, to: range.to || undefined })}
+          />
         </div>
 
         {selectedSheet && canImport && sheetLeadCount > 0 && (

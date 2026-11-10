@@ -9,6 +9,7 @@ import {
   type Lead,
   type LeadImportBatch,
 } from '@/types'
+import { toLocalDateKey } from '@/lib/utils'
 
 /**
  * For "All statuses" lists: lost leads sink below everything still in play.
@@ -63,6 +64,23 @@ export function parseLeadStatusFilter(value: string): { status?: LeadStatus; sta
 export function matchesLeadStatusFilter(lead: Pick<Lead, 'status' | 'progressStage'>, value: string): boolean {
   const { status, stage } = parseLeadStatusFilter(value)
   return (!status || lead.status === status) && (!stage || lead.progressStage === stage)
+}
+
+/** A date range's two ends (YYYY-MM-DD, or '' for open-ended), earlier first even if they were entered the wrong way round. */
+export function orderedDateRange(from: string, to: string): [start: string, end: string] {
+  return from && to && from > to ? [to, from] : [from, to]
+}
+
+/**
+ * Whether the lead came in within a date range (see LeadDateRangeFilter). Each
+ * end is a YYYY-MM-DD day in the viewer's timezone, or '' for open-ended; both
+ * days are included.
+ */
+export function matchesLeadDateRange(lead: Pick<Lead, 'createdAt'>, from: string, to: string): boolean {
+  if (!from && !to) return true
+  const [start, end] = orderedDateRange(from, to)
+  const day = toLocalDateKey(lead.createdAt)
+  return (!start || day >= start) && (!end || day <= end)
 }
 
 export const LEAD_CHANNEL_LABELS: Record<LeadIntakeChannel, string> = {

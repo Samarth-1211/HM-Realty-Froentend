@@ -44,6 +44,27 @@ export function formatDateTime(value: string | null | undefined) {
   }).format(date)
 }
 
+/**
+ * "2026-10-10" in the viewer's own timezone ('' if empty or invalid) — the
+ * value a date input holds, and a form Excel reads as a real date.
+ */
+export function toLocalDateKey(value: string | null | undefined) {
+  if (!value) return ''
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return ''
+  const two = (n: number) => String(n).padStart(2, '0')
+  return `${date.getFullYear()}-${two(date.getMonth() + 1)}-${two(date.getDate())}`
+}
+
+/** "2026-10-10 14:30" in the viewer's own timezone ('' if empty or invalid), for spreadsheet export. */
+export function toLocalDateTimeKey(value: string | null | undefined) {
+  const day = toLocalDateKey(value)
+  if (!day || !value) return ''
+  const date = new Date(value)
+  const two = (n: number) => String(n).padStart(2, '0')
+  return `${day} ${two(date.getHours())}:${two(date.getMinutes())}`
+}
+
 export function formatTime(value: string | null | undefined) {
   if (!value) return '—'
   const date = new Date(value)

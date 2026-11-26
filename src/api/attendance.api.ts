@@ -1,5 +1,6 @@
 import { apiClient } from '@/lib/api-client'
 import type { Attendance, AttendanceStatus, TeamAttendanceItem } from '@/types'
+import type { WorkReportCounts } from '@/lib/work-report'
 
 export interface CheckInPayload {
   dayType: Extract<AttendanceStatus, 'PRESENT' | 'HALF_DAY' | 'ON_SITE_VISIT'>
@@ -7,8 +8,10 @@ export interface CheckInPayload {
 }
 
 export interface CheckOutPayload {
-  /** Mandatory end-of-day summary of the work done. */
-  summary: string
+  /** How many of each thing was done today (calls, site visits, meetings...). */
+  counts?: WorkReportCounts
+  /** Optional note. A check-out needs this and/or at least one count above 0. */
+  summary?: string
   /** Leads the day's work was done on. */
   leadIds?: string[]
 }

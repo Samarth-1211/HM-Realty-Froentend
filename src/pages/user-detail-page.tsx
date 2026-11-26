@@ -28,6 +28,7 @@ import { StatusDonut } from '@/components/dashboard/status-donut'
 import { EmployeeActivityReport } from '@/components/reports/employee-activity-report'
 import { UserAttendanceTab } from '@/components/users/user-attendance-tab'
 import { UserLeadsTab } from '@/components/users/user-leads-tab'
+import { TargetRow } from '@/components/targets/target-row'
 import { useEmployeeOverview } from '@/hooks/queries/use-employees'
 import {
   LEAVE_STATUS_COLORS,
@@ -124,7 +125,7 @@ export function UserDetailPage() {
 
 function OverviewTab({ data }: { data: EmployeeOverview }) {
   const navigate = useNavigate()
-  const { profile, leadSummary, target, projects, directReports } = data
+  const { profile, leadSummary, targets, projects, directReports } = data
 
   return (
     <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
@@ -158,22 +159,15 @@ function OverviewTab({ data }: { data: EmployeeOverview }) {
       </Card>
 
       <Card>
-        <CardHeader title="This month's target" />
+        <CardHeader title="This month's targets" />
         <CardBody>
-          {target.metric === null ? (
+          {targets.length === 0 ? (
             <p className="text-sm text-slate-400">No target set for this month.</p>
           ) : (
-            <div className="text-sm text-slate-600">
-              <p>
-                {formatEnumLabel(target.metric)} target:{' '}
-                <span className="font-semibold text-slate-800">{target.targetValue}</span>
-              </p>
-              <p className="mt-1">
-                Achieved:{' '}
-                <span className="font-semibold text-slate-800">
-                  {target.actualValue ?? 'Not tracked yet'}
-                </span>
-              </p>
+            <div className="flex flex-col divide-y divide-slate-100">
+              {targets.map((t) => (
+                <TargetRow key={t.id} target={t} />
+              ))}
             </div>
           )}
         </CardBody>

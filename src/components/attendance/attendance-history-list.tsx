@@ -51,7 +51,7 @@ export function AttendanceHistoryList() {
                     </Badge>
                   </div>
                 </div>
-                <WorkReport summary={r.checkOutSummary} workedLeads={r.workedLeads} className="mt-1.5" />
+                <WorkReport summary={r.checkOutSummary} counts={r.checkOutCounts} workedLeads={r.workedLeads} className="mt-1.5" />
               </div>
             ))}
           </div>

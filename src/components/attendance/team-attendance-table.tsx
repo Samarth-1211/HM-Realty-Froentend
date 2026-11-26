@@ -76,7 +76,7 @@ export function TeamAttendanceTable({ scope = 'team' }: { scope?: 'team' | 'org'
                     <Badge variant="neutral">{isToday ? 'Not checked in yet' : 'No record'}</Badge>
                   )}
                 </div>
-                <WorkReport summary={r.checkOutSummary} workedLeads={r.workedLeads} className="mt-1.5 pl-10" />
+                <WorkReport summary={r.checkOutSummary} counts={r.checkOutCounts} workedLeads={r.workedLeads} className="mt-1.5 pl-10" />
               </div>
             ))}
           </div>

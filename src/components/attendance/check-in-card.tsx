@@ -68,7 +68,7 @@ export function CheckInCard({ showAttendanceLink = false }: { showAttendanceLink
                       new Date(today.checkOutAt),
                     )}
                   </p>
-                  <WorkReport summary={today.checkOutSummary} workedLeads={today.workedLeads} className="mt-2" />
+                  <WorkReport summary={today.checkOutSummary} counts={today.checkOutCounts} workedLeads={today.workedLeads} className="mt-2" />
                 </>
               ) : (
                 today.markedBy === 'EMPLOYEE' && (

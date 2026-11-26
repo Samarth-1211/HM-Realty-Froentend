@@ -5,6 +5,7 @@ import type {
   BulkDeleteLeadsResult,
   DeleteImportLeadsResult,
   CreateLeadManualResult,
+  HandedOverLead,
   Lead,
   LeadImportAllocationMode,
   LeadImportBatch,
@@ -25,6 +26,9 @@ export interface CreateLeadManualPayload {
   phone: string
   alternatePhones?: string[]
   email?: string
+  projectId?: string
+  /** Projects the lead is also interested in, beside `projectId`. */
+  otherProjectIds?: string[]
   propertyInterest?: string
   assignedToId?: string
   referredByName?: string
@@ -50,6 +54,8 @@ export interface UpdateLeadDetailsPayload {
   alternatePhones?: string[]
   email?: string | null
   projectId?: string | null
+  /** Replaces the lead's extra projects; [] clears them. */
+  otherProjectIds?: string[]
   propertyInterest?: string | null
   unitType?: string | null
   city?: string | null
@@ -67,6 +73,8 @@ export interface UpdateLeadStatusPayload {
   progressStageNote?: string
   /** With stage SITE_VISIT_SCHEDULED: when the visit is booked for (ISO). */
   siteVisitAt?: string
+  /** Minutes before the visit to remind, on the To-Do task the visit creates. */
+  reminderOffsetsMinutes?: number[]
 }
 
 /** The "Site visit done" form; the photo goes alongside as the file. */
@@ -82,6 +90,8 @@ export interface CreateSiteVisitPayload {
 export interface LeadQuery {
   /** The only server-side filter `GET /leads` currently supports. */
   status?: LeadStatus
+  /** 'shared': also the leads interested in a project the caller is on the team of (view-only). */
+  include?: 'shared'
 }
 
 /** Only the fields that changed are sent; `null` clears a field. */
@@ -107,6 +117,10 @@ export interface UpdateLeadFollowUpPayload {
   bookingValue?: number | null
   lostNurtureReason?: string | null
   remarks?: string | null
+  /** Reminders on the To-Do task for the next follow-up (minutes before). */
+  followUpReminderOffsetsMinutes?: number[]
+  /** Reminders on the To-Do task for the site visit (minutes before). */
+  siteVisitReminderOffsetsMinutes?: number[]
 }
 
 export const leadsApi = {
@@ -118,6 +132,9 @@ export const leadsApi = {
     apiClient.get<Lead[]>('/leads', { params: query }).then((r) => r.data),
 
   get: (id: string) => apiClient.get<LeadWithActivity>(`/leads/${id}`).then((r) => r.data),
+
+  /** "Assigned by me": leads the caller handed to someone else, newest handover first. */
+  handedOver: () => apiClient.get<HandedOverLead[]>('/leads/handed-over').then((r) => r.data),
 
   createManual: (payload: CreateLeadManualPayload) =>
     apiClient.post<CreateLeadManualResult>('/leads/manual', payload).then((r) => r.data),
@@ -133,10 +150,8 @@ export const leadsApi = {
   bulkAssign: (leadIds: string[], assignedToId: string) =>
     apiClient.post<BulkAssignLeadsResult>('/leads/bulk-assign', { leadIds, assignedToId }).then((r) => r.data),
 
-  updateStatus: ({ id, status, progressStage, progressStageNote, siteVisitAt }: UpdateLeadStatusPayload) =>
-    apiClient
-      .patch<Lead>(`/leads/${id}/status`, { status, progressStage, progressStageNote, siteVisitAt })
-      .then((r) => r.data),
+  updateStatus: ({ id, ...body }: UpdateLeadStatusPayload) =>
+    apiClient.patch<Lead>(`/leads/${id}/status`, body).then((r) => r.data),
 
   /** Records a visit with its photo; moves the lead to In Progress → Site visit done. */
   createSiteVisit: (id: string, photo: File, payload: CreateSiteVisitPayload, onProgress?: (percent: number) => void) =>

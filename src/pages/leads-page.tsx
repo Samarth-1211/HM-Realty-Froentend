@@ -8,7 +8,15 @@ import { Select } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Pagination } from '@/components/ui/pagination'
-import { LeadStatusBadge } from '@/components/leads/lead-status-badge'
+import { Tabs } from '@/components/ui/tabs'
+import { LeadNextStep, LeadProjectsCell, LeadStageBadge, ViewOnlyTag } from '@/components/leads/lead-cells'
+import {
+  LeadCountsBar,
+  LocationFilterSelect,
+  ProjectFilterSelect,
+  useLeadProjectLocationCounts,
+} from '@/components/leads/lead-project-location-filter'
+import { HandedOverLeadsTable } from '@/components/leads/handed-over-leads-table'
 import { LeadFormModal } from '@/components/leads/lead-form-modal'
 import { AssignLeadModal } from '@/components/leads/assign-lead-modal'
 import { DeleteLeadDialog } from '@/components/leads/delete-lead-dialog'
@@ -18,7 +26,8 @@ import { ImportLeadsModal } from '@/components/leads/import-leads-modal'
 import { LeadChannelBadge } from '@/components/leads/lead-channel-badge'
 import { LeadStatusFilter } from '@/components/leads/lead-status-filter'
 import { LeadDateRangeFilter } from '@/components/leads/lead-date-range-filter'
-import { useLeads, useMarkLeadsSeenWhileOpen } from '@/hooks/queries/use-leads'
+import { useHandedOverLeads, useLeads, useMarkLeadsSeenWhileOpen } from '@/hooks/queries/use-leads'
+import { leadProjects, matchesLeadLocation, matchesLeadProject } from '@/lib/lead-view'
 import { useAuthStore } from '@/store/auth-store'
 import { ASSIGNER_ROLES } from '@/lib/constants'
 import {
@@ -41,7 +50,18 @@ export function LeadsPage() {
   const currentUser = useAuthStore((s) => s.user)
   // Page and filters are kept in the URL, so "back" from a lead returns to the same page.
   const search = useSearch({ from: '/_app/leads' })
-  const { q = '', status = '', source = '', channel = '', sheet = '', mine: onlyMine = false, from = '', to = '' } = search
+  const {
+    q = '',
+    status = '',
+    source = '',
+    channel = '',
+    sheet = '',
+    mine: onlyMine = false,
+    from = '',
+    to = '',
+    project = '',
+    location = '',
+  } = search
   const setSearch = (changes: LeadsSearch) =>
     navigate({ to: '/leads', search: (prev) => ({ ...prev, ...changes }), replace: true })
   // Bulk selection: the checkboxes only show once "Select" is pressed.
@@ -66,9 +86,14 @@ export function LeadsPage() {
   // Managers see their own and their team's leads; hot leads are assigned to them personally.
   const isManager = currentUser?.role === UserRole.MANAGER
 
+  // "Assigned by me" — leads the user handed to someone else — is for those who assign leads.
+  const showHanded = !!canAssign && search.view === 'handed'
+  const { data: handedLeads = [], isLoading: handedLoading } = useHandedOverLeads(!!canAssign)
+
   // The backend only filters by status server-side; the other filters and
   // pagination happen client-side since GET /leads returns a plain array.
-  const { data: allLeads = [], isLoading } = useLeads({ status: parseLeadStatusFilter(status).status })
+  // 'shared' adds, view-only, leads interested in a project the user is on the team of.
+  const { data: allLeads = [], isLoading } = useLeads({ status: parseLeadStatusFilter(status).status, include: 'shared' })
 
   // Every uploaded Excel sheet the visible leads came from, newest first.
   const sheets = useMemo(() => {
@@ -77,9 +102,10 @@ export function LeadsPage() {
     return [...byId.values()].sort((a, b) => b.createdAt.localeCompare(a.createdAt))
   }, [allLeads])
 
-  const filtered = useMemo(() => {
+  // Every filter but project and location — the counts per project and per location start from these.
+  const beforeProjectFilters = useMemo(() => {
     const query = q.trim().toLowerCase()
-    const matching = allLeads.filter(
+    return allLeads.filter(
       (l) =>
         matchesLeadStatusFilter(l, status) &&
         (!source || l.source === source) &&
@@ -88,12 +114,19 @@ export function LeadsPage() {
         (!onlyMine || l.assignedToId === currentUser?.id) &&
         matchesLeadDateRange(l, from, to) &&
         (!query ||
-          `${l.fullName} ${formatLeadPhones(l)} ${l.project?.name ?? ''} ${formatLeadNumber(l.leadNumber)}`
+          `${l.fullName} ${formatLeadPhones(l)} ${leadProjects(l)
+            .map((p) => p.name)
+            .join(' ')} ${formatLeadNumber(l.leadNumber)}`
             .toLowerCase()
             .includes(query)),
     )
-    return status ? matching : lostLeadsLast(matching)
   }, [allLeads, q, status, source, channel, sheet, onlyMine, from, to, currentUser?.id])
+  const counts = useLeadProjectLocationCounts(beforeProjectFilters, project, location)
+
+  const filtered = useMemo(() => {
+    const matching = beforeProjectFilters.filter((l) => matchesLeadProject(l, project) && matchesLeadLocation(l, location))
+    return status ? matching : lostLeadsLast(matching)
+  }, [beforeProjectFilters, project, location, status])
   // Clamped, in case the list got shorter since the URL was written.
   const page = Math.min(search.page ?? 1, Math.max(1, Math.ceil(filtered.length / pageSize)))
   const paged = filtered.slice((page - 1) * pageSize, page * pageSize)
@@ -105,8 +138,11 @@ export function LeadsPage() {
   }
 
   const selectedLeads = useMemo(() => allLeads.filter((l) => selectedIds.has(l.id)), [allLeads, selectedIds])
-  const pageAllSelected = paged.length > 0 && paged.every((l) => selectedIds.has(l.id))
-  const allFilteredSelected = filtered.length > 0 && filtered.every((l) => selectedIds.has(l.id))
+  // View-only leads (another team's, shown for a project you're on) can't be assigned or deleted.
+  const selectablePaged = paged.filter((l) => !l.viewOnly)
+  const selectableFiltered = filtered.filter((l) => !l.viewOnly)
+  const pageAllSelected = selectablePaged.length > 0 && selectablePaged.every((l) => selectedIds.has(l.id))
+  const allFilteredSelected = selectableFiltered.length > 0 && selectableFiltered.every((l) => selectedIds.has(l.id))
   const toggle = (ids: string[], on: boolean) =>
     setSelectedIds((prev) => {
       const next = new Set(prev)
@@ -125,17 +161,24 @@ export function LeadsPage() {
   const selectedSheet = sheets.find((b) => b.id === sheet)
   const sheetLeadCount = sheet ? allLeads.filter((l) => l.importBatchId === sheet).length : 0
 
+  // What's needed first — who, where they stand, what's next — then the rest.
   const columns: Column<Lead>[] = [
     {
       key: 'lead',
       header: 'Lead',
       render: (l) => (
-        <div>
+        <div className="whitespace-nowrap">
           <p className="font-medium text-slate-800">{l.fullName}</p>
-          <p className="text-xs text-slate-400">{l.phone}</p>
+          <p className="text-xs text-slate-400">
+            {formatLeadNumber(l.leadNumber)} · {l.phone}
+          </p>
+          {l.viewOnly && <ViewOnlyTag className="mt-1" />}
         </div>
       ),
     },
+    { key: 'status', header: 'Stage', render: (l) => <LeadStageBadge lead={l} /> },
+    { key: 'next', header: 'Next follow-up', render: (l) => <LeadNextStep lead={l} /> },
+    { key: 'project', header: 'Project', render: (l) => <LeadProjectsCell lead={l} /> },
     {
       key: 'interest',
       header: 'Interest',
@@ -151,7 +194,6 @@ export function LeadsPage() {
         </div>
       ),
     },
-    { key: 'status', header: 'Status', render: (l) => <LeadStatusBadge status={l.status} /> },
     {
       key: 'assignedTo',
       header: 'Assigned To',
@@ -174,6 +216,7 @@ export function LeadsPage() {
             headerClassName: canAssign ? 'w-28' : 'w-12',
             className: canAssign ? 'w-28' : 'w-12',
             render: (l: Lead) => {
+              if (l.viewOnly) return null
               const canManage = canManageLeadRecord(currentUser, l)
               return (
                 <div className="flex items-center gap-1">
@@ -232,7 +275,7 @@ export function LeadsPage() {
                 type="checkbox"
                 className={checkboxClass}
                 checked={pageAllSelected}
-                onChange={(e) => toggle(paged.map((l) => l.id), e.target.checked)}
+                onChange={(e) => toggle(selectablePaged.map((l) => l.id), e.target.checked)}
                 aria-label="Select every lead on this page"
                 title="Select every lead on this page"
               />
@@ -243,6 +286,7 @@ export function LeadsPage() {
               <input
                 type="checkbox"
                 className={checkboxClass}
+                disabled={l.viewOnly}
                 checked={selectedIds.has(l.id)}
                 onClick={(e) => e.stopPropagation()}
                 onChange={(e) => toggle([l.id], e.target.checked)}
@@ -261,7 +305,7 @@ export function LeadsPage() {
         description="Every inbound lead, from portals, ads and walk-ins. Hot leads from platforms go straight to a manager."
         actions={
           <div className="flex flex-wrap gap-2">
-            {canAssign && (
+            {canAssign && !showHanded && (
               <Button
                 variant={selecting ? 'ghost' : 'secondary'}
                 onClick={() => (selecting ? stopSelecting() : setSelecting(true))}
@@ -285,6 +329,25 @@ export function LeadsPage() {
         }
       />
 
+      {canAssign && (
+        <div className="mb-4 max-w-md">
+          <Tabs
+            tabs={[
+              { value: 'leads', label: 'Leads' },
+              { value: 'handed', label: 'Assigned by me', count: handedLeads.length },
+            ]}
+            active={showHanded ? 'handed' : 'leads'}
+            onChange={(v) => {
+              stopSelecting()
+              setSearch({ view: v === 'handed' ? 'handed' : undefined, page: undefined })
+            }}
+          />
+        </div>
+      )}
+
+      {showHanded ? (
+        <HandedOverLeadsTable leads={handedLeads} isLoading={handedLoading} />
+      ) : (
       <Card>
         <div className="flex flex-col gap-3 border-b border-slate-100 p-4 sm:flex-row sm:flex-wrap">
           <Input
@@ -292,6 +355,19 @@ export function LeadsPage() {
             onChange={(e) => changeFilter({ q: e.target.value || undefined })}
             placeholder="Search name, phone, project, lead ID…"
             className="sm:max-w-[240px]"
+          />
+          <LocationFilterSelect
+            counts={counts.locations}
+            value={location}
+            onChange={(v) => changeFilter({ location: v || undefined })}
+            className="sm:max-w-[200px]"
+          />
+          <ProjectFilterSelect
+            counts={counts.projects}
+            value={project}
+            selectedLabel={allLeads.flatMap(leadProjects).find((p) => p.id === project)?.name}
+            onChange={(v) => changeFilter({ project: v || undefined })}
+            className="sm:max-w-[220px]"
           />
           <LeadStatusFilter
             allLabel="All statuses"
@@ -356,6 +432,15 @@ export function LeadsPage() {
           />
         </div>
 
+        <LeadCountsBar
+          projects={counts.projects}
+          locations={counts.locations}
+          project={project}
+          location={location}
+          onProjectChange={(v) => changeFilter({ project: v || undefined })}
+          onLocationChange={(v) => changeFilter({ location: v || undefined })}
+        />
+
         {selectedSheet && canImport && sheetLeadCount > 0 && (
           <div className="flex flex-col gap-2 border-b border-slate-100 bg-violet-50/60 px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between">
             <p className="text-violet-900">
@@ -383,13 +468,13 @@ export function LeadsPage() {
                   ? `${selectedIds.size.toLocaleString('en-IN')} selected`
                   : 'Tick the leads you want, using the boxes on the right'}
               </span>
-              {filtered.length > 0 && !allFilteredSelected && (
+              {selectableFiltered.length > 0 && !allFilteredSelected && (
                 <button
                   type="button"
                   className="text-brand-700 underline-offset-2 hover:underline"
-                  onClick={() => toggle(filtered.map((l) => l.id), true)}
+                  onClick={() => toggle(selectableFiltered.map((l) => l.id), true)}
                 >
-                  Select all {filtered.length.toLocaleString('en-IN')} matching leads
+                  Select all {selectableFiltered.length.toLocaleString('en-IN')} matching leads
                 </button>
               )}
             </div>
@@ -419,7 +504,9 @@ export function LeadsPage() {
           rowClassName={(l) => selecting && selectedIds.has(l.id) && 'bg-brand-50/50'}
           // While selecting, clicking a row ticks it instead of opening the lead.
           onRowClick={(l) =>
-            selecting ? toggle([l.id], !selectedIds.has(l.id)) : navigate({ to: '/leads/$leadId', params: { leadId: l.id } })
+            selecting
+              ? !l.viewOnly && toggle([l.id], !selectedIds.has(l.id))
+              : navigate({ to: '/leads/$leadId', params: { leadId: l.id } })
           }
           emptyIcon={Contact}
           emptyTitle="No leads found"
@@ -429,6 +516,7 @@ export function LeadsPage() {
           <Pagination page={page} pageSize={pageSize} total={filtered.length} onPageChange={(next) => setSearch({ page: next })} />
         )}
       </Card>
+      )}
 
       <LeadFormModal open={createOpen} onClose={() => setCreateOpen(false)} />
       {canImport && <ImportLeadsModal open={importOpen} onClose={() => setImportOpen(false)} />}

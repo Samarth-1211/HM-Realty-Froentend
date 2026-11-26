@@ -28,6 +28,16 @@ export function useLeads(query: LeadQuery = {}, enabled = true) {
   })
 }
 
+/** "Assigned by me": leads the caller handed to someone else. */
+export function useHandedOverLeads(enabled = true) {
+  return useQuery({
+    queryKey: queryKeys.leads.handedOver,
+    queryFn: () => leadsApi.handedOver(),
+    refetchInterval: REFRESH_INTERVAL_MS,
+    enabled,
+  })
+}
+
 export function useLead(id: string | undefined) {
   return useQuery({
     queryKey: queryKeys.leads.detail(id ?? ''),
@@ -119,6 +129,8 @@ export function useAssignLead() {
         qc.invalidateQueries({ queryKey: queryKeys.leads.detail(vars.id) })
       }
       qc.invalidateQueries({ queryKey: ['leads'] })
+      // Follow-up dates and site visits keep the lead's To-Do tasks in step.
+      qc.invalidateQueries({ queryKey: ['tasks'] })
     },
     onError: (error) => toast.error('Could not assign lead', { description: extractErrorMessage(error) }),
   })
@@ -138,6 +150,8 @@ export function useBulkAssignLeads() {
         })
       }
       qc.invalidateQueries({ queryKey: ['leads'] })
+      // Follow-up dates and site visits keep the lead's To-Do tasks in step.
+      qc.invalidateQueries({ queryKey: ['tasks'] })
     },
     onError: (error) => toast.error('Could not assign the leads', { description: extractErrorMessage(error) }),
   })
@@ -150,6 +164,8 @@ export function useUpdateLeadStatus() {
     onSuccess: (_d, vars) => {
       toast.success('Lead status updated')
       qc.invalidateQueries({ queryKey: ['leads'] })
+      // Follow-up dates and site visits keep the lead's To-Do tasks in step.
+      qc.invalidateQueries({ queryKey: ['tasks'] })
       qc.invalidateQueries({ queryKey: queryKeys.leads.detail(vars.id) })
     },
     onError: (error) => toast.error('Could not update lead status', { description: extractErrorMessage(error) }),
@@ -194,6 +210,8 @@ export function useCreateSiteVisit() {
       toast.success('Site visit recorded')
       // Under the 'leads' prefix: refreshes the lead, its visits and every list.
       qc.invalidateQueries({ queryKey: ['leads'] })
+      // Follow-up dates and site visits keep the lead's To-Do tasks in step.
+      qc.invalidateQueries({ queryKey: ['tasks'] })
     },
     onError: (error) => toast.error('Could not record the site visit', { description: extractErrorMessage(error) }),
   })
@@ -333,6 +351,8 @@ export function useUpdateLeadFollowUp() {
     onSuccess: (_d, vars) => {
       toast.success('Follow-up details saved')
       qc.invalidateQueries({ queryKey: ['leads'] })
+      // Follow-up dates and site visits keep the lead's To-Do tasks in step.
+      qc.invalidateQueries({ queryKey: ['tasks'] })
       qc.invalidateQueries({ queryKey: queryKeys.leads.detail(vars.id) })
     },
     onError: (error) => toast.error('Could not save follow-up details', { description: extractErrorMessage(error) }),

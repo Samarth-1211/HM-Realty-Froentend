@@ -538,7 +538,14 @@ export interface Lead {
   alternatePhones: string[]
   email: string | null
   projectId: string | null
-  project: { id: string; name: string } | null
+  project: LeadProjectRef | null
+  /** Projects the lead is also interested in, beside its main `project`. */
+  interestedProjects?: LeadProjectRef[]
+  /**
+   * The caller may open this lead but not work on it: they handed it to
+   * someone else, or it lists a project they're on the team of as an extra one.
+   */
+  viewOnly?: boolean
   propertyInterest: string | null
   budgetMin: string | null
   budgetMax: string | null
@@ -587,6 +594,21 @@ export interface Lead {
   remarks: string | null
   createdAt: string
   updatedAt: string
+}
+
+/** A project as shown with a lead — its location drives the location filter. */
+export interface LeadProjectRef {
+  id: string
+  name: string
+  location?: string | null
+}
+
+/** GET /leads/handed-over — a lead the caller handed to someone else ("Assigned by me"). */
+export interface HandedOverLead extends Lead {
+  /** When the caller last handed it over. */
+  handedOverAt: string | null
+  /** The latest entry on the lead's timeline. */
+  lastActivity: { type: string; description: string; createdAt: string } | null
 }
 
 export interface LeadImportBatchSummary {

@@ -5,7 +5,8 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { StatusPill } from '@/components/ui/badge'
 import { SpreadsheetTable, rowsForExport, type SheetColumn } from '@/components/ui/spreadsheet-table'
-import { WorkedLeadChips } from '@/components/attendance/work-report'
+import { WorkCountChips, WorkedLeadChips } from '@/components/attendance/work-report'
+import { totalWorkReportCount, workReportText } from '@/lib/work-report'
 import { useEmployeeAttendance } from '@/hooks/queries/use-attendance'
 import { exportToCsv } from '@/lib/export-csv'
 import { ATTENDANCE_STATUS_COLORS, ATTENDANCE_STATUS_LABELS } from '@/lib/constants'
@@ -41,7 +42,7 @@ export function UserAttendanceTab({ userId, fullName }: { userId: string; fullNa
       onLeave: count(AttendanceStatus.ON_LEAVE),
       absent: count(AttendanceStatus.ABSENT),
       avgMinutes: worked.length > 0 ? Math.round(worked.reduce((a, b) => a + b, 0) / worked.length) : null,
-      reportsSubmitted: records.filter((r) => r.checkOutSummary).length,
+      reportsSubmitted: records.filter((r) => r.checkOutSummary || totalWorkReportCount(r.checkOutCounts) > 0).length,
     }
   }, [records])
 
@@ -60,10 +61,13 @@ export function UserAttendanceTab({ userId, fullName }: { userId: string; fullNa
     {
       id: 'summary',
       header: 'Day summary',
-      accessor: (r) => r.checkOutSummary ?? '',
+      accessor: (r) => [workReportText(r.checkOutCounts), r.checkOutSummary].filter(Boolean).join(' — '),
       cell: (r) =>
-        r.checkOutSummary ? (
-          <p className="max-w-md whitespace-pre-line text-slate-700">{r.checkOutSummary}</p>
+        r.checkOutSummary || totalWorkReportCount(r.checkOutCounts) > 0 ? (
+          <div className="flex max-w-md flex-col gap-1">
+            <WorkCountChips counts={r.checkOutCounts} />
+            {r.checkOutSummary && <p className="whitespace-pre-line text-slate-700">{r.checkOutSummary}</p>}
+          </div>
         ) : (
           <span className="text-slate-300">{r.checkInAt && !r.checkOutAt ? 'Not checked out' : '—'}</span>
         ),

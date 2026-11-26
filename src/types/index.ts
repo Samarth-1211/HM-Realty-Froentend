@@ -2,6 +2,8 @@
 // Enums (mirrors prisma/schema.prisma — see project_info__1.md §4)
 // ---------------------------------------------------------------------------
 
+import type { WorkReportCounts } from '@/lib/work-report'
+
 export const UserRole = {
   SUPER_ADMIN: 'SUPER_ADMIN',
   ADMIN: 'ADMIN',
@@ -133,6 +135,12 @@ export const NotificationType = {
   LEAD_UPDATED: 'LEAD_UPDATED',
   /** A lead was deleted — sent to the Admins (and its assignee) with what was removed. */
   LEAD_DELETED: 'LEAD_DELETED',
+  /** Half of a target's period has gone with less than half done. */
+  TARGET_BEHIND: 'TARGET_BEHIND',
+  /** A target's period ended without it being reached. */
+  TARGET_MISSED: 'TARGET_MISSED',
+  /** An Admin or Manager sent a warning about a target. */
+  TARGET_WARNING: 'TARGET_WARNING',
 } as const
 export type NotificationType = (typeof NotificationType)[keyof typeof NotificationType]
 
@@ -293,9 +301,24 @@ export type LeaveStatus = (typeof LeaveStatus)[keyof typeof LeaveStatus]
 
 export const TargetMetric = {
   CALLS: 'CALLS',
+  SITE_VISITS: 'SITE_VISITS',
+  MEETINGS: 'MEETINGS',
+  NEW_LEADS: 'NEW_LEADS',
+  BOOKINGS: 'BOOKINGS',
   CONVERSIONS: 'CONVERSIONS',
+  /** Rupees, entered by the employee with "Add progress". */
+  SALES_AMOUNT: 'SALES_AMOUNT',
 } as const
 export type TargetMetric = (typeof TargetMetric)[keyof typeof TargetMetric]
+
+/** How long a target runs. WEEK is Monday to Sunday; CUSTOM is any from–to range. */
+export const TargetPeriodType = {
+  DAY: 'DAY',
+  WEEK: 'WEEK',
+  MONTH: 'MONTH',
+  CUSTOM: 'CUSTOM',
+} as const
+export type TargetPeriodType = (typeof TargetPeriodType)[keyof typeof TargetPeriodType]
 
 // ---------------------------------------------------------------------------
 // Core entities
@@ -814,8 +837,10 @@ export interface Attendance {
   checkOutAt: string | null
   leaveRequestId: string | null
   notes: string | null
-  /** End-of-day work summary, mandatory at check-out. */
+  /** End-of-day work note, optional at check-out. */
   checkOutSummary: string | null
+  /** End-of-day counters (calls, site visits...) filled in at check-out. */
+  checkOutCounts?: WorkReportCounts | null
   /** Absent on the check-in response; present on every attendance read. */
   workedLeads?: WorkedLead[]
   createdAt: string
@@ -832,6 +857,7 @@ export interface TeamAttendanceItem {
   checkOutAt: string | null
   notes: string | null
   checkOutSummary: string | null
+  checkOutCounts: WorkReportCounts | null
   workedLeads: WorkedLead[]
 }
 
@@ -851,29 +877,58 @@ export interface LeaveRequest {
   user?: { id: string; firstName: string; lastName: string; role: UserRole }
 }
 
-export interface Target {
-  id: string
-  organizationId: string
-  userId: string
-  periodYear: number
-  periodMonth: number
-  metric: TargetMetric
-  targetValue: number
-  setById: string
-  createdAt: string
-  updatedAt: string
-}
+/** UPCOMING: not started. COMPLETED: reached. NOT_COMPLETED: over, not reached. IN_PROGRESS: running. */
+export type TargetStatus = 'UPCOMING' | 'IN_PROGRESS' | 'COMPLETED' | 'NOT_COMPLETED'
 
 export interface TargetProgress {
+  id: string
   userId: string
   fullName: string
   role: UserRole
-  periodYear: number
-  periodMonth: number
-  metric: TargetMetric | null
-  targetValue: number | null
-  /** Calls logged as daily activities, or leads converted, that month. */
-  actualValue: number | null
+  metric: TargetMetric
+  periodType: TargetPeriodType
+  /** "2026-11-26" — first and last day, both included. */
+  startDate: string
+  endDate: string
+  /** "Thu, 26 Nov 2026" · "week of 23 Nov 2026" · "November 2026" */
+  periodLabel: string
+  targetValue: number
+  actualValue: number
+  percent: number
+  status: TargetStatus
+  /** Half the period has gone and less than half is done. */
+  behind: boolean
+  setBy: { id: string; fullName: string }
+  lastWarnedAt: string | null
+}
+
+export interface TargetLead {
+  id: string
+  fullName: string
+  leadNumber: number
+  status: LeadStatus
+}
+
+/** One day: the check-out report's number, what the CRM recorded / the employee added, and what counted (the higher). */
+export interface TargetDay {
+  date: string
+  fromReport: number
+  recorded: number
+  counted: number
+}
+
+export interface TargetDetail extends TargetProgress {
+  days: TargetDay[]
+  entries: { id: string; date: string; amount: number | null; note: string | null; createdAt: string; leads: TargetLead[] }[]
+  /** Leads picked at check-out on the days the target covers. */
+  reportLeads: { date: string; leads: TargetLead[] }[]
+}
+
+export interface TeamTargets {
+  from: string
+  to: string
+  members: { userId: string; fullName: string; role: UserRole }[]
+  targets: TargetProgress[]
 }
 
 export interface EmployeeProfile {
@@ -926,7 +981,8 @@ export interface EmployeeOverview {
     project: { id: string; name: string } | null
   }[]
   leaveRequests: (LeaveRequest & { reviewedBy: { id: string; firstName: string; lastName: string } | null })[]
-  target: TargetProgress
+  /** Targets overlapping this month. */
+  targets: TargetProgress[]
   projects: { id: string; name: string; location: string | null; isActive: boolean; assignedAs: string[] }[]
   directReports: { id: string; firstName: string; lastName: string; email: string; role: UserRole; isActive: boolean }[]
   tasks: {
@@ -953,7 +1009,8 @@ export interface TeamRollupItem {
     lost: number
     statusBreakdown: Record<LeadStatus, number>
   }
-  target: TargetProgress | null
+  /** Targets running today. */
+  targets: TargetProgress[]
 }
 
 export interface EmployeeActivity {
@@ -983,6 +1040,7 @@ export interface ActivityReportDay {
     checkInAt: string | null
     checkOutAt: string | null
     checkOutSummary: string | null
+    checkOutCounts: WorkReportCounts | null
     workedLeads: WorkedLead[]
   } | null
   activities: EmployeeActivity[]

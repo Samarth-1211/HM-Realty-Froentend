@@ -6,7 +6,8 @@ import { EmptyState } from '@/components/ui/empty-state'
 import { Spinner } from '@/components/ui/spinner'
 import { useTeamRollup } from '@/hooks/queries/use-employees'
 import { ATTENDANCE_STATUS_LABELS, ATTENDANCE_STATUS_COLORS } from '@/lib/constants'
-import { formatEnumLabel, formatRoleLabel } from '@/lib/utils'
+import { formatRoleLabel } from '@/lib/utils'
+import { formatTargetValue, TARGET_METRIC_LABELS } from '@/components/targets/target-utils'
 
 export function TeamRollupPanel() {
   const { data: rows, isLoading } = useTeamRollup()
@@ -62,12 +63,18 @@ export function TeamRollupPanel() {
                     <td className="px-5 py-3 text-slate-600">{r.leadSnapshot.inProgress}</td>
                     <td className="px-5 py-3 text-slate-600">{r.leadSnapshot.converted}</td>
                     <td className="px-5 py-3">
-                      {r.target?.metric ? (
-                        <span className="text-slate-600">
-                          {formatEnumLabel(r.target.metric)}: {r.target.actualValue ?? 0} / {r.target.targetValue}
-                        </span>
+                      {r.targets.length > 0 ? (
+                        <div className="flex flex-col gap-0.5">
+                          {r.targets.map((t) => (
+                            <span key={t.id} className={t.behind ? 'text-rose-600' : 'text-slate-600'}>
+                              {TARGET_METRIC_LABELS[t.metric]}: {formatTargetValue(t.metric, t.actualValue)} /{' '}
+                              {formatTargetValue(t.metric, t.targetValue)}
+                              <span className="ml-1 text-xs text-slate-400">({t.periodLabel})</span>
+                            </span>
+                          ))}
+                        </div>
                       ) : (
-                        <span className="text-slate-400">No target set</span>
+                        <span className="text-slate-400">No target running today</span>
                       )}
                     </td>
                   </tr>

@@ -13,6 +13,7 @@ import { useAuthStore } from '@/store/auth-store'
 import { exportToCsv } from '@/lib/export-csv'
 import { ASSIGNER_ROLES, ATTENDANCE_STATUS_COLORS, ATTENDANCE_STATUS_LABELS, EMPLOYEE_MODULE_ROLES } from '@/lib/constants'
 import { formatDateTime, formatLeadNumber } from '@/lib/utils'
+import { workReportText } from '@/lib/work-report'
 import { AttendanceStatus, type ActivityReportDay } from '@/types'
 
 type Granularity = 'DAILY' | 'WEEKLY' | 'MONTHLY'
@@ -97,7 +98,10 @@ function summarizeDays(key: string, periodLabel: string, days: ActivityReportDay
     leadsTouched: leadIds.size,
     leadsReported: reportedLeads.size,
     leadsWorkedOn: [...reportedLeads.values()].join(', ') || '—',
-    workSummary: days.length === 1 ? (days[0].attendance?.checkOutSummary ?? '—') : '—',
+    workSummary:
+      days.length === 1
+        ? ([workReportText(days[0].attendance?.checkOutCounts), days[0].attendance?.checkOutSummary].filter(Boolean).join(' — ') || '—')
+        : '—',
     checkInAt: days.length === 1 ? (days[0].attendance?.checkInAt ?? null) : null,
     checkOutAt: days.length === 1 ? (days[0].attendance?.checkOutAt ?? null) : null,
     details: days.length === 1 ? details : '—',

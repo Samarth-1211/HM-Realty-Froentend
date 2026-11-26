@@ -63,6 +63,8 @@ export function useCheckOut() {
       toast.success('Checked out for today')
       qc.invalidateQueries({ queryKey: queryKeys.attendance.today })
       qc.invalidateQueries({ queryKey: ['attendance'] })
+      // The report's counts go toward the day's targets.
+      qc.invalidateQueries({ queryKey: ['targets'] })
     },
     onError: (error) => toast.error('Could not check out', { description: extractErrorMessage(error) }),
   })

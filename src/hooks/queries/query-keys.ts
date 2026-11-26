@@ -57,6 +57,7 @@ export const queryKeys = {
   targets: {
     mine: (query?: unknown) => ['targets', 'me', query] as const,
     team: (query?: unknown) => ['targets', 'team', query] as const,
+    detail: (id: string) => ['targets', 'detail', id] as const,
   },
   integrations: {
     all: ['platform-integrations'] as const,

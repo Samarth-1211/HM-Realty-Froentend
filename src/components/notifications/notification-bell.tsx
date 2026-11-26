@@ -20,6 +20,12 @@ const LEAD_NOTIFICATION_TYPES: NotificationType[] = [
   NotificationType.LEAD_DELETED,
 ]
 
+const TARGET_NOTIFICATION_TYPES: NotificationType[] = [
+  NotificationType.TARGET_BEHIND,
+  NotificationType.TARGET_MISSED,
+  NotificationType.TARGET_WARNING,
+]
+
 /** Turns this device's notification-bar alerts on/off — shown at the top of the bell's panel. */
 function DeviceAlertsBar() {
   const { state, enable, disable, test } = usePushNotifications()
@@ -103,6 +109,8 @@ export function NotificationBell() {
     const leadId = n.leadId ?? n.task?.leadId
     if (leadId) {
       navigate({ to: '/leads/$leadId', params: { leadId } })
+    } else if (TARGET_NOTIFICATION_TYPES.includes(n.type)) {
+      navigate({ to: '/targets' })
     } else if (LEAD_NOTIFICATION_TYPES.includes(n.type)) {
       // A deleted lead (or one that has since been deleted).
       navigate({ to: '/leads' })

@@ -1,46 +1,67 @@
-import { Target as TargetIcon } from 'lucide-react'
+import { useState } from 'react'
+import { Plus, Target as TargetIcon } from 'lucide-react'
 import { Card, CardBody, CardHeader } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Spinner } from '@/components/ui/spinner'
-import { useMyTarget } from '@/hooks/queries/use-targets'
-import { formatPeriod, TARGET_METRIC_HINTS, TARGET_METRIC_LABELS, targetPercent, type TargetPeriod } from './target-utils'
+import { useMyTargets } from '@/hooks/queries/use-targets'
+import { AddProgressModal } from './add-progress-modal'
+import { TargetDetailModal } from './target-detail-modal'
+import { TargetRow } from './target-row'
+import { formatPeriod, isRunningToday, periodRange, type TargetPeriod } from './target-utils'
+import type { TargetProgress } from '@/types'
 
-export function TargetProgressCard({ period }: { period?: TargetPeriod }) {
-  const { data: progress, isLoading } = useMyTarget(period ?? {})
+/** The signed-in employee's own targets for a month, with "Add progress" on the ones running today. */
+export function TargetProgressCard({ period }: { period: TargetPeriod }) {
+  const { data: targets = [], isLoading } = useMyTargets(periodRange(period))
+  const [adding, setAdding] = useState<TargetProgress | null>(null)
+  const [viewing, setViewing] = useState<string | null>(null)
 
-  const monthLabel = progress ? formatPeriod({ year: progress.periodYear, month: progress.periodMonth }) : ''
+  // Running ones first, then upcoming, then the finished ones.
+  const order = { IN_PROGRESS: 0, UPCOMING: 1, COMPLETED: 2, NOT_COMPLETED: 3 }
+  const sorted = [...targets].sort(
+    (a, b) => Number(!isRunningToday(a)) - Number(!isRunningToday(b)) || order[a.status] - order[b.status],
+  )
 
   return (
     <Card>
-      <CardHeader title="My target" subtitle={monthLabel} />
+      <CardHeader
+        title="My targets"
+        subtitle={`${formatPeriod(period)} — your check-out report counts toward them automatically`}
+      />
       <CardBody>
         {isLoading ? (
           <div className="flex justify-center py-6">
             <Spinner />
           </div>
-        ) : !progress?.metric || progress.targetValue === null ? (
-          <EmptyState icon={TargetIcon} title="No target set" description="No target has been set for you for this month yet." />
+        ) : sorted.length === 0 ? (
+          <EmptyState icon={TargetIcon} title="No targets" description="No target has been set for you for this month yet." />
         ) : (
-          <div className="flex flex-col gap-3">
-            <div className="flex items-end justify-between">
-              <p className="text-2xl font-bold text-slate-900">
-                {progress.actualValue ?? 0} <span className="text-sm font-normal text-slate-400">/ {progress.targetValue}</span>
-              </p>
-              <Badge variant="brand">{TARGET_METRIC_LABELS[progress.metric]}</Badge>
-            </div>
-            <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
-              <div
-                className="h-full rounded-full bg-brand-600 transition-all"
-                style={{ width: `${Math.min(100, targetPercent(progress))}%` }}
+          <div className="flex flex-col divide-y divide-slate-100">
+            {sorted.map((t) => (
+              <TargetRow
+                key={t.id}
+                target={t}
+                actions={
+                  <>
+                    {isRunningToday(t) && (
+                      <Button size="sm" onClick={() => setAdding(t)}>
+                        <Plus className="size-4" />
+                        Add progress
+                      </Button>
+                    )}
+                    <Button size="sm" variant="ghost" onClick={() => setViewing(t.id)}>
+                      Details
+                    </Button>
+                  </>
+                }
               />
-            </div>
-            <p className="text-xs text-slate-400">
-              {targetPercent(progress)}% · {TARGET_METRIC_HINTS[progress.metric]}
-            </p>
+            ))}
           </div>
         )}
       </CardBody>
+      <AddProgressModal target={adding} onClose={() => setAdding(null)} />
+      <TargetDetailModal targetId={viewing} onClose={() => setViewing(null)} />
     </Card>
   )
 }

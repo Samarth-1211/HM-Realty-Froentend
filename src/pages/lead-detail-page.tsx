@@ -6,6 +6,7 @@ import {
   CheckSquare,
   Clock,
   Contact,
+  Eye,
   FileSpreadsheet,
   Flame,
   FolderKanban,
@@ -85,21 +86,26 @@ export function LeadDetailPage() {
   const [editOpen, setEditOpen] = useState(false)
   const [shareOpen, setShareOpen] = useState(false)
 
-  const canAssign = currentUser && ASSIGNER_ROLES.includes(currentUser.role)
-
   if (isLoading || !lead) return <PageLoader label="Loading lead…" />
 
+  // Opened only to follow it — a lead the user handed to someone else, or one
+  // interested in a project they're on: nothing here can be changed.
+  const viewOnly = !!lead.viewOnly
+  const canAssign = !viewOnly && !!currentUser && ASSIGNER_ROLES.includes(currentUser.role)
+
   // Delete — Admins: any lead. Managers: manually added / Excel-uploaded leads in their team.
-  const canManage = canManageLeadRecord(currentUser, lead)
+  const canManage = !viewOnly && canManageLeadRecord(currentUser, lead)
   // Edit — the same people, plus whoever the lead is assigned to.
-  const canEdit = canEditLeadRecord(currentUser, lead)
+  const canEdit = !viewOnly && canEditLeadRecord(currentUser, lead)
 
   const canChangeStatus =
+    !viewOnly &&
     !!currentUser &&
     (currentUser.id === lead.assignedToId ||
       (currentUser.role === UserRole.MANAGER && lead.assignedTo?.managerId === currentUser.id) ||
       currentUser.role === UserRole.ADMIN ||
       currentUser.role === UserRole.SUPER_ADMIN)
+  const ownerName = lead.assignedTo ? `${lead.assignedTo.firstName} ${lead.assignedTo.lastName}` : null
 
   const infoRows = [
     {
@@ -113,6 +119,9 @@ export function LeadDetailPage() {
       : []),
     { icon: Mail, label: 'Email', value: lead.email ?? '—' },
     { icon: FolderKanban, label: 'Project', value: lead.project?.name ?? '—' },
+    ...((lead.interestedProjects ?? []).length
+      ? [{ icon: FolderKanban, label: 'Also interested in', value: lead.interestedProjects!.map((p) => p.name).join(', ') }]
+      : []),
     { icon: Tag, label: 'Property interest', value: lead.propertyInterest ?? '—' },
     { icon: MapPin, label: 'City', value: lead.city ?? '—' },
     { icon: Wallet, label: 'Budget', value: formatLeadBudget(lead) },
@@ -147,14 +156,18 @@ export function LeadDetailPage() {
             Assign
           </Button>
         )}
-        <Button size="sm" variant="outline" onClick={() => setTaskOpen(true)}>
-          <CheckSquare className="size-4" />
-          Add Task
-        </Button>
-        <Button size="sm" variant="outline" onClick={() => setShareOpen(true)} title="Send a project's details or brochure on WhatsApp">
-          <WhatsAppGlyph />
-          Share project
-        </Button>
+        {!viewOnly && (
+          <>
+            <Button size="sm" variant="outline" onClick={() => setTaskOpen(true)}>
+              <CheckSquare className="size-4" />
+              Add Task
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => setShareOpen(true)} title="Send a project's details or brochure on WhatsApp">
+              <WhatsAppGlyph />
+              Share project
+            </Button>
+          </>
+        )}
         {canChangeStatus && (
           <Button size="sm" variant="outline" onClick={() => setFollowUpOpen(true)}>
             <NotebookPen className="size-4" />
@@ -174,6 +187,16 @@ export function LeadDetailPage() {
           </Button>
         )}
       </div>
+
+      {viewOnly && (
+        <div className="flex items-start gap-3 rounded-xl bg-slate-100 p-3.5">
+          <Eye className="mt-0.5 size-4 shrink-0 text-slate-500" />
+          <p className="text-sm text-slate-600">
+            <span className="font-medium text-slate-800">View only.</span> You can follow this lead’s progress here
+            {ownerName ? `, but only ${ownerName} and their manager can change it.` : ', but you can’t change it.'}
+          </p>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
         <Card className="lg:col-span-2">
@@ -374,7 +397,7 @@ export function LeadDetailPage() {
 
       <SiteVisitsCard leadId={lead.id} />
 
-      {(lead.source === 'WHATSAPP' || lead._count.whatsappMessages > 0) && (
+      {!viewOnly && (lead.source === 'WHATSAPP' || lead._count.whatsappMessages > 0) && (
         <Card>
           <CardHeader title="WhatsApp conversation" subtitle="Full chat history with this lead — reply directly from here" />
           <CardBody>

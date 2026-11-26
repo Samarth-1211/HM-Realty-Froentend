@@ -6,7 +6,7 @@ import { Card } from '@/components/ui/card'
 import { Select } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Badge, StatusPill } from '@/components/ui/badge'
+import { Badge } from '@/components/ui/badge'
 import { SpreadsheetTable, rowsForExport, sortRows, type SheetColumn, type SheetSort } from '@/components/ui/spreadsheet-table'
 import { useLeads } from '@/hooks/queries/use-leads'
 import { useUsers } from '@/hooks/queries/use-users'
@@ -23,12 +23,18 @@ import {
 import { LeadChannelBadge } from '@/components/leads/lead-channel-badge'
 import { LeadDateRangeFilter } from '@/components/leads/lead-date-range-filter'
 import { LeadStatusFilter } from '@/components/leads/lead-status-filter'
+import { LeadStageBadge, ViewOnlyTag } from '@/components/leads/lead-cells'
+import {
+  LeadCountsBar,
+  LocationFilterSelect,
+  ProjectFilterSelect,
+  useLeadProjectLocationCounts,
+} from '@/components/leads/lead-project-location-filter'
+import { leadProjects, leadStageLabel, matchesLeadLocation, matchesLeadProject } from '@/lib/lead-view'
 import {
   BOOKING_STATUS_COLORS,
   BOOKING_STATUS_LABELS,
-  LEAD_PROGRESS_STAGE_LABELS,
   LEAD_PURPOSE_LABELS,
-  LEAD_STATUS_COLORS,
   LEAD_TEMPERATURE_COLORS,
   LEAD_TEMPERATURE_LABELS,
   VISIT_STATUS_COLORS,
@@ -56,16 +62,18 @@ function assigneeLabel(lead: Lead): string {
   return lead.assignedTo ? `${lead.assignedTo.firstName} ${lead.assignedTo.lastName}` : 'Unassigned'
 }
 
-/** "Site visit scheduled", or the typed note for an "Other" stage; empty unless the lead is in progress. */
-function progressStageLabel(lead: Lead): string {
-  if (!lead.progressStage) return ''
-  return lead.progressStage === 'OTHER' ? (lead.progressStageNote ?? 'Other') : LEAD_PROGRESS_STAGE_LABELS[lead.progressStage]
+/** Main project first, then the extra ones: "Vimal Shri, Iris Dreams". */
+function projectsLabel(lead: Lead): string {
+  return leadProjects(lead)
+    .map((p) => p.name)
+    .join(', ')
 }
 
 export function LeadSheetPage() {
   const navigate = useNavigate()
   const isManager = useAuthStore((s) => s.user?.role === UserRole.MANAGER)
-  const { data: leads = [], isLoading } = useLeads()
+  // 'shared' adds, view-only, leads interested in a project the user is on the team of.
+  const { data: leads = [], isLoading } = useLeads({ include: 'shared' })
   const { data: users = [] } = useUsers()
 
   const [search, setSearch] = useState('')
@@ -75,6 +83,8 @@ export function LeadSheetPage() {
   const [executive, setExecutive] = useState('')
   const [bookingStatus, setBookingStatus] = useState('')
   const [sheet, setSheet] = useState('')
+  const [project, setProject] = useState('')
+  const [location, setLocation] = useState('')
   // The days leads were received between — see LeadDateRangeFilter.
   const [dateRange, setDateRange] = useState({ from: '', to: '' })
   // Held here rather than in the table, so the export can follow the order on screen.
@@ -87,9 +97,10 @@ export function LeadSheetPage() {
     return [...byId.values()].sort((a, b) => b.createdAt.localeCompare(a.createdAt))
   }, [leads])
 
-  const filtered = useMemo(() => {
+  // Every filter but project and location — the counts per project and per location start from these.
+  const beforeProjectFilters = useMemo(() => {
     const q = search.trim().toLowerCase()
-    const matching = leads.filter((l) => {
+    return leads.filter((l) => {
       if (!matchesLeadStatusFilter(l, status)) return false
       if (temperature && l.leadTemperature !== temperature) return false
       if (source && l.source !== source) return false
@@ -98,25 +109,52 @@ export function LeadSheetPage() {
       if (sheet && l.importBatchId !== sheet) return false
       if (!matchesLeadDateRange(l, dateRange.from, dateRange.to)) return false
       if (q) {
-        const haystack = `${l.fullName} ${formatLeadPhones(l)} ${l.project?.name ?? ''} ${leadIdLabel(l)}`.toLowerCase()
+        const haystack = `${l.fullName} ${formatLeadPhones(l)} ${projectsLabel(l)} ${leadIdLabel(l)}`.toLowerCase()
         if (!haystack.includes(q)) return false
       }
       return true
     })
-    return status ? matching : lostLeadsLast(matching)
   }, [leads, search, status, temperature, source, executive, bookingStatus, sheet, dateRange])
+  const counts = useLeadProjectLocationCounts(beforeProjectFilters, project, location)
+
+  const filtered = useMemo(() => {
+    const matching = beforeProjectFilters.filter((l) => matchesLeadProject(l, project) && matchesLeadLocation(l, location))
+    return status ? matching : lostLeadsLast(matching)
+  }, [beforeProjectFilters, project, location, status])
 
   const executiveOptions = useMemo(
     () => users.filter((u) => u.role === 'PRESALES' || u.role === 'POSTSALES' || u.role === 'AGENT'),
     [users],
   )
 
+  // What's needed first — who, where they stand, what's next — then the rest.
   const columns: SheetColumn<Lead>[] = [
     { id: 'leadId', header: 'Lead ID', accessor: leadIdLabel, sticky: true, minWidth: '110px' },
+    {
+      id: 'customerName',
+      header: 'Customer Name',
+      accessor: (l) => l.fullName,
+      cell: (l) => (
+        <span className="flex flex-col items-start gap-0.5">
+          {l.fullName}
+          {l.viewOnly && <ViewOnlyTag />}
+        </span>
+      ),
+      minWidth: '160px',
+    },
+    { id: 'mobile', header: 'Mobile No.', accessor: formatLeadPhones, minWidth: '120px' },
+    // The status and, for an in-progress lead, its stage: "In Progress · Site visit done".
+    {
+      id: 'stage',
+      header: 'Lead Stage',
+      accessor: leadStageLabel,
+      cell: (l) => <LeadStageBadge lead={l} />,
+      minWidth: '220px',
+    },
+    { id: 'nextFollowUp', header: 'Next Follow-up Date', accessor: (l) => l.nextFollowUpAt, exportValue: (l) => toLocalDateTimeKey(l.nextFollowUpAt), cell: (l) => formatDateTime(l.nextFollowUpAt), minWidth: '160px' },
+    { id: 'siteVisitDate', header: 'Site Visit Date', accessor: (l) => l.siteVisitDate, exportValue: (l) => toLocalDateTimeKey(l.siteVisitDate), cell: (l) => formatDateTime(l.siteVisitDate), minWidth: '160px' },
     // Dates sort on the stored timestamp; the file gets them in local time, as on screen, in a form Excel reads as a date.
     { id: 'leadDate', header: 'Lead Date', accessor: (l) => l.createdAt, exportValue: (l) => toLocalDateKey(l.createdAt), cell: (l) => formatDate(l.createdAt), minWidth: '110px' },
-    { id: 'customerName', header: 'Customer Name', accessor: (l) => l.fullName, minWidth: '160px' },
-    { id: 'mobile', header: 'Mobile No.', accessor: formatLeadPhones, minWidth: '120px' },
     { id: 'source', header: 'Lead Source', accessor: (l) => l.source, cell: (l) => formatEnumLabel(l.source), minWidth: '140px' },
     {
       id: 'providedBy',
@@ -132,19 +170,11 @@ export function LeadSheetPage() {
     },
     { id: 'executive', header: 'Assigned Executive', accessor: assigneeLabel, minWidth: '160px' },
     { id: 'location', header: 'Interested Location', accessor: (l) => l.city ?? '', minWidth: '150px' },
-    { id: 'project', header: 'Project', accessor: (l) => l.project?.name ?? '', minWidth: '140px' },
+    { id: 'project', header: 'Project', accessor: projectsLabel, minWidth: '160px' },
     { id: 'budget', header: 'Budget (₹)', accessor: (l) => Number(l.budgetMax ?? l.budgetMin ?? 0), cell: formatLeadBudget, align: 'right', minWidth: '170px' },
     // A plot size range sorts on its low end; the file gets the whole range.
     { id: 'plotSize', header: 'Plot Size (Sq Ft)', accessor: (l) => l.plotSizeSqFt, exportValue: (l) => (l.plotSizeSqFt != null ? formatLeadPlotSize(l) : null), cell: formatLeadPlotSize, align: 'right', minWidth: '140px' },
     { id: 'purpose', header: 'Purpose', accessor: (l) => l.purpose ?? '', cell: (l) => (l.purpose ? LEAD_PURPOSE_LABELS[l.purpose] : '—'), minWidth: '110px' },
-    {
-      id: 'stage',
-      header: 'Lead Stage',
-      accessor: (l) => l.status,
-      cell: (l) => <StatusPill label={formatEnumLabel(l.status)} className={LEAD_STATUS_COLORS[l.status]} />,
-      minWidth: '130px',
-    },
-    { id: 'progressStage', header: 'Progress Stage', accessor: progressStageLabel, cell: (l) => progressStageLabel(l) || '—', minWidth: '170px' },
     {
       id: 'temperature',
       header: 'Lead Temperature',
@@ -153,8 +183,6 @@ export function LeadSheetPage() {
       minWidth: '140px',
     },
     { id: 'lastContact', header: 'Last Contact Date', accessor: (l) => l.lastContactedAt, exportValue: (l) => toLocalDateTimeKey(l.lastContactedAt), cell: (l) => formatDateTime(l.lastContactedAt), minWidth: '160px' },
-    { id: 'nextFollowUp', header: 'Next Follow-up Date', accessor: (l) => l.nextFollowUpAt, exportValue: (l) => toLocalDateTimeKey(l.nextFollowUpAt), cell: (l) => formatDateTime(l.nextFollowUpAt), minWidth: '160px' },
-    { id: 'siteVisitDate', header: 'Site Visit Date', accessor: (l) => l.siteVisitDate, exportValue: (l) => toLocalDateKey(l.siteVisitDate), cell: (l) => formatDate(l.siteVisitDate), minWidth: '130px' },
     {
       id: 'visitStatus',
       header: 'Visit Status',
@@ -218,6 +246,14 @@ export function LeadSheetPage() {
             onChange={(e) => setStatus(e.target.value)}
             className="lg:max-w-[200px]"
           />
+          <LocationFilterSelect counts={counts.locations} value={location} onChange={setLocation} className="lg:max-w-[200px]" />
+          <ProjectFilterSelect
+            counts={counts.projects}
+            value={project}
+            selectedLabel={leads.flatMap(leadProjects).find((p) => p.id === project)?.name}
+            onChange={setProject}
+            className="lg:max-w-[220px]"
+          />
           <Select value={temperature} onChange={(e) => setTemperature(e.target.value)} className="lg:max-w-[140px]">
             <option value="">All temperatures</option>
             {Object.values(LeadTemperature).map((t) => (
@@ -262,6 +298,15 @@ export function LeadSheetPage() {
           )}
           <LeadDateRangeFilter from={dateRange.from} to={dateRange.to} onChange={setDateRange} />
         </div>
+
+        <LeadCountsBar
+          projects={counts.projects}
+          locations={counts.locations}
+          project={project}
+          location={location}
+          onProjectChange={setProject}
+          onLocationChange={setLocation}
+        />
 
         <div className="p-4">
           <SpreadsheetTable

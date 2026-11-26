@@ -183,6 +183,12 @@ export interface LeadsSearch {
   /** Lead date range, each end YYYY-MM-DD — see LeadDateRangeFilter. */
   from?: string
   to?: string
+  /** A project id: leads interested in it, as their main or an extra project. */
+  project?: string
+  /** A project location: leads interested in a project there. */
+  location?: string
+  /** 'handed': the "Assigned by me" tab. */
+  view?: 'handed'
 }
 
 const leadsRoute = createRoute({
@@ -203,6 +209,9 @@ const leadsRoute = createRoute({
       mine: search.mine === true || search.mine === 'true' ? true : undefined,
       from: day(search.from),
       to: day(search.to),
+      project: text(search.project),
+      location: text(search.location),
+      view: search.view === 'handed' ? 'handed' : undefined,
     }
   },
 })

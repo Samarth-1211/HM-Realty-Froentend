@@ -1,10 +1,11 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { Modal } from '@/components/ui/modal'
 import { Field, Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
+import { MultiSelect } from '@/components/ui/multi-select'
 import { Button } from '@/components/ui/button'
 import { useUpdateLead } from '@/hooks/queries/use-leads'
 import { useProjects } from '@/hooks/queries/use-projects'
@@ -101,18 +102,31 @@ export function LeadEditModal({ lead, onClose }: { lead: Lead | null; onClose: (
     register,
     handleSubmit,
     reset,
+    watch,
     formState: { errors },
   } = useForm<FormValues>({ resolver: zodResolver(schema) })
+  // "Also interested in": the lead's extra projects, beside the main one.
+  const [otherProjectIds, setOtherProjectIds] = useState<string[]>([])
 
   useEffect(() => {
-    if (lead) reset(toForm(lead))
+    if (!lead) return
+    reset(toForm(lead))
+    setOtherProjectIds((lead.interestedProjects ?? []).map((p) => p.id))
   }, [lead, reset])
+
+  const mainProjectId = watch('projectId') ?? ''
 
   if (!lead) return null
   const initial = toForm(lead)
 
   const onSubmit = (values: FormValues) => {
     const payload = changedFields(initial, values)
+    // The main project never doubles as an extra one.
+    const nextOthers = otherProjectIds.filter((id) => id !== (values.projectId || ''))
+    const before = (lead.interestedProjects ?? []).map((p) => p.id)
+    if (nextOthers.length !== before.length || nextOthers.some((id) => !before.includes(id))) {
+      payload.otherProjectIds = nextOthers
+    }
     if (Object.keys(payload).length === 0) {
       onClose()
       return
@@ -120,11 +134,15 @@ export function LeadEditModal({ lead, onClose }: { lead: Lead | null; onClose: (
     update.mutate({ id: lead.id, payload }, { onSuccess: onClose })
   }
 
-  // The lead's current project stays selectable even if it's no longer in the list.
+  // The lead's current projects stay selectable even if they're no longer in the list.
   const projectOptions = [
     ...(projects ?? []).map((p) => ({ id: p.id, name: p.name })),
-    ...(lead.project && !(projects ?? []).some((p) => p.id === lead.project!.id) ? [lead.project] : []),
+    ...[...(lead.project ? [lead.project] : []), ...(lead.interestedProjects ?? [])].filter(
+      (lp) => !(projects ?? []).some((p) => p.id === lp.id),
+    ),
   ]
+  const projectName = (id: string) => projectOptions.find((p) => p.id === id)?.name ?? 'Project'
+  const otherProjectOptions = projectOptions.map((p) => p.id).filter((id) => id !== mainProjectId)
 
   return (
     <Modal
@@ -157,6 +175,17 @@ export function LeadEditModal({ lead, onClose }: { lead: Lead | null; onClose: (
                 </option>
               ))}
             </Select>
+          </Field>
+          <Field label="Also interested in" hint="Other projects this lead would consider.">
+            <MultiSelect
+              options={otherProjectOptions}
+              value={otherProjectIds.filter((id) => id !== mainProjectId)}
+              onChange={setOtherProjectIds}
+              formatLabel={projectName}
+              placeholder="Other projects…"
+              searchable={otherProjectOptions.length > 6}
+              emptyLabel="No other projects"
+            />
           </Field>
           <Field label="Property interest" error={errors.propertyInterest?.message}>
             <Input {...register('propertyInterest')} />

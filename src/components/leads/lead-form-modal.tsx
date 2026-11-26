@@ -7,9 +7,11 @@ import { z } from 'zod'
 import { Modal } from '@/components/ui/modal'
 import { Field, Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
+import { MultiSelect } from '@/components/ui/multi-select'
 import { Button } from '@/components/ui/button'
 import { useCreateLead } from '@/hooks/queries/use-leads'
 import { useUsers } from '@/hooks/queries/use-users'
+import { useProjects } from '@/hooks/queries/use-projects'
 import { useAuthStore } from '@/store/auth-store'
 import { ASSIGNER_ROLES, STAFF_ROLES } from '@/lib/constants'
 import { splitPhoneList } from '@/lib/utils'
@@ -25,6 +27,7 @@ const schema = z.object({
     .optional()
     .refine((v) => splitPhoneList(v ?? '').every((p) => /^\+?[0-9]{7,15}$/.test(p)), 'Enter valid numbers, separated by commas'),
   email: z.string().email('Enter a valid email').optional().or(z.literal('')),
+  projectId: z.string().optional(),
   propertyInterest: z.string().optional(),
   assignedToId: z.string().optional(),
   referredByName: z.string().optional(),
@@ -44,13 +47,18 @@ export function LeadFormModal({ open, onClose }: { open: boolean; onClose: () =>
   const create = useCreateLead()
   const navigate = useNavigate()
   const [showReference, setShowReference] = useState(false)
+  const { data: projects = [] } = useProjects(open)
+  // "Also interested in": extra projects, beside the main one.
+  const [otherProjectIds, setOtherProjectIds] = useState<string[]>([])
 
   const {
     register,
     handleSubmit,
     reset,
+    watch,
     formState: { errors },
   } = useForm<FormValues>({ resolver: zodResolver(schema) })
+  const mainProjectId = watch('projectId') ?? ''
 
   useEffect(() => {
     if (open) {
@@ -59,6 +67,7 @@ export function LeadFormModal({ open, onClose }: { open: boolean; onClose: () =>
         phone: '',
         alternatePhones: '',
         email: '',
+        projectId: '',
         propertyInterest: '',
         assignedToId: '',
         referredByName: '',
@@ -66,6 +75,7 @@ export function LeadFormModal({ open, onClose }: { open: boolean; onClose: () =>
         referredByPhone: '',
       })
       setShowReference(false)
+      setOtherProjectIds([])
     }
   }, [open, reset])
 
@@ -76,6 +86,8 @@ export function LeadFormModal({ open, onClose }: { open: boolean; onClose: () =>
         phone: values.phone,
         alternatePhones: splitPhoneList(values.alternatePhones ?? ''),
         email: values.email || undefined,
+        projectId: values.projectId || undefined,
+        otherProjectIds: otherProjectIds.filter((id) => id !== values.projectId),
         propertyInterest: values.propertyInterest || undefined,
         assignedToId: values.assignedToId || undefined,
         referredByName: values.referredByName || undefined,
@@ -108,6 +120,27 @@ export function LeadFormModal({ open, onClose }: { open: boolean; onClose: () =>
         </Field>
         <Field label="Email" error={errors.email?.message}>
           <Input {...register('email')} placeholder="ravi.kumar@example.com" />
+        </Field>
+        <Field label="Project">
+          <Select {...register('projectId')}>
+            <option value="">No project</option>
+            {projects.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </Select>
+        </Field>
+        <Field label="Also interested in" hint="Optional. Other projects this lead would consider.">
+          <MultiSelect
+            options={projects.map((p) => p.id).filter((id) => id !== mainProjectId)}
+            value={otherProjectIds.filter((id) => id !== mainProjectId)}
+            onChange={setOtherProjectIds}
+            formatLabel={(id) => projects.find((p) => p.id === id)?.name ?? 'Project'}
+            placeholder="Other projects…"
+            searchable={projects.length > 6}
+            emptyLabel="No other projects"
+          />
         </Field>
         <Field label="Property interest" error={errors.propertyInterest?.message}>
           <Input {...register('propertyInterest')} placeholder="3BHK Apartment in Bandra" />

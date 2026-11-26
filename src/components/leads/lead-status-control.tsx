@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Select } from '@/components/ui/select'
 import { useUpdateLeadStatus } from '@/hooks/queries/use-leads'
+import { useAuthStore } from '@/store/auth-store'
 import { formatEnumLabel } from '@/lib/utils'
 import { LeadProgressStage, LeadStatus, type Lead } from '@/types'
 import { LeadProgressStageModal } from './lead-progress-stage-modal'
@@ -12,6 +13,10 @@ export function LeadStatusControl({ lead }: { lead: Lead }) {
   const updateStatus = useUpdateLeadStatus()
   const [stageModalOpen, setStageModalOpen] = useState(false)
   const [visitFormOpen, setVisitFormOpen] = useState(false)
+  const currentUserId = useAuthStore((s) => s.user?.id)
+  // A booked visit lands in the lead's assignee's To-Do.
+  const toDoOwner =
+    lead.assignedTo && lead.assignedToId !== currentUserId ? `${lead.assignedTo.firstName}’s To-Do` : 'your To-Do'
 
   const handleChange = (status: LeadStatus) => {
     if (status === LeadStatus.IN_PROGRESS) {
@@ -21,7 +26,12 @@ export function LeadStatusControl({ lead }: { lead: Lead }) {
     updateStatus.mutate({ id: lead.id, status })
   }
 
-  const handleConfirmStage = (progressStage: LeadProgressStage, progressStageNote?: string, siteVisitAt?: string) => {
+  const handleConfirmStage = (
+    progressStage: LeadProgressStage,
+    progressStageNote?: string,
+    siteVisitAt?: string,
+    reminderOffsetsMinutes?: number[],
+  ) => {
     // "Site visit done" is saved by the visit form, together with its photo.
     if (progressStage === LeadProgressStage.SITE_VISIT_DONE) {
       setStageModalOpen(false)
@@ -29,7 +39,7 @@ export function LeadStatusControl({ lead }: { lead: Lead }) {
       return
     }
     updateStatus.mutate(
-      { id: lead.id, status: LeadStatus.IN_PROGRESS, progressStage, progressStageNote, siteVisitAt },
+      { id: lead.id, status: LeadStatus.IN_PROGRESS, progressStage, progressStageNote, siteVisitAt, reminderOffsetsMinutes },
       { onSuccess: () => setStageModalOpen(false) },
     )
   }
@@ -67,6 +77,7 @@ export function LeadStatusControl({ lead }: { lead: Lead }) {
         initialStage={lead.status === LeadStatus.IN_PROGRESS ? lead.progressStage : undefined}
         initialNote={lead.status === LeadStatus.IN_PROGRESS ? lead.progressStageNote : undefined}
         initialVisitAt={lead.siteVisitDate}
+        toDoOwner={toDoOwner}
       />
       <SiteVisitDoneModal lead={lead} open={visitFormOpen} onClose={() => setVisitFormOpen(false)} />
     </>

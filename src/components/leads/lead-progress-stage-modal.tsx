@@ -3,9 +3,10 @@ import { Modal } from '@/components/ui/modal'
 import { Field } from '@/components/ui/input'
 import { Select, Textarea } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
-import { LEAD_PROGRESS_STAGE_LABELS } from '@/lib/constants'
+import { DEFAULT_REMINDER_OFFSETS, LEAD_PROGRESS_STAGE_LABELS } from '@/lib/constants'
 import { LeadProgressStage } from '@/types'
 import { fromDateTimeParts, toDateTimeParts, VisitDateTimeFields, type DateTimeParts } from './visit-date-time-fields'
+import { ToDoReminderField } from './to-do-reminder-field'
 
 const STAGE_OPTIONS = Object.values(LeadProgressStage)
 
@@ -24,23 +25,28 @@ export function LeadProgressStageModal({
   initialStage,
   initialNote,
   initialVisitAt,
+  toDoOwner = 'your To-Do',
 }: {
   open: boolean
   onClose: () => void
   /**
-   * `siteVisitAt` comes with "Site visit scheduled". "Site visit done" is
-   * confirmed without saving anything — the caller opens the visit form.
+   * `siteVisitAt` (and the reminders for its To-Do task) come with "Site
+   * visit scheduled". "Site visit done" is confirmed without saving
+   * anything — the caller opens the visit form.
    */
-  onConfirm: (stage: LeadProgressStage, note?: string, siteVisitAt?: string) => void
+  onConfirm: (stage: LeadProgressStage, note?: string, siteVisitAt?: string, reminderOffsetsMinutes?: number[]) => void
   loading?: boolean
   initialStage?: LeadProgressStage | null
   initialNote?: string | null
   /** The lead's current site visit date, to start the booking from when it's still ahead. */
   initialVisitAt?: string | null
+  /** Whose To-Do a booked visit lands in, e.g. "your To-Do". */
+  toDoOwner?: string
 }) {
   const [stage, setStage] = useState<LeadProgressStage>(initialStage ?? LeadProgressStage.CONTACTED)
   const [note, setNote] = useState(initialNote ?? '')
   const [visitAt, setVisitAt] = useState<DateTimeParts>(() => toDateTimeParts(nextHour()))
+  const [reminders, setReminders] = useState<number[]>(DEFAULT_REMINDER_OFFSETS)
 
   // Each time it opens, start from the lead as it is now.
   useEffect(() => {
@@ -50,13 +56,14 @@ export function LeadProgressStageModal({
     // A visit already booked starts from its time; a past one doesn't.
     const booked = initialVisitAt ? new Date(initialVisitAt) : null
     setVisitAt(toDateTimeParts(booked && booked.getTime() > Date.now() ? booked : nextHour()))
+    setReminders(DEFAULT_REMINDER_OFFSETS)
   }, [open, initialStage, initialNote, initialVisitAt])
 
   const isScheduling = stage === LeadProgressStage.SITE_VISIT_SCHEDULED
   const isVisitDone = stage === LeadProgressStage.SITE_VISIT_DONE
   const scheduledAt = isScheduling ? fromDateTimeParts(visitAt) : null
 
-  const confirm = () => onConfirm(stage, note || undefined, scheduledAt?.toISOString())
+  const confirm = () => onConfirm(stage, note || undefined, scheduledAt?.toISOString(), isScheduling ? reminders : undefined)
 
   return (
     <Modal open={open} onClose={onClose} title="What stage is this lead at?" subtitle="This shows up on the lead's activity timeline" size="sm">
@@ -79,6 +86,7 @@ export function LeadProgressStageModal({
           <div className="flex flex-col gap-1.5">
             <p className="text-xs text-slate-500">When is the site visit booked for?</p>
             <VisitDateTimeFields value={visitAt} onChange={setVisitAt} />
+            <ToDoReminderField className="mt-2" what="site visit" owner={toDoOwner} value={reminders} onChange={setReminders} />
           </div>
         )}
         {isVisitDone && (

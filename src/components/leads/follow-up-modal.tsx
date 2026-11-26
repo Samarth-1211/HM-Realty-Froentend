@@ -4,8 +4,10 @@ import { Field, Input, Label } from '@/components/ui/input'
 import { Select, Textarea } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
 import { useUpdateLeadFollowUp } from '@/hooks/queries/use-leads'
+import { useAuthStore } from '@/store/auth-store'
 import {
   BOOKING_STATUS_LABELS,
+  DEFAULT_REMINDER_OFFSETS,
   LEAD_PURPOSE_LABELS,
   LEAD_TEMPERATURE_LABELS,
   VISIT_STATUS_LABELS,
@@ -14,6 +16,7 @@ import { cn, splitPhoneList, toDatetimeLocal } from '@/lib/utils'
 import type { UpdateLeadFollowUpPayload } from '@/api/leads.api'
 import { BookingStatus, LeadPurpose, LeadTemperature, VisitStatus, type LeadWithActivity } from '@/types'
 import { RemarkHistory } from './remark-history'
+import { ToDoReminderField } from './to-do-reminder-field'
 
 const TEMPERATURE_OPTIONS = Object.values(LeadTemperature)
 const PURPOSE_OPTIONS = Object.values(LeadPurpose)
@@ -59,6 +62,11 @@ export function FollowUpModal({ open, onClose, lead }: { open: boolean; onClose:
   const [bookingValue, setBookingValue] = useState('')
   const [lostNurtureReason, setLostNurtureReason] = useState('')
   const [remarks, setRemarks] = useState('')
+  // Reminders on the My To-Do tasks the follow-up date and the site visit create.
+  const [followUpReminders, setFollowUpReminders] = useState<number[]>(DEFAULT_REMINDER_OFFSETS)
+  const [visitReminders, setVisitReminders] = useState<number[]>(DEFAULT_REMINDER_OFFSETS)
+  const [remindersTouched, setRemindersTouched] = useState({ followUp: false, visit: false })
+  const currentUserId = useAuthStore((s) => s.user?.id)
 
   useEffect(() => {
     if (!open) return
@@ -77,7 +85,18 @@ export function FollowUpModal({ open, onClose, lead }: { open: boolean; onClose:
     setBookingValue(lead.bookingValue ?? '')
     setLostNurtureReason(lead.lostNurtureReason ?? '')
     setRemarks(lead.remarks ?? '')
+    setFollowUpReminders(DEFAULT_REMINDER_OFFSETS)
+    setVisitReminders(DEFAULT_REMINDER_OFFSETS)
+    setRemindersTouched({ followUp: false, visit: false })
   }, [open, lead])
+
+  // A task is only made for a date still ahead, and for a visit that's booked.
+  const isAhead = (v: string) => !!v && new Date(v).getTime() > Date.now()
+  const followUpTaskDue = isAhead(nextFollowUpAt)
+  const visitTaskDue = isAhead(siteVisitDate) && visitStatus !== VisitStatus.DONE && visitStatus !== VisitStatus.CANCELLED
+  // Whose To-Do it lands in: the lead's assignee (yours, on your own lead).
+  const toDoOwner =
+    lead.assignedTo && lead.assignedToId !== currentUserId ? `${lead.assignedTo.firstName}’s To-Do` : 'your To-Do'
 
   const alternatePhoneList = splitPhoneList(alternatePhones)
   const alternatePhonesError = alternatePhoneList.some((p) => !/^\+?[0-9]{7,15}$/.test(p))
@@ -132,6 +151,13 @@ export function FollowUpModal({ open, onClose, lead }: { open: boolean; onClose:
     if (bookingValue !== (lead.bookingValue ?? '')) payload.bookingValue = num(bookingValue)
     if (text(lostNurtureReason) !== text(lead.lostNurtureReason ?? '')) payload.lostNurtureReason = text(lostNurtureReason)
     if (text(remarks) !== text(lead.remarks ?? '')) payload.remarks = text(remarks)
+    // The reminders go with a new date, or on their own when only they were changed.
+    if (followUpTaskDue && (payload.nextFollowUpAt || remindersTouched.followUp)) {
+      payload.followUpReminderOffsetsMinutes = followUpReminders
+    }
+    if (visitTaskDue && (payload.siteVisitDate || payload.visitStatus || remindersTouched.visit)) {
+      payload.siteVisitReminderOffsetsMinutes = visitReminders
+    }
 
     if (Object.keys(payload).length === 0) {
       onClose()
@@ -182,6 +208,19 @@ export function FollowUpModal({ open, onClose, lead }: { open: boolean; onClose:
             <Input type="datetime-local" value={nextFollowUpAt} onChange={(e) => setNextFollowUpAt(e.target.value)} />
           </Field>
 
+          {followUpTaskDue && (
+            <ToDoReminderField
+              className="sm:col-span-2"
+              what="follow-up"
+              owner={toDoOwner}
+              value={followUpReminders}
+              onChange={(v) => {
+                setFollowUpReminders(v)
+                setRemindersTouched((t) => ({ ...t, followUp: true }))
+              }}
+            />
+          )}
+
           <Field label="Site visit date">
             <Input type="datetime-local" value={siteVisitDate} onChange={(e) => setSiteVisitDate(e.target.value)} />
           </Field>
@@ -196,6 +235,19 @@ export function FollowUpModal({ open, onClose, lead }: { open: boolean; onClose:
               ))}
             </Select>
           </Field>
+
+          {visitTaskDue && (
+            <ToDoReminderField
+              className="sm:col-span-2"
+              what="site visit"
+              owner={toDoOwner}
+              value={visitReminders}
+              onChange={(v) => {
+                setVisitReminders(v)
+                setRemindersTouched((t) => ({ ...t, visit: true }))
+              }}
+            />
+          )}
 
           <Field label="Booking probability (%)">
             <Input type="number" min="0" max="100" value={bookingProbability} onChange={(e) => setBookingProbability(e.target.value)} />

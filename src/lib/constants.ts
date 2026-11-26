@@ -222,9 +222,13 @@ export const TASK_PRIORITY_COLORS: Record<string, string> = {
 }
 
 /** Preset reminder offsets (minutes before due) shown as quick-toggle chips. */
+/** Reminders a new task starts with: 1 day, 6 hours and 3 hours before it's due (as the backend defaults). */
+export const DEFAULT_REMINDER_OFFSETS = [1440, 360, 180]
+
 export const REMINDER_PRESETS: { label: string; minutes: number }[] = [
   { label: '1 day before', minutes: 1440 },
   { label: '6 hours before', minutes: 360 },
+  { label: '3 hours before', minutes: 180 },
   { label: '1 hour before', minutes: 60 },
   { label: '30 minutes before', minutes: 30 },
 ]

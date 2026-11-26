@@ -8,7 +8,7 @@ import { useCreateTask, useUpdateTask } from '@/hooks/queries/use-tasks'
 import { useLeads } from '@/hooks/queries/use-leads'
 import { useUsers } from '@/hooks/queries/use-users'
 import { useAuthStore } from '@/store/auth-store'
-import { ASSIGNER_ROLES, TASK_PRIORITY_LABELS, TASK_TYPE_LABELS } from '@/lib/constants'
+import { ASSIGNER_ROLES, DEFAULT_REMINDER_OFFSETS, TASK_PRIORITY_LABELS, TASK_TYPE_LABELS } from '@/lib/constants'
 import { toDatetimeLocal } from '@/lib/utils'
 import { TaskPriority, TaskType, type Task } from '@/types'
 
@@ -45,7 +45,7 @@ export function TaskFormModal({
   const [assignedToId, setAssignedToId] = useState('')
   const [dueAt, setDueAt] = useState('')
   const [leadId, setLeadId] = useState('')
-  const [reminders, setReminders] = useState<number[]>([1440, 360])
+  const [reminders, setReminders] = useState<number[]>(DEFAULT_REMINDER_OFFSETS)
 
   useEffect(() => {
     if (!open) return
@@ -60,7 +60,7 @@ export function TaskFormModal({
     setReminders(
       task?.reminders?.length
         ? [...new Set(task.reminders.map((r) => r.offsetMinutes).filter((m) => m > 0))].sort((a, b) => a - b)
-        : [1440, 360],
+        : DEFAULT_REMINDER_OFFSETS,
     )
   }, [open, task, lead])
 

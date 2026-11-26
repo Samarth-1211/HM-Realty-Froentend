@@ -98,4 +98,12 @@ export const queryKeys = {
     list: (unreadOnly?: boolean) => ['notifications', unreadOnly] as const,
     unreadCount: ['notifications', 'unread-count'] as const,
   },
+  followUps: {
+    leads: (query?: unknown) => ['follow-ups', 'leads', query] as const,
+    templates: ['follow-ups', 'templates'] as const,
+    broadcasts: (page?: number) => ['follow-ups', 'broadcasts', page] as const,
+    broadcast: (id: string) => ['follow-ups', 'broadcast', id] as const,
+    recipients: (id: string) => ['follow-ups', 'broadcast', id, 'recipients'] as const,
+    managedTemplates: ['follow-ups', 'managed-templates'] as const,
+  },
 }

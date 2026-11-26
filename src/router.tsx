@@ -24,6 +24,7 @@ import { IntegrationsPage } from '@/pages/integrations-page'
 import { WhatsAppInboxPage } from '@/pages/whatsapp-inbox-page'
 import { WhatsAppDebugPage } from '@/pages/whatsapp-debug-page'
 import { WhatsAppAdsPage } from '@/pages/whatsapp-ads-page'
+import { FollowUpsPage } from '@/pages/follow-ups-page'
 import { AttendancePage } from '@/pages/attendance-page'
 import { OrgAttendancePage } from '@/pages/org-attendance-page'
 import { TargetsPage } from '@/pages/targets-page'
@@ -256,6 +257,14 @@ const whatsappAdsRoute = createRoute({
   beforeLoad: requireRole([UserRole.ADMIN]),
 })
 
+// Pick leads with filters and send them a WhatsApp template (with the brochure) in one go.
+const followUpsRoute = createRoute({
+  getParentRoute: () => appLayoutRoute,
+  path: '/follow-ups',
+  component: FollowUpsPage,
+  beforeLoad: requireRole(ORG_MEMBER_ROLES),
+})
+
 const reportsRoute = createRoute({
   getParentRoute: () => appLayoutRoute,
   path: '/reports',
@@ -326,6 +335,7 @@ const routeTree = rootRoute.addChildren([
     whatsappInboxRoute,
     whatsappDebugRoute,
     whatsappAdsRoute,
+    followUpsRoute,
     reportsRoute,
     integrationsRoute,
     attendanceRoute,

@@ -17,6 +17,7 @@ import {
   Shuffle,
   FileSpreadsheet,
   Megaphone,
+  BellRing,
 } from 'lucide-react'
 import { UserRole } from '@/types'
 import { ASSIGNER_ROLES, EMPLOYEE_MODULE_ROLES, ORG_MEMBER_ROLES, ORG_OVERSIGHT_ROLES, TARGETS_PAGE_ROLES } from '@/lib/constants'
@@ -105,6 +106,13 @@ export const NAV_ITEMS: NavItem[] = [
     icon: ListChecks,
     roles: Object.values(UserRole),
     mobilePrimary: true,
+  },
+  {
+    // Bulk WhatsApp follow-ups: Admins on any lead, Managers on their team's, everyone else on their own.
+    to: '/follow-ups',
+    label: 'Follow-ups',
+    icon: BellRing,
+    roles: ORG_MEMBER_ROLES,
   },
   {
     to: '/messaging',

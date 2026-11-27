@@ -116,6 +116,7 @@ export const LEAVE_STATUS_COLORS: Record<string, string> = {
 export const LEAD_PROGRESS_STAGE_LABELS: Record<string, string> = {
   CONTACTED: 'Contacted',
   FOLLOW_UP_SENT: 'Follow-up sent',
+  WHATSAPP_DETAILS_SENT: 'WhatsApp details sent',
   NEGOTIATION: 'Negotiation',
   SITE_VISIT_SCHEDULED: 'Site visit scheduled',
   SITE_VISIT_DONE: 'Site visit done',

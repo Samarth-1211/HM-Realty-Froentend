@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Pagination } from '@/components/ui/pagination'
 import { Tabs } from '@/components/ui/tabs'
-import { LeadNextStep, LeadProjectsCell, LeadStageBadge, ViewOnlyTag } from '@/components/leads/lead-cells'
+import { LeadNextStep, LeadProjectsCell, LeadRemarkCell, LeadStageBadge, ViewOnlyTag } from '@/components/leads/lead-cells'
 import {
   LeadCountsBar,
   LocationFilterSelect,
@@ -177,12 +177,20 @@ export function LeadsPage() {
       ),
     },
     { key: 'status', header: 'Stage', render: (l) => <LeadStageBadge lead={l} /> },
-    { key: 'next', header: 'Next follow-up', render: (l) => <LeadNextStep lead={l} /> },
+    { key: 'remark', header: 'Latest remark', render: (l) => <LeadRemarkCell lead={l} /> },
     { key: 'project', header: 'Project', render: (l) => <LeadProjectsCell lead={l} /> },
+    { key: 'next', header: 'Next follow-up', render: (l) => <LeadNextStep lead={l} /> },
     {
-      key: 'interest',
-      header: 'Interest',
-      render: (l) => <span className="text-slate-500">{l.propertyInterest ?? '—'}</span>,
+      key: 'assignedTo',
+      header: 'Assigned To',
+      render: (l) =>
+        l.assignedTo ? (
+          <span className="text-slate-600">
+            {l.assignedTo.firstName} {l.assignedTo.lastName}
+          </span>
+        ) : (
+          <span className="text-slate-400">Unassigned</span>
+        ),
     },
     {
       key: 'source',
@@ -195,16 +203,9 @@ export function LeadsPage() {
       ),
     },
     {
-      key: 'assignedTo',
-      header: 'Assigned To',
-      render: (l) =>
-        l.assignedTo ? (
-          <span className="text-slate-600">
-            {l.assignedTo.firstName} {l.assignedTo.lastName}
-          </span>
-        ) : (
-          <span className="text-slate-400">Unassigned</span>
-        ),
+      key: 'interest',
+      header: 'Interest',
+      render: (l) => <span className="text-slate-500">{l.propertyInterest ?? '—'}</span>,
     },
     { key: 'received', header: 'Received', render: (l) => <span className="text-slate-400">{formatDateTime(l.createdAt)}</span> },
     // Everyone gets Edit on the leads they hold; Assign and Delete stay with Managers and Admins.

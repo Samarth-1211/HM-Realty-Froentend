@@ -39,6 +39,7 @@ export type LeadActivityType = (typeof LeadActivityType)[keyof typeof LeadActivi
 export const LeadProgressStage = {
   CONTACTED: 'CONTACTED',
   FOLLOW_UP_SENT: 'FOLLOW_UP_SENT',
+  WHATSAPP_DETAILS_SENT: 'WHATSAPP_DETAILS_SENT',
   NEGOTIATION: 'NEGOTIATION',
   SITE_VISIT_SCHEDULED: 'SITE_VISIT_SCHEDULED',
   SITE_VISIT_DONE: 'SITE_VISIT_DONE',

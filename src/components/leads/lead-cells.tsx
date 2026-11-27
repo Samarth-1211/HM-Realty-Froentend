@@ -53,6 +53,17 @@ export function LeadProjectsCell({ lead }: { lead: Pick<Lead, 'project' | 'inter
 }
 
 /** Marks a lead the viewer can follow but not work on. */
+/** The lead's latest remark, up to two lines; the whole of it on hover. */
+export function LeadRemarkCell({ lead }: { lead: Pick<Lead, 'remarks'> }) {
+  const remark = lead.remarks?.trim()
+  if (!remark) return <span className="text-slate-400">—</span>
+  return (
+    <p className="line-clamp-2 min-w-40 max-w-64 whitespace-pre-line text-sm text-slate-600" title={remark}>
+      {remark}
+    </p>
+  )
+}
+
 export function ViewOnlyTag({ className }: { className?: string }) {
   return (
     <span

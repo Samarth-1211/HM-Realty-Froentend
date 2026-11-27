@@ -23,7 +23,7 @@ import {
 import { LeadChannelBadge } from '@/components/leads/lead-channel-badge'
 import { LeadDateRangeFilter } from '@/components/leads/lead-date-range-filter'
 import { LeadStatusFilter } from '@/components/leads/lead-status-filter'
-import { LeadStageBadge, ViewOnlyTag } from '@/components/leads/lead-cells'
+import { LeadRemarkCell, LeadStageBadge, ViewOnlyTag } from '@/components/leads/lead-cells'
 import {
   LeadCountsBar,
   LocationFilterSelect,
@@ -151,6 +151,9 @@ export function LeadSheetPage() {
       cell: (l) => <LeadStageBadge lead={l} />,
       minWidth: '220px',
     },
+    // The latest remark, right after the stage: up to two lines, the whole of it on hover.
+    { id: 'remarks', header: 'Remarks', accessor: (l) => l.remarks ?? '', cell: (l) => <LeadRemarkCell lead={l} />, minWidth: '220px' },
+    { id: 'project', header: 'Project', accessor: projectsLabel, minWidth: '160px' },
     { id: 'nextFollowUp', header: 'Next Follow-up Date', accessor: (l) => l.nextFollowUpAt, exportValue: (l) => toLocalDateTimeKey(l.nextFollowUpAt), cell: (l) => formatDateTime(l.nextFollowUpAt), minWidth: '160px' },
     { id: 'siteVisitDate', header: 'Site Visit Date', accessor: (l) => l.siteVisitDate, exportValue: (l) => toLocalDateTimeKey(l.siteVisitDate), cell: (l) => formatDateTime(l.siteVisitDate), minWidth: '160px' },
     // Dates sort on the stored timestamp; the file gets them in local time, as on screen, in a form Excel reads as a date.
@@ -170,7 +173,6 @@ export function LeadSheetPage() {
     },
     { id: 'executive', header: 'Assigned Executive', accessor: assigneeLabel, minWidth: '160px' },
     { id: 'location', header: 'Interested Location', accessor: (l) => l.city ?? '', minWidth: '150px' },
-    { id: 'project', header: 'Project', accessor: projectsLabel, minWidth: '160px' },
     { id: 'budget', header: 'Budget (₹)', accessor: (l) => Number(l.budgetMax ?? l.budgetMin ?? 0), cell: formatLeadBudget, align: 'right', minWidth: '170px' },
     // A plot size range sorts on its low end; the file gets the whole range.
     { id: 'plotSize', header: 'Plot Size (Sq Ft)', accessor: (l) => l.plotSizeSqFt, exportValue: (l) => (l.plotSizeSqFt != null ? formatLeadPlotSize(l) : null), cell: formatLeadPlotSize, align: 'right', minWidth: '140px' },
@@ -201,7 +203,6 @@ export function LeadSheetPage() {
     },
     { id: 'bookingValue', header: 'Booking Value (₹)', accessor: (l) => Number(l.bookingValue ?? 0), cell: (l) => (l.bookingValue ? formatCurrency(l.bookingValue) : '—'), align: 'right', minWidth: '150px' },
     { id: 'lostNurture', header: 'Lost/Nurture Reason', accessor: (l) => l.lostNurtureReason ?? '', minWidth: '180px' },
-    { id: 'remarks', header: 'Remarks', accessor: (l) => l.remarks ?? '', minWidth: '200px' },
   ]
 
   const handleExport = () => {
